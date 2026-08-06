@@ -48,15 +48,17 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 1. Build the extension.
 2. Load the unpacked build directory in Chrome.
 3. Open a D&D Beyond character sheet with no stored full art.
-4. Open D&D Beyond's portrait-management UI from the right sidebar and upload a valid PNG, JPEG, or WebP image smaller than `3 MB`.
-5. Confirm the extension reports that the portrait was saved locally as full art.
-6. Confirm the stored full art opens in the fullscreen viewer.
-7. Reload the page and confirm the stored art still resolves.
-8. Restart Chrome and confirm the stored art still resolves.
-9. Upload another portrait and confirm the stored full art is replaced.
-10. Use `Remove stored full art` and confirm the viewer falls back to the D&D Beyond portrait.
-11. Repeat the same upload flow from the character builder portrait modal.
-12. Try an unsupported or oversized file and confirm the error is clear and the prior stored art is preserved.
+4. Open D&D Beyond's portrait-management UI from the right sidebar and choose a valid PNG, JPEG, or WebP image smaller than `3 MB`.
+5. Without clicking `Change Portrait`, refresh the page and confirm the prior stored full art is unchanged.
+6. Repeat the flow, then click D&D Beyond's native `Change Portrait`.
+7. Confirm the extension reports that the portrait was saved locally as full art.
+8. Confirm the stored full art opens in the fullscreen viewer.
+9. Reload the page and confirm the stored art still resolves.
+10. Restart Chrome and confirm the stored art still resolves.
+11. Upload another portrait and confirm the stored full art is replaced only after `Change Portrait` is clicked.
+12. Use `Remove stored full art` and confirm the viewer falls back to the D&D Beyond portrait.
+13. Repeat the same upload flow from the character builder portrait modal.
+14. Try an unsupported or oversized file and confirm the error is clear and the prior stored art is preserved.
 
 ## MVP manual checklist
 
@@ -94,7 +96,7 @@ When Phase 4 is implemented:
 When Phase 3 is implemented:
 
 1. Save full art through D&D Beyond's existing portrait upload flow.
-2. Confirm `Create portrait crop` appears in the portrait-management surface.
+2. Confirm `Crop portrait` appears in the portrait-management surface.
 3. Open the crop workflow and confirm the stored full art loads into the crop editor.
 4. Drag and zoom the artwork and confirm the preview updates.
 5. Apply the crop and confirm D&D Beyond receives the generated portrait.

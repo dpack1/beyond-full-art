@@ -23,6 +23,21 @@ export const PORTRAIT_MANAGER_FIXTURE = `
           <input class="ct-decoration-manager__upload-file-input" type="file">
         </div>
       </form>
+      <div class="ct-decoration-manager__selected">
+        <div class="ct-decoration-manager__selected-preview">
+          <img
+            class="ddbc-character-avatar__portrait"
+            alt="Character portrait"
+            src="https://www.dndbeyond.com/avatars/58196/625/1581111423-169418374.jpeg?width=150&height=150&fit=crop&quality=95&auto=webp">
+        </div>
+        <div class="ct-decoration-manager__selected-actions">
+          <button
+            class="Button_button__KOWRe ButtonVariants_primary__bPxXP ButtonSizes_x-small__Cwn7q styles_x-small__8tmZN styles_themed__AiJUu styles_solid__2ijrG styles_dark__O1vGK"
+            type="button">
+            Change Portrait
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 `;

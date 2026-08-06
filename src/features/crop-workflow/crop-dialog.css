@@ -1,16 +1,26 @@
 .bfa-crop-overlay {
   align-items: center;
-  background: rgba(8, 12, 17, 0.9);
+  background: transparent;
+  border: none;
+  box-sizing: border-box;
   display: flex;
+  height: 100vh;
   inset: 0;
   justify-content: center;
+  left: 0;
+  margin: 0;
+  max-height: none;
+  max-width: none;
+  overflow: visible;
   padding: 24px;
   position: fixed;
-  z-index: 2147483646;
+  top: 0;
+  width: 100vw;
+  z-index: 2147483647;
 }
 
-.bfa-crop-overlay[hidden] {
-  display: none;
+.bfa-crop-overlay::backdrop {
+  background: rgba(8, 12, 17, 0.9);
 }
 
 .bfa-crop-dialog {

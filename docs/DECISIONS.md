@@ -122,7 +122,31 @@ Why:
 - It preserves D&D Beyond's UI ownership while keeping the extension's addition small and local.
 - It avoids coupling the product to a second upload surface that users would have to learn separately.
 
-The extension still owns its own status and delete UI, and it passively observes the selected file without modifying D&D Beyond's upload behavior.
+The extension still owns its own status and delete UI, and it passively observes file selection while deferring persistence until the user clicks D&D Beyond's native `Change Portrait` action.
+
+## ADR-013: Persist full art on native portrait confirmation, not chooser selection
+
+Status: Accepted
+
+Phase 2 preview state may begin as soon as the user selects a file, but the extension persists replacement full art only when the user confirms the upload through D&D Beyond's native `Change Portrait` control.
+
+Why:
+
+- It avoids replacing stored full art with abandoned chooser selections.
+- It keeps the extension aligned with the user's actual commit point in D&D Beyond's portrait flow.
+- It preserves the existing full-art record unless the user intentionally completes a portrait change.
+
+## ADR-014: A crop prepared from a newly selected replacement file stays pending until native confirmation
+
+Status: Accepted
+
+When the user chooses a replacement portrait file and opens the crop workflow before clicking D&D Beyond's native `Change Portrait`, the extension treats that crop as pending UI state rather than immediately persisting it as the active local crop record.
+
+Why:
+
+- It prevents abandoned chooser selections from overwriting the saved crop tied to the current full art.
+- It keeps the crop's `sourceArtBlobKey` aligned with the full-art blob that is actually committed locally.
+- It lets the crop dialog operate on the newly selected file instead of stale stored art while still respecting ADR-013's commit boundary.
 
 ## ADR-011: Phase 3 stores portrait crops separately from original full art
 
