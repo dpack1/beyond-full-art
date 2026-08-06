@@ -1,59 +1,71 @@
 # Beyond Full Art
 
-Beyond Full Art is a Chrome extension for D&D Beyond that lets you keep your character's full artwork while still using D&D Beyond's normal portrait system.
+Beyond Full Art is a Chrome extension for D&D Beyond that makes character portraits and artwork feel a little better to use.
 
-If you use a large illustration for your character, D&D Beyond usually reduces that down to a small cropped portrait. This extension keeps the original art available, lets you view it fullscreen, and helps you create a portrait crop without replacing D&D Beyond's UI.
+It keeps D&D Beyond's existing portrait flow, but adds two quality-of-life improvements: an easier way to crop portrait art and a better way to view full character artwork.
 
-## What It Does
+## The Problems It Solves
 
-- Opens your character art in a fullscreen viewer from the existing D&D Beyond portrait flow
-- Saves one full-art image locally for each character
-- Lets you crop a square portrait from that full artwork
-- Works inside D&D Beyond's existing portrait management flow
-- Keeps your artwork local to your browser
+### 1. Cropping full-size character art can be awkward
+
+If you start with a full illustration, getting the portrait framing right is awkward. You usually have to crop the image somewhere else first, upload it, then repeat the process until it looks right.
+
+Beyond Full Art adds an in-browser portrait crop flow so you can frame the portrait you want while keeping the original full image.
+
+### 2. Character art is often too small to fully appreciate
+
+Portraits on the sheet are tiny. That means it is hard to appreciate your own character art, and it is even harder to get a nice look at another player's character in a campaign.
+
+Beyond Full Art adds a fullscreen viewer so character art can actually be seen at a useful size.
+
+## What It Adds
+
+- A fullscreen art viewer launched from the existing D&D Beyond portrait flow
+- A local full-art save for each character
+- A portrait crop tool for turning full artwork into a clean square portrait
+- A workflow that stays inside D&D Beyond instead of replacing its UI
+- Local-only artwork storage in your browser
 
 ## Why Use It
 
-D&D Beyond is great for running a character sheet, but it is not built around showing off the full illustration behind a portrait.
+Beyond Full Art is for players who want a smoother character-art experience without turning D&D Beyond into a different app.
 
-Beyond Full Art fills that gap:
-
-- You can actually view your character art at a useful size
-- You can keep a full illustration and a portrait crop together
-- You do not need to manage a separate image workflow outside the sheet
-- The extension adds to D&D Beyond instead of replacing it
+- Crop portraits from full-size art without leaving D&D Beyond
+- View your own character art and your party's character art at a useful size
+- Keep the portrait and the full artwork tied together
+- Avoid juggling separate offline crop steps every time you want to tweak the framing
 
 ## Screenshots
 
-### Enter from the existing sheet UI
+<p align="center">
+  <img src="assets/readme/svg/fullscreen-viewer.svg" alt="Fullscreen art viewer opened from the character portrait" width="700" />
+</p>
 
-![Right-side character pane with the normal portrait entry point](assets/readme/sidebar-entry-point.png)
+<p align="center">
+  <img src="assets/readme/builder-current-full-art.png" alt="Builder portrait manager showing the current custom portrait and current full art" width="420" />
+  <img src="assets/readme/svg/builder-proposed-full-art.svg" alt="Builder portrait manager showing the proposed full art and portrait preview before confirming" width="420" />
+</p>
+<p align="center">
+  When full art has already been saved locally, it appears alongside the current D&amp;D Beyond portrait. Before you finish the portrait flow, you can preview both the portrait crop and the full art that will stay available in the extension.
+</p>
+<p align="center">
+  Once saved, the character's artwork can be opened at a much more useful size directly from the sheet.
+</p>
+<p align="center">
+  <img src="assets/readme/svg/sidebar-entry-point.svg" alt="Right-side character pane with the normal portrait entry point" width="320" />
+  <img src="assets/readme/sidebar-compact-layout.png" alt="Compact right-sidebar portrait tools on the character sheet" width="320" />
+</p>
+<p align="center">
+  The extension starts from D&amp;D Beyond's existing portrait flow and also fits into the narrower character-sheet sidebar without forcing a separate workflow.
+</p>
 
-The extension starts from D&D Beyond's existing portrait flow instead of adding a separate launcher somewhere else.
 
-### View current full art
-
-![Builder portrait manager showing the current custom portrait and current full art](assets/readme/builder-current-full-art.png)
-
-When full art has already been saved locally, it appears alongside the current D&D Beyond portrait.
-
-### Create or revise a portrait crop
-
-![Portrait crop dialog with live drag and zoom editing](assets/readme/portrait-crop-dialog.png)
-
-The crop editor lets you frame a square portrait while keeping the original artwork intact.
-
-### Compare the proposed portrait and full art before applying
-
-![Builder portrait manager showing the proposed full art and portrait preview before confirming](assets/readme/builder-proposed-full-art.png)
-
-Before you finish the portrait flow, you can preview both the portrait crop and the full art that will stay available in the extension.
-
-### Open the art fullscreen
-
-![Fullscreen art viewer opened from the character portrait](assets/readme/fullscreen-viewer.png)
-
-Once saved, the character's artwork can be opened at a much more useful size directly from the sheet.
+<p align="center">
+  <img src="assets/readme/svg/portrait-crop-dialog.svg" alt="Portrait crop dialog with live drag and zoom editing" width="760" />
+</p>
+<p align="center">
+  The crop editor lets you frame a square portrait while keeping the original artwork intact.
+</p>
 
 ## How To Install
 
