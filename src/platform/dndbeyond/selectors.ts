@@ -1,7 +1,13 @@
 export const CHARACTER_MANAGE_PANE_SELECTOR =
   '[data-testid="character-manage-pane"]';
+export const CHARACTER_ART_CONTROLS_ATTRIBUTE_NAME = 'data-bfa-art-controls';
+export const CHARACTER_ART_STYLES_ATTRIBUTE_NAME = 'data-bfa-art-styles';
 export const CHARACTER_PORTRAIT_SELECTOR =
   'img.ddbc-character-avatar__portrait[alt="Character portrait"]';
+export const PORTRAIT_MANAGER_SELECTOR = '.ct-decoration-manager';
+export const PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR =
+  '.ct-decoration-manager__upload-file-input[type="file"]';
+export const PORTRAIT_MANAGER_UPLOAD_SELECTOR = '.ct-decoration-manager__upload';
 export const SIDEBAR_PORTAL_SELECTOR = '.ct-sidebar__portal';
 export const ENHANCED_ATTRIBUTE_NAME = 'data-bfa-enhanced';
 export const PANEL_PORTRAIT_TRIGGER_CLASS_NAME = 'bfa-panel-portrait-trigger';

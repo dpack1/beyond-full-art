@@ -52,12 +52,12 @@ Create a new ExecPlan before beginning.
 
 ### Work items
 
-1. Add an explicit upload action associated with the current character ID.
+1. Integrate with D&D Beyond's portrait-management upload UI and associate that upload with the current character ID.
 2. Validate selected files.
 3. Persist the image Blob in extension-origin IndexedDB.
 4. Persist metadata in `chrome.storage.local`.
 5. Resolve stored full art before the D&D Beyond portrait in the viewer.
-6. Add replace and delete controls.
+6. Add embedded status and delete controls in the portrait-management surface.
 7. Add clear errors that preserve existing art on failed replacement.
 8. Add storage schema versioning and migration tests.
 

@@ -2,17 +2,21 @@
 
 `Beyond Full Art` is a Chrome Manifest V3 extension for D&D Beyond. It enhances the existing character portrait experience without replacing or redesigning D&D Beyond's UI.
 
-The current implementation is the Phase 1 MVP: when the right-side character sidebar is open, the portrait can be clicked to open an accessible fullscreen viewer.
+The current implementation includes the Phase 1 fullscreen viewer and the first full-art storage slice from Phase 2: portrait uploads made through D&D Beyond's existing portrait UI are also saved locally as full art for fullscreen viewing.
 
 ## Current Features
 
-- Runs on D&D Beyond character sheet pages.
+- Runs on D&D Beyond character pages, including the builder route.
 - Preserves D&D Beyond's normal top-left portrait behavior.
 - Enhances the right-side character manage-pane portrait only.
 - Opens the current portrait image in a fullscreen overlay.
+- Saves the file selected through D&D Beyond's portrait upload UI as one local full-art image per character.
+- Stores image bytes locally in extension-owned IndexedDB and metadata in `chrome.storage.local`.
+- Lets the user replace stored full art by uploading another portrait and remove stored full art explicitly.
+- Falls back to the live D&D Beyond portrait when no stored art exists.
 - Supports close via `Escape`, close button, and backdrop click.
 - Restores focus to the invoking portrait after close.
-- Uses no storage, no background worker, and no broad permissions in Phase 1.
+- Uses a narrow MV3 background service worker and the `storage` permission for local persistence only.
 
 ## Roadmap
 
@@ -90,10 +94,15 @@ After loading the extension:
 2. Click the normal top-left portrait and confirm D&D Beyond still opens its own sidebar.
 3. In the right sidebar, click the portrait.
 4. Confirm the fullscreen viewer opens with the current portrait.
-5. Close with `Escape`, the close button, and backdrop click.
-6. Confirm clicking the image itself does not close the viewer.
-7. Confirm the right sidebar stays open when the fullscreen viewer closes.
-8. Navigate to another character page and verify the enhancement still works.
+5. Open D&D Beyond's portrait-management UI from either the right sidebar or the builder portrait modal.
+6. Upload a valid PNG, JPEG, or WebP image smaller than `3 MB`.
+7. Reopen the fullscreen viewer and confirm the stored full art is shown.
+8. Upload another portrait and confirm the stored full art is replaced.
+9. Use `Remove stored full art` and confirm the viewer falls back to the D&D Beyond portrait.
+10. Close with `Escape`, the close button, and backdrop click.
+11. Confirm clicking the image itself does not close the viewer.
+12. Confirm the right sidebar stays open when the fullscreen viewer closes.
+13. Navigate to another character page and verify the enhancement still works.
 
 The fuller validation checklist is in [docs/TESTING.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/TESTING.md:46).
 

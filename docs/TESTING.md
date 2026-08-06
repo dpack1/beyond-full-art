@@ -43,6 +43,21 @@ When full-art storage is implemented:
 
 Automated tests cannot prove that private D&D Beyond DOM and endpoints still match assumptions. Every release touching an adapter requires live manual validation.
 
+## Full-art storage manual checklist
+
+1. Build the extension.
+2. Load the unpacked build directory in Chrome.
+3. Open a D&D Beyond character sheet with no stored full art.
+4. Open D&D Beyond's portrait-management UI from the right sidebar and upload a valid PNG, JPEG, or WebP image smaller than `3 MB`.
+5. Confirm the extension reports that the portrait was saved locally as full art.
+6. Confirm the stored full art opens in the fullscreen viewer.
+7. Reload the page and confirm the stored art still resolves.
+8. Restart Chrome and confirm the stored art still resolves.
+9. Upload another portrait and confirm the stored full art is replaced.
+10. Use `Remove stored full art` and confirm the viewer falls back to the D&D Beyond portrait.
+11. Repeat the same upload flow from the character builder portrait modal.
+12. Try an unsupported or oversized file and confirm the error is clear and the prior stored art is preserved.
+
 ## MVP manual checklist
 
 1. Build the extension.

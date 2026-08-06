@@ -1,13 +1,13 @@
-const CHARACTER_SHEET_PATH_PATTERN = /^\/characters\/(\d+)\/?$/;
+const CHARACTER_PAGE_PATH_PATTERN = /^\/characters\/(\d+)(?:\/.*)?$/;
 
-export function isCharacterSheetUrl(url: URL): boolean {
-  return CHARACTER_SHEET_PATH_PATTERN.test(url.pathname);
+export function isCharacterPageUrl(url: URL): boolean {
+  return CHARACTER_PAGE_PATH_PATTERN.test(url.pathname);
 }
 
-export function parseCharacterIdFromCharacterSheetUrl(
+export function parseCharacterIdFromCharacterPageUrl(
     url: URL,
 ): string | null {
-  const match = CHARACTER_SHEET_PATH_PATTERN.exec(url.pathname);
+  const match = CHARACTER_PAGE_PATH_PATTERN.exec(url.pathname);
   if (match === null) {
     return null;
   }

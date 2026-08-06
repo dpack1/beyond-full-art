@@ -95,3 +95,31 @@ Why:
 - Phase 1 does not need privileged browser events or extension-owned storage.
 - Omitting a service worker keeps the scaffold smaller and easier to review.
 - It preserves the narrow-permission strategy until later phases require more.
+
+## ADR-009: Phase 2 storage is owned by the service worker
+
+Status: Accepted
+
+Phase 2 stores full-art image bytes through the Manifest V3 service worker.
+
+Why:
+
+- It keeps extension-owned persistence out of the page context.
+- It allows one explicit storage owner for both `chrome.storage.local` metadata and IndexedDB Blob writes.
+- It keeps the content script focused on DOM integration, validation, and user interaction.
+
+The current implementation transfers `ArrayBuffer` payloads plus metadata through runtime messages and reconstructs the `Blob` inside the service worker before writing IndexedDB.
+
+## ADR-010: Phase 2 piggybacks on D&D Beyond portrait uploads
+
+Status: Accepted
+
+Phase 2 listens to D&D Beyond's existing portrait-upload file input instead of adding a separate extension-owned upload picker.
+
+Why:
+
+- It matches the user's expected upload flow on both the sheet sidebar and the builder modal.
+- It preserves D&D Beyond's UI ownership while keeping the extension's addition small and local.
+- It avoids coupling the product to a second upload surface that users would have to learn separately.
+
+The extension still owns its own status and delete UI, and it passively observes the selected file without modifying D&D Beyond's upload behavior.

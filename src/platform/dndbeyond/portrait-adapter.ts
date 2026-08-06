@@ -7,8 +7,10 @@ import {isHtmlElement, isHtmlImageElement} from '../../shared/dom';
 import type {Cleanup} from '../../shared/types';
 
 export interface PortraitTarget {
+  controlsContainer: HTMLElement;
   image: HTMLImageElement;
   clickSurface: HTMLElement;
+  panel: HTMLElement;
 }
 
 export function findPanelPortrait(root: ParentNode): PortraitTarget | null {
@@ -24,8 +26,10 @@ export function findPanelPortrait(root: ParentNode): PortraitTarget | null {
   }
 
   return {
+    controlsContainer: findControlsContainer(panel),
     clickSurface: image,
     image,
+    panel,
   };
 }
 
@@ -73,4 +77,13 @@ function findSearchRoot(root: ParentNode): ParentNode {
   }
 
   return root;
+}
+
+function findControlsContainer(panel: HTMLElement): HTMLElement {
+  const firstElementChild = panel.firstElementChild;
+  if (firstElementChild instanceof HTMLElement) {
+    return firstElementChild;
+  }
+
+  return panel;
 }
