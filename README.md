@@ -173,8 +173,6 @@ If you want the product and architecture details, start here:
 - [docs/DECISIONS.md](docs/DECISIONS.md)
 - [docs/TESTING.md](docs/TESTING.md)
 
-Repository-specific contributor guidance lives in [AGENTS.md](AGENTS.md).
-
 ## Disclaimer
 
 This is an independent fan-made extension. It is not affiliated with or endorsed by D&D Beyond or Wizards of the Coast.

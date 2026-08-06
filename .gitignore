@@ -3,3 +3,8 @@ dist/
 .DS_Store
 coverage/
 *.log
+.tmp-imageenv/
+.venv/
+.agent/
+AGENTS.md
+.agent/
