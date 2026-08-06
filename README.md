@@ -1,5 +1,3 @@
-# Beyond Full Art
-
 <p align="center">
   <img src="assets/readme/banner.png" alt="Beyond Full Art banner" width="900" />
 </p>
