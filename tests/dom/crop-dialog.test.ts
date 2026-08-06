@@ -7,6 +7,8 @@ describe('crop dialog', () => {
   const originalRevokeObjectUrl = URL.revokeObjectURL;
   const originalGetContext = HTMLCanvasElement.prototype.getContext;
   const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+  const originalDialogShowModal = HTMLDialogElement.prototype.showModal;
+  const originalDialogClose = HTMLDialogElement.prototype.close;
   const originalImageSrcDescriptor = Object.getOwnPropertyDescriptor(
       HTMLImageElement.prototype,
       'src',
@@ -23,6 +25,12 @@ describe('crop dialog', () => {
     })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.toBlob = function(callback) {
       callback(new Blob(['crop'], {type: 'image/png'}));
+    };
+    HTMLDialogElement.prototype.showModal = function() {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close = function() {
+      this.removeAttribute('open');
     };
 
     Object.defineProperty(HTMLImageElement.prototype, 'src', {
@@ -54,6 +62,8 @@ describe('crop dialog', () => {
     URL.revokeObjectURL = originalRevokeObjectUrl;
     HTMLCanvasElement.prototype.getContext = originalGetContext;
     HTMLCanvasElement.prototype.toBlob = originalToBlob;
+    HTMLDialogElement.prototype.showModal = originalDialogShowModal;
+    HTMLDialogElement.prototype.close = originalDialogClose;
 
     if (originalImageSrcDescriptor !== undefined) {
       Object.defineProperty(HTMLImageElement.prototype, 'src', originalImageSrcDescriptor);

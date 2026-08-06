@@ -59,7 +59,7 @@ export async function openCropDialog(
     };
 
     doc.body.style.overflow = 'hidden';
-    elements.overlay.hidden = false;
+    openOverlay(elements.overlay);
     render();
     elements.closeButton.focus();
 
@@ -76,6 +76,7 @@ export async function openCropDialog(
     const cleanup = () => {
       doc.body.style.overflow = previousBodyOverflow;
       restoreFocus(previousActiveElement);
+      closeOverlay(elements.overlay);
       elements.overlay.remove();
       revokeObjectUrl(sourceUrl);
       if (doc.querySelector(`[${CROP_DIALOG_STYLE_ATTRIBUTE_NAME}]`) === null) {
@@ -221,14 +222,13 @@ function buildCropFileName(sourceFileName: string): string {
 }
 
 function createElements(doc: Document) {
-  const overlay = doc.createElement('div');
+  const overlay = doc.createElement('dialog');
   overlay.className = 'bfa-crop-overlay';
-  overlay.hidden = true;
+  overlay.setAttribute('aria-label', 'Crop portrait');
+  overlay.setAttribute('aria-modal', 'true');
 
   const dialog = doc.createElement('div');
   dialog.className = 'bfa-crop-dialog';
-  dialog.setAttribute('aria-label', 'Create portrait crop');
-  dialog.setAttribute('aria-modal', 'true');
   dialog.setAttribute('role', 'dialog');
   dialog.tabIndex = -1;
 
@@ -288,6 +288,28 @@ function createElements(doc: Document) {
     sourceImage,
     zoomInput,
   };
+}
+
+function openOverlay(overlay: HTMLDialogElement): void {
+  if (typeof overlay.showModal === 'function') {
+    if (!overlay.open) {
+      overlay.showModal();
+    }
+    return;
+  }
+
+  overlay.setAttribute('open', '');
+}
+
+function closeOverlay(overlay: HTMLDialogElement): void {
+  if (typeof overlay.close === 'function') {
+    if (overlay.open) {
+      overlay.close();
+    }
+    return;
+  }
+
+  overlay.removeAttribute('open');
 }
 
 function createButton(

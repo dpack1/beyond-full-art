@@ -101,7 +101,7 @@ After loading the extension:
 6. Upload a valid PNG, JPEG, or WebP image smaller than `3 MB`.
 7. Reopen the fullscreen viewer and confirm the stored full art is shown.
 8. Upload another portrait and confirm the stored full art is replaced.
-9. Use `Create portrait crop`, adjust the crop, and apply it.
+9. Use `Crop portrait`, adjust the crop, and apply it.
 10. Confirm D&D Beyond receives the generated crop and the extension still preserves the original full art for fullscreen viewing.
 11. Reopen the crop workflow and confirm `Edit portrait crop` appears.
 12. Use `Remove stored full art` and confirm the viewer falls back to the D&D Beyond portrait.

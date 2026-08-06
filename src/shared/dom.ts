@@ -8,6 +8,12 @@ export function isHtmlInputElement(
   return value instanceof HTMLInputElement;
 }
 
+export function isHtmlButtonElement(
+    value: Element | null,
+): value is HTMLButtonElement {
+  return value instanceof HTMLButtonElement;
+}
+
 export function isHtmlImageElement(
     value: Element | null,
 ): value is HTMLImageElement {

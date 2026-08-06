@@ -3,7 +3,11 @@ import {
   PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_SELECTOR,
 } from './selectors';
-import {isHtmlElement, isHtmlInputElement} from '../../shared/dom';
+import {
+  isHtmlButtonElement,
+  isHtmlElement,
+  isHtmlInputElement,
+} from '../../shared/dom';
 import type {Cleanup} from '../../shared/types';
 
 export interface PortraitManagementTarget {
@@ -11,6 +15,9 @@ export interface PortraitManagementTarget {
   uploadInput: HTMLInputElement;
   uploadSection: HTMLElement;
 }
+
+const CHANGE_PORTRAIT_BUTTON_TEXT = 'Change Portrait';
+const CURRENT_CUSTOM_CONTENT_SELECTOR = '.ct-decoration-manager__custom-content';
 
 export function findPortraitManagementTargets(
     root: ParentNode,
@@ -65,6 +72,48 @@ export function observePortraitManagementTargets(
   };
 }
 
+export function findChangePortraitButton(
+    uploadSection: ParentNode,
+): HTMLButtonElement | null {
+  const buttons = uploadSection.querySelectorAll('button');
+  for (const button of buttons) {
+    if (!isHtmlButtonElement(button)) {
+      continue;
+    }
+
+    if (normalizeButtonText(button.textContent) === CHANGE_PORTRAIT_BUTTON_TEXT) {
+      return button;
+    }
+  }
+
+  return null;
+}
+
+export function findChangePortraitButtonContainer(
+    uploadSection: ParentNode,
+): HTMLElement | null {
+  const changePortraitButton = findChangePortraitButton(uploadSection);
+  return isHtmlElement(changePortraitButton?.parentElement ?? null)
+    ? changePortraitButton?.parentElement ?? null
+    : null;
+}
+
+export function findCurrentCustomContent(
+    manager: ParentNode,
+): HTMLElement | null {
+  const customContent = manager.querySelector(CURRENT_CUSTOM_CONTENT_SELECTOR);
+  return isHtmlElement(customContent) ? customContent : null;
+}
+
+export function findSelectedPortraitContainer(
+    uploadSection: ParentNode,
+): HTMLElement | null {
+  const changePortraitButtonContainer = findChangePortraitButtonContainer(uploadSection);
+  return isHtmlElement(changePortraitButtonContainer?.parentElement ?? null)
+    ? changePortraitButtonContainer?.parentElement ?? null
+    : null;
+}
+
 function createMutationObserver(
     doc: Document,
     callback: MutationCallback,
@@ -75,4 +124,8 @@ function createMutationObserver(
   }
 
   return new ViewMutationObserver(callback);
+}
+
+function normalizeButtonText(value: string | null): string {
+  return value?.trim().replace(/\s+/g, ' ') ?? '';
 }

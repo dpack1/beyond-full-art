@@ -126,7 +126,7 @@ From the provided portrait-management captures for both the sheet sidebar flow a
 - upload section: `.ct-decoration-manager__upload`
 - native file input: `.ct-decoration-manager__upload-file-input[type="file"]`
 
-The current implementation passively listens to that D&D Beyond file input and saves the selected file locally as full art. It does not replace the input, call `preventDefault()`, or modify D&D Beyond's portrait-upload request.
+The current implementation passively listens to that D&D Beyond file input for preview state, then saves the selected file locally as full art only after the user activates D&D Beyond's native `Change Portrait` action. It does not replace the input, call `preventDefault()`, or modify D&D Beyond's portrait-upload request.
 
 ## Viewer design
 
@@ -172,6 +172,7 @@ The transfer mechanism for large files between an injected file input and extens
 The current implementation uses:
 
 - passive observation of D&D Beyond's portrait-upload file input,
+- passive observation of D&D Beyond's native portrait-confirmation action,
 - content script file validation,
 - structured-clone transfer of an `ArrayBuffer` plus metadata through `chrome.runtime.sendMessage`,
 - a Manifest V3 service worker as the storage owner,
@@ -184,12 +185,14 @@ Replacement writes use a new blob key first, then update metadata, then attempt 
 
 The current crop implementation uses:
 
-- stored full art as the source image for crop generation,
+- stored full art as the default source image for crop generation,
+- the currently selected D&D Beyond portrait-upload file as the crop source when the user is preparing a replacement before native confirmation,
 - extension-owned crop UI injected into the page,
 - pure crop math for zoom/pan state and source-rect reconstruction,
 - a separate portrait-crop metadata record in `chrome.storage.local`,
 - a separate portrait-crop blob in extension-origin IndexedDB,
 - invalidation of the saved crop whenever the stored full art is replaced,
+- transient in-content-script crop state for a newly selected replacement file until D&D Beyond's native `Change Portrait` action commits the matching full art locally,
 - programmatic handoff of the generated crop through D&D Beyond's existing portrait upload input.
 
 This intentionally avoids rewriting the existing full-art metadata shape during the first crop slice.
