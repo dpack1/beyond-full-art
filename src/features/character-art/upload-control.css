@@ -224,6 +224,30 @@
   max-height: clamp(180px, 28vh, 320px);
 }
 
+.bfa-art-sync--compact {
+  overflow-x: hidden;
+}
+
+.bfa-art-sync--compact .bfa-art-sync__top-layout {
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: 14px;
+}
+
+.bfa-art-sync--compact .bfa-art-sync__upload-intro .ct-decoration-manager__upload-heading-rules {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.bfa-art-sync--compact .bfa-art-sync__selected-row {
+  row-gap: 16px;
+}
+
+.bfa-art-sync--compact .bfa-art-sync__selected-row .bfa-art-sync__buttons,
+.bfa-art-sync--compact .bfa-art-sync__native-button-stack,
+.bfa-art-sync--compact .bfa-art-sync__selected-actions {
+  justify-items: start;
+}
+
 @media (max-width: 980px) {
   .bfa-art-sync__top-layout {
     grid-template-columns: minmax(0, 1fr);

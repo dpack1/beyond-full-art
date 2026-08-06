@@ -110,6 +110,97 @@ describe('upload controls', () => {
     expect(controls?.classList.contains('bfa-art-sync--light')).toBe(true);
   });
 
+  it('collapses large full-art previews in narrow sidebar layouts', async () => {
+    const manager = document.querySelector<HTMLElement>('.ct-decoration-manager');
+    const uploadSection = document.querySelector<HTMLElement>('.ct-decoration-manager__upload');
+    const uploadInput = document.querySelector<HTMLInputElement>(
+        '.ct-decoration-manager__upload-file-input',
+    );
+    expect(manager).not.toBeNull();
+    expect(uploadSection).not.toBeNull();
+    expect(uploadInput).not.toBeNull();
+
+    Object.defineProperty(manager!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 420,
+        height: 420,
+        left: 0,
+        right: 420,
+        top: 0,
+        width: 420,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return {};
+        },
+      }),
+    });
+
+    installCharacterArtControls(
+        {manager: manager!, uploadInput: uploadInput!, uploadSection: uploadSection!},
+        {
+          deleteArt: async () => ok(undefined),
+          getCropMetadata: async () => ok(null),
+          getMetadata: async () => ok({
+            blobKey: 'blob-1',
+            byteSize: 2048,
+            characterId: '169418374',
+            createdAt: '2026-08-06T00:00:00.000Z',
+            fileName: 'zurelda.png',
+            height: 1024,
+            mimeType: 'image/png',
+            schemaVersion: 1,
+            updatedAt: '2026-08-06T00:00:00.000Z',
+            width: 1024,
+          }),
+          resolveViewerImage: async () => ({
+            altText: 'stored full art',
+            imageUrl: 'blob:stored-full-art',
+            releaseImageUrl: () => {},
+            usingStoredArt: true,
+            warningMessage: null,
+          }),
+          saveArt: async () => err('Not used'),
+          savePortraitCrop: async () => err('Not used'),
+          getPortraitCropImageData: async () => ok(null),
+          loadCropSource: async () => err('Not used'),
+        },
+        {openForCharacter: async () => ok(null)},
+        '169418374',
+        document,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const file = new File(['image-bytes'], 'zurelda.webp', {
+      type: 'image/webp',
+    });
+    Object.defineProperty(uploadInput!, 'files', {
+      configurable: true,
+      value: [file],
+    });
+    uploadInput!.dispatchEvent(new Event('change', {bubbles: true}));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const controls = uploadSection?.querySelector<HTMLElement>('.bfa-art-sync');
+    const helperCopy = manager?.querySelector<HTMLElement>(
+        '.ct-decoration-manager__upload-heading-rules',
+    );
+    const topPreviewPanel = manager?.querySelector<HTMLElement>(
+        '.bfa-art-sync__top-layout > .bfa-art-sync__preview',
+    );
+    const selectedRowFullArtPanel = uploadSection?.querySelector<HTMLElement>(
+        '.ct-decoration-manager__selected > .bfa-art-sync__preview',
+    );
+
+    expect(controls?.classList.contains('bfa-art-sync--compact')).toBe(true);
+    expect(helperCopy?.textContent).toBe('150 x 150 recommended, 3 MB max');
+    expect(topPreviewPanel).toBeNull();
+    expect(selectedRowFullArtPanel).toBeNull();
+  });
+
   it('keeps the crop button hidden until a portrait file is selected', async () => {
     const manager = document.querySelector<HTMLElement>('.ct-decoration-manager');
     const uploadSection = document.querySelector<HTMLElement>('.ct-decoration-manager__upload');
@@ -679,6 +770,7 @@ describe('upload controls', () => {
         ?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(savePortraitCrop).toHaveBeenCalledWith(expect.objectContaining({
       characterId: '169418374',
@@ -796,6 +888,7 @@ describe('upload controls', () => {
     uploadSection?.querySelector<HTMLButtonElement>('.ct-decoration-manager__selected-actions > button')
         ?.click();
 
+    await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 0));
 

@@ -68,6 +68,9 @@ type ScheduledRenderHandle = ReturnType<typeof globalThis.setTimeout>;
 const CURRENT_CUSTOM_SECTION_SELECTOR = '.ct-decoration-manager__custom';
 const UPLOAD_FORM_SELECTOR = '.ct-decoration-manager__upload-form';
 const UPLOAD_HEADING_SELECTOR = '.ct-decoration-manager__upload-heading';
+const UPLOAD_HEADING_RULES_SELECTOR = '.ct-decoration-manager__upload-heading-rules';
+const COMPACT_LAYOUT_MAX_WIDTH_PX = 540;
+const COMPACT_UPLOAD_RULES_TEXT = '150 x 150 recommended, 3 MB max';
 
 export function installCharacterArtControls(
     target: CharacterArtControlsTarget,
@@ -123,6 +126,10 @@ export function installCharacterArtControls(
   uploadIntro.className = 'bfa-art-sync__upload-intro';
   const currentPreviewPanel = createPreviewPanel(doc, 'Current Full Art');
   const proposedPreviewPanel = createPreviewPanel(doc, 'Proposed Full Art');
+  const resizeObserver = createResizeObserver(target.manager, () => {
+    render();
+  }, doc);
+  let originalUploadRulesText: string | null = null;
 
   const refresh = async () => {
     const [metadataResult, cropMetadataResult] = await Promise.all([
@@ -323,6 +330,7 @@ export function installCharacterArtControls(
       clearScheduledRenders(state.scheduledRenderHandles);
       releasePreview(state.currentPreview);
       releasePreview(state.proposedPreview);
+      resizeObserver?.disconnect();
       target.manager.removeEventListener('change', onManagerChange);
       target.manager.removeEventListener('click', onManagerClick);
       currentPreviewPanel.panel.remove();
@@ -337,11 +345,12 @@ export function installCharacterArtControls(
   };
 
   function render() {
-    if (state.destroyed) {
+    if (state.destroyed || !target.manager.isConnected) {
       return;
     }
 
     ensureTopLayout();
+    syncLayoutMode();
     mountCropButton();
     renderStatus(statusText, state.status);
     renderCurrentPreview();
@@ -427,7 +436,7 @@ export function installCharacterArtControls(
   }
 
   function renderCurrentPreview() {
-    if (state.currentPreview === null) {
+    if (state.currentPreview === null || isCompactLayout(target.manager)) {
       currentPreviewPanel.panel.hidden = true;
       currentPreviewPanel.image.removeAttribute('src');
       return;
@@ -448,7 +457,8 @@ export function installCharacterArtControls(
       return;
     }
 
-    proposedPreviewPanel.panel.hidden = false;
+    const compactLayout = isCompactLayout(target.manager);
+    proposedPreviewPanel.panel.hidden = compactLayout;
     proposedPreviewPanel.image.src = state.proposedPreview.imageUrl;
     const selectedPortraitContainer = findSelectedPortraitContainer(target.uploadSection);
     if (selectedPortraitContainer === null) {
@@ -485,7 +495,13 @@ export function installCharacterArtControls(
         nativePreviewContainer,
         actionContainer,
         proposedPreviewPanel.panel,
+        compactLayout,
     );
+
+    if (compactLayout) {
+      proposedPreviewPanel.panel.remove();
+      return;
+    }
 
     if (proposedPreviewPanel.panel.parentElement !== selectedPortraitContainer) {
       selectedPortraitContainer.append(proposedPreviewPanel.panel);
@@ -505,12 +521,19 @@ export function installCharacterArtControls(
     const uploadHeading = target.uploadSection.querySelector<HTMLElement>(
         UPLOAD_HEADING_SELECTOR,
     );
+    const uploadHeadingRules = target.uploadSection.querySelector<HTMLElement>(
+        UPLOAD_HEADING_RULES_SELECTOR,
+    );
     const uploadForm = target.uploadSection.querySelector<HTMLElement>(
         UPLOAD_FORM_SELECTOR,
     );
 
     if (customSection === null || uploadHeading === null || uploadForm === null) {
       return;
+    }
+
+    if (originalUploadRulesText === null && uploadHeadingRules !== null) {
+      originalUploadRulesText = uploadHeadingRules.textContent?.trim() ?? '';
     }
 
     topMain.classList.add('bfa-art-sync__top-column');
@@ -536,6 +559,21 @@ export function installCharacterArtControls(
 
     const customContent = findCurrentCustomContent(target.manager);
     customContent?.classList.add('bfa-art-sync__custom-content');
+  }
+
+  function syncLayoutMode() {
+    const compactLayout = isCompactLayout(target.manager);
+    controls.classList.toggle('bfa-art-sync--compact', compactLayout);
+    topLayout.classList.toggle('bfa-art-sync__top-layout--compact', compactLayout);
+
+    const uploadHeadingRules = target.manager.querySelector<HTMLElement>(
+        UPLOAD_HEADING_RULES_SELECTOR,
+    );
+    if (uploadHeadingRules !== null) {
+      uploadHeadingRules.textContent = compactLayout
+        ? COMPACT_UPLOAD_RULES_TEXT
+        : (originalUploadRulesText ?? uploadHeadingRules.textContent ?? '');
+    }
   }
 }
 
@@ -580,6 +618,11 @@ function resolveCropButtonHasExistingCrop(
   }
 
   return portraitCropMetadata !== null;
+}
+
+function isCompactLayout(manager: HTMLElement): boolean {
+  const width = manager.getBoundingClientRect().width;
+  return width > 0 && width <= COMPACT_LAYOUT_MAX_WIDTH_PX;
 }
 
 function resolveFallbackViewerImage(manager: HTMLElement): ViewerImageResolution {
@@ -649,26 +692,27 @@ function applySelectedRowLayout(
     nativePreviewContainer: HTMLElement | null,
     actionContainer: HTMLElement,
     proposedPreviewPanel: HTMLElement,
+    compactLayout: boolean,
 ): void {
   setImportantStyle(selectedPortraitContainer, 'display', 'grid');
   setImportantStyle(selectedPortraitContainer, 'align-items', 'start');
-  setImportantStyle(selectedPortraitContainer, 'column-gap', '28px');
+  setImportantStyle(selectedPortraitContainer, 'column-gap', compactLayout ? '16px' : '28px');
   setImportantStyle(
       selectedPortraitContainer,
       'grid-template-columns',
-      'max-content minmax(0, 1fr)',
+      compactLayout ? '1fr' : 'max-content minmax(0, 1fr)',
   );
 
   setImportantStyle(selectedControlsColumn, 'display', 'grid');
   setImportantStyle(selectedControlsColumn, 'align-content', 'start');
-  setImportantStyle(selectedControlsColumn, 'gap', '18px');
+  setImportantStyle(selectedControlsColumn, 'gap', compactLayout ? '12px' : '18px');
   setImportantStyle(selectedControlsColumn, 'grid-column', '1');
-  setImportantStyle(selectedControlsColumn, 'justify-items', 'center');
-  setImportantStyle(selectedControlsColumn, 'width', 'max-content');
+  setImportantStyle(selectedControlsColumn, 'justify-items', compactLayout ? 'start' : 'center');
+  setImportantStyle(selectedControlsColumn, 'width', compactLayout ? '100%' : 'max-content');
 
   if (nativePreviewContainer !== null) {
     setImportantStyle(nativePreviewContainer, 'display', 'grid');
-    setImportantStyle(nativePreviewContainer, 'justify-self', 'center');
+    setImportantStyle(nativePreviewContainer, 'justify-self', compactLayout ? 'start' : 'center');
     setImportantStyle(nativePreviewContainer, 'min-width', '0');
     setImportantStyle(nativePreviewContainer, 'width', 'max-content');
     const nativePreviewHeading = nativePreviewContainer.firstElementChild;
@@ -681,30 +725,39 @@ function applySelectedRowLayout(
 
   setImportantStyle(actionContainer, 'display', 'grid');
   setImportantStyle(actionContainer, 'align-content', 'start');
-  setImportantStyle(actionContainer, 'gap', '14px');
-  setImportantStyle(actionContainer, 'justify-self', 'center');
+  setImportantStyle(actionContainer, 'gap', compactLayout ? '10px' : '14px');
+  setImportantStyle(actionContainer, 'justify-self', compactLayout ? 'start' : 'center');
   setImportantStyle(actionContainer, 'min-width', '0');
-  setImportantStyle(actionContainer, 'width', 'max-content');
+  setImportantStyle(
+      actionContainer,
+      'width',
+      compactLayout ? 'min(100%, 220px)' : 'max-content',
+  );
 
   const injectedButtonRow = actionContainer.querySelector<HTMLElement>(':scope > .bfa-art-sync__buttons');
-  setImportantStyle(injectedButtonRow, 'width', 'auto');
-  setImportantStyle(injectedButtonRow, 'justify-items', 'start');
+  setImportantStyle(injectedButtonRow, 'width', compactLayout ? '100%' : 'auto');
+  setImportantStyle(injectedButtonRow, 'justify-items', compactLayout ? 'stretch' : 'start');
   const injectedCropButton = injectedButtonRow?.querySelector<HTMLButtonElement>('.bfa-art-sync__button');
   const nativeChangeButton = actionContainer.querySelector<HTMLButtonElement>(
       ':scope > button',
   );
   const buttonWidth = computeUniformButtonWidth(nativeChangeButton, injectedCropButton ?? null);
-  setUniformButtonWidth(nativeChangeButton, buttonWidth);
-  setUniformButtonWidth(injectedCropButton ?? null, buttonWidth);
+  if (compactLayout) {
+    setImportantStyle(nativeChangeButton, 'width', '100%');
+    setImportantStyle(injectedCropButton ?? null, 'width', '100%');
+  } else {
+    setUniformButtonWidth(nativeChangeButton, buttonWidth);
+    setUniformButtonWidth(injectedCropButton ?? null, buttonWidth);
+  }
 
   setImportantStyle(proposedPreviewPanel, 'grid-column', '2');
   setImportantStyle(proposedPreviewPanel, 'align-self', 'start');
   setImportantStyle(proposedPreviewPanel, 'min-width', '0');
-  setImportantStyle(proposedPreviewPanel, 'width', 'min(100%, 360px)');
+  setImportantStyle(proposedPreviewPanel, 'width', compactLayout ? '0' : 'min(100%, 360px)');
   const proposedPreviewImage = proposedPreviewPanel.querySelector<HTMLImageElement>(
       '.bfa-art-sync__preview-image',
   );
-  setImportantStyle(proposedPreviewImage ?? null, 'max-height', '280px');
+  setImportantStyle(proposedPreviewImage ?? null, 'max-height', compactLayout ? '0' : '280px');
 }
 
 function clearSelectedRowLayout(
@@ -791,6 +844,23 @@ function clearImportantStyle(
     propertyName: string,
 ): void {
   element?.style.removeProperty(propertyName);
+}
+
+function createResizeObserver(
+    manager: HTMLElement,
+    onResize: () => void,
+    doc: Document,
+): ResizeObserver | null {
+  const ResizeObserverConstructor = doc.defaultView?.ResizeObserver ?? globalThis.ResizeObserver;
+  if (typeof ResizeObserverConstructor !== 'function') {
+    return null;
+  }
+
+  const observer = new ResizeObserverConstructor(() => {
+    onResize();
+  });
+  observer.observe(manager);
+  return observer;
 }
 
 function ensureSelectedControlsColumn(
