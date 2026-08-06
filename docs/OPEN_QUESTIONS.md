@@ -1,0 +1,36 @@
+# Open Questions and Validation Items
+
+These are not product ambiguities that block the MVP. They are implementation details that require live evidence or a later product decision.
+
+## MVP live-site questions
+
+- Which stable DOM attributes or structural relationships identify the right-side character panel portrait?
+  - Observed on 2026-08-06 from the provided manage-pane subtree: `[data-testid="character-manage-pane"]` contains `img.ddbc-character-avatar__portrait[alt="Character portrait"]`, with `.ct-sidebar__portal` available as a sidebar portal root.
+- Does D&D Beyond replace the portrait node when the panel rerenders?
+- Does client-side navigation reuse the same document?
+- Is `currentSrc` the best available image URL, or is a larger source already present in `srcset`, a parent link, or page data?
+- Are there alternate character sheet layouts at different viewport widths?
+
+## Full-art storage questions
+
+- Maximum accepted file size.
+- Supported MIME types.
+- Whether to keep exact source bytes or normalize images.
+- Whether to create a smaller preview for faster viewer startup.
+- How to transfer a large selected File into extension-origin IndexedDB without wasteful encoding.
+- Whether an export or backup feature is required before public release.
+
+## Deletion cleanup questions
+
+- Is the characters list the only user-accessible deletion surface?
+- Is the observed endpoint and 204 status consistent across accounts and current site versions?
+- Does `chrome.webRequest` expose a DELETE JSON request body in the target Chrome version?
+- Can request completion be reliably correlated after service worker suspension?
+- Is the request always associated with the active tab?
+- What should an orphan-art manager look like when the user chooses to keep art after deleting a character?
+
+## Cropping questions
+
+- Can D&D Beyond's existing portrait upload flow accept a generated crop through supported UI interaction?
+- Is direct endpoint integration allowed or desirable?
+- Which crop aspect ratio and preview sizes match D&D Beyond's portrait rendering?

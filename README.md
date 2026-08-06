@@ -1,0 +1,108 @@
+# Beyond Full Art
+
+`Beyond Full Art` is a Chrome Manifest V3 extension for D&D Beyond. It enhances the existing character portrait experience without replacing or redesigning D&D Beyond's UI.
+
+The current implementation is the Phase 1 MVP: when the right-side character sidebar is open, the portrait can be clicked to open an accessible fullscreen viewer.
+
+## Current Features
+
+- Runs on D&D Beyond character sheet pages.
+- Preserves D&D Beyond's normal top-left portrait behavior.
+- Enhances the right-side character manage-pane portrait only.
+- Opens the current portrait image in a fullscreen overlay.
+- Supports close via `Escape`, close button, and backdrop click.
+- Restores focus to the invoking portrait after close.
+- Uses no storage, no background worker, and no broad permissions in Phase 1.
+
+## Roadmap
+
+- Phase 1: fullscreen portrait viewer MVP
+- Phase 2: local full-art upload and storage
+- Phase 3: deletion cleanup prompt for locally stored art
+- Phase 4: crop workflow research and implementation
+
+See [docs/PRODUCT_SPEC.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/PRODUCT_SPEC.md:1), [docs/ARCHITECTURE.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/ARCHITECTURE.md:1), and [docs/IMPLEMENTATION_PLAN.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/IMPLEMENTATION_PLAN.md:1) for the detailed product and technical plan.
+
+## Tech Stack
+
+- Chrome Extension Manifest V3
+- TypeScript with strict compiler settings
+- `esbuild` for bundling
+- `vitest` + `jsdom` for unit and DOM tests
+- Plain DOM APIs and CSS for injected UI
+
+## Repository Layout
+
+```text
+src/
+  content/                  Content-script entrypoints and page wiring
+  features/
+    fullscreen-viewer/      Overlay UI, focus handling, styles
+  platform/
+    dndbeyond/              D&D Beyond URL and DOM adapters
+  shared/                   Small shared helpers and types
+tests/
+  dom/                      DOM behavior tests
+  fixtures/                 Minimal HTML fixtures
+  unit/                     Pure logic tests
+docs/                       Product, architecture, decisions, and testing notes
+```
+
+## Local Setup
+
+This repo expects Node 20. If you use `nvm`:
+
+```bash
+nvm use
+npm install
+```
+
+If your system `node` is broken or points somewhere unexpected, you can still run commands explicitly with:
+
+```bash
+PATH="$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH" npm install
+```
+
+## Development Commands
+
+```bash
+npm run typecheck
+npm test
+npm run build
+npm run watch
+```
+
+The unpacked extension build is written to `dist/`.
+
+## Load the Extension in Chrome
+
+1. Run `npm run build`.
+2. Open `chrome://extensions`.
+3. Enable `Developer mode`.
+4. Click `Load unpacked`.
+5. Select the repository [dist](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/dist) directory.
+
+## Manual Validation
+
+After loading the extension:
+
+1. Open a D&D Beyond character sheet.
+2. Click the normal top-left portrait and confirm D&D Beyond still opens its own sidebar.
+3. In the right sidebar, click the portrait.
+4. Confirm the fullscreen viewer opens with the current portrait.
+5. Close with `Escape`, the close button, and backdrop click.
+6. Confirm clicking the image itself does not close the viewer.
+7. Confirm the right sidebar stays open when the fullscreen viewer closes.
+8. Navigate to another character page and verify the enhancement still works.
+
+The fuller validation checklist is in [docs/TESTING.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/TESTING.md:46).
+
+## Design Constraints
+
+- Do not lose user artwork.
+- Do not break or block normal D&D Beyond behavior.
+- Keep permissions as narrow as the current feature allows.
+- Centralize D&D Beyond selectors and assumptions behind adapters.
+- Prefer small, direct modules over generalized frameworks.
+
+These constraints are documented in [AGENTS.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/AGENTS.md:1).

@@ -1,0 +1,72 @@
+.bfa-panel-portrait-trigger {
+  cursor: zoom-in;
+  transition: box-shadow 120ms ease, transform 120ms ease;
+}
+
+.bfa-panel-portrait-trigger:hover,
+.bfa-panel-portrait-trigger:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 5px rgba(197, 49, 49, 0.95);
+  outline: none;
+  transform: scale(1.02);
+}
+
+.bfa-viewer-overlay {
+  align-items: center;
+  background: rgba(9, 13, 18, 0.88);
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 2147483647;
+}
+
+.bfa-viewer-overlay[hidden] {
+  display: none;
+}
+
+.bfa-viewer-dialog {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  max-height: calc(100vh - 48px);
+  max-width: min(96vw, 1400px);
+  position: relative;
+  width: fit-content;
+}
+
+.bfa-viewer-close {
+  appearance: none;
+  background: rgba(18, 24, 28, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  padding: 10px 14px;
+  position: absolute;
+  right: 16px;
+  top: 16px;
+}
+
+.bfa-viewer-close:hover,
+.bfa-viewer-close:focus-visible {
+  border-color: rgba(197, 49, 49, 0.95);
+  outline: none;
+}
+
+.bfa-viewer-image {
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: block;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bfa-panel-portrait-trigger {
+    transition: none;
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Beyond Full Art",
+  "version": "0.1.0",
+  "description": "Open D&D Beyond character sidebar portraits in an accessible fullscreen viewer.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.dndbeyond.com/characters/*"],
+      "js": ["content/character-sheet-entry.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
