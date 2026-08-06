@@ -1,123 +1,147 @@
 # Beyond Full Art
 
-`Beyond Full Art` is a Chrome Manifest V3 extension for D&D Beyond. It enhances the existing character portrait experience without replacing or redesigning D&D Beyond's UI.
+Beyond Full Art is a Chrome extension for D&D Beyond that lets you keep your character's full artwork while still using D&D Beyond's normal portrait system.
 
-The current implementation includes the Phase 1 fullscreen viewer, the Phase 2 full-art storage slice, and the first Phase 3 crop workflow slice: portrait uploads made through D&D Beyond's existing portrait UI are saved locally as full art, and stored full art can now be cropped into a separate portrait image for D&D Beyond.
+If you use a large illustration for your character, D&D Beyond usually reduces that down to a small cropped portrait. This extension keeps the original art available, lets you view it fullscreen, and helps you create a portrait crop without replacing D&D Beyond's UI.
 
-## Current Features
+## What It Does
 
-- Runs on D&D Beyond character pages, including the builder route.
-- Preserves D&D Beyond's normal top-left portrait behavior.
-- Enhances the right-side character manage-pane portrait only.
-- Opens the current portrait image in a fullscreen overlay.
-- Saves the file selected through D&D Beyond's portrait upload UI as one local full-art image per character.
-- Stores image bytes locally in extension-owned IndexedDB and metadata in `chrome.storage.local`.
-- Lets the user open a crop workflow from the portrait-management surface when stored full art exists.
-- Saves a generated portrait crop locally as a separate artifact from the original full art.
-- Submits the generated crop back through D&D Beyond's existing portrait upload input.
-- Lets the user replace stored full art by uploading another portrait and remove stored full art explicitly.
-- Falls back to the live D&D Beyond portrait when no stored art exists.
-- Supports close via `Escape`, close button, and backdrop click.
-- Restores focus to the invoking portrait after close.
-- Uses a narrow MV3 background service worker and the `storage` permission for local persistence only.
+- Opens your character art in a fullscreen viewer from the existing D&D Beyond portrait flow
+- Saves one full-art image locally for each character
+- Lets you crop a square portrait from that full artwork
+- Works inside D&D Beyond's existing portrait management flow
+- Keeps your artwork local to your browser
 
-## Roadmap
+## Why Use It
 
-- Phase 1: fullscreen portrait viewer MVP
-- Phase 2: local full-art upload and storage
-- Phase 3: crop workflow research and implementation
-- Phase 4: deletion cleanup prompt for locally stored art
+D&D Beyond is great for running a character sheet, but it is not built around showing off the full illustration behind a portrait.
 
-See [docs/PRODUCT_SPEC.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/PRODUCT_SPEC.md:1), [docs/ARCHITECTURE.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/ARCHITECTURE.md:1), and [docs/IMPLEMENTATION_PLAN.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/IMPLEMENTATION_PLAN.md:1) for the detailed product and technical plan.
+Beyond Full Art fills that gap:
 
-## Tech Stack
+- You can actually view your character art at a useful size
+- You can keep a full illustration and a portrait crop together
+- You do not need to manage a separate image workflow outside the sheet
+- The extension adds to D&D Beyond instead of replacing it
 
-- Chrome Extension Manifest V3
-- TypeScript with strict compiler settings
-- `esbuild` for bundling
-- `vitest` + `jsdom` for unit and DOM tests
-- Plain DOM APIs and CSS for injected UI
+## Screenshots
 
-## Repository Layout
+### Enter from the existing sheet UI
 
-```text
-src/
-  content/                  Content-script entrypoints and page wiring
-  features/
-    fullscreen-viewer/      Overlay UI, focus handling, styles
-  platform/
-    dndbeyond/              D&D Beyond URL and DOM adapters
-  shared/                   Small shared helpers and types
-tests/
-  dom/                      DOM behavior tests
-  fixtures/                 Minimal HTML fixtures
-  unit/                     Pure logic tests
-docs/                       Product, architecture, decisions, and testing notes
-```
+![Right-side character pane with the normal portrait entry point](assets/readme/sidebar-entry-point.png)
 
-## Local Setup
+The extension starts from D&D Beyond's existing portrait flow instead of adding a separate launcher somewhere else.
 
-This repo expects Node 20. If you use `nvm`:
+### View current full art
+
+![Builder portrait manager showing the current custom portrait and current full art](assets/readme/builder-current-full-art.png)
+
+When full art has already been saved locally, it appears alongside the current D&D Beyond portrait.
+
+### Create or revise a portrait crop
+
+![Portrait crop dialog with live drag and zoom editing](assets/readme/portrait-crop-dialog.png)
+
+The crop editor lets you frame a square portrait while keeping the original artwork intact.
+
+### Compare the proposed portrait and full art before applying
+
+![Builder portrait manager showing the proposed full art and portrait preview before confirming](assets/readme/builder-proposed-full-art.png)
+
+Before you finish the portrait flow, you can preview both the portrait crop and the full art that will stay available in the extension.
+
+### Open the art fullscreen
+
+![Fullscreen art viewer opened from the character portrait](assets/readme/fullscreen-viewer.png)
+
+Once saved, the character's artwork can be opened at a much more useful size directly from the sheet.
+
+## How To Install
+
+There is no Chrome Web Store release yet.
+
+### 1. Build the extension
 
 ```bash
 nvm use
 npm install
-```
-
-If your system `node` is broken or points somewhere unexpected, you can still run commands explicitly with:
-
-```bash
-PATH="$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH" npm install
-```
-
-## Development Commands
-
-```bash
-npm run typecheck
-npm test
 npm run build
-npm run watch
 ```
 
-The unpacked extension build is written to `dist/`.
+If your local `node` path is not already active, use:
 
-## Load the Extension in Chrome
+```bash
+PATH="$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH" npm run build
+```
 
-1. Run `npm run build`.
-2. Open `chrome://extensions`.
-3. Enable `Developer mode`.
-4. Click `Load unpacked`.
-5. Select the repository [dist](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/dist) directory.
+### 2. Load it in Chrome
 
-## Manual Validation
+1. Open `chrome://extensions`
+2. Turn on `Developer mode`
+3. Click `Load unpacked`
+4. Select the repository's `dist/` folder
 
-After loading the extension:
+## How To Use
+
+### View full art
 
 1. Open a D&D Beyond character sheet.
-2. Click the normal top-left portrait and confirm D&D Beyond still opens its own sidebar.
-3. In the right sidebar, click the portrait.
-4. Confirm the fullscreen viewer opens with the current portrait.
-5. Open D&D Beyond's portrait-management UI from either the right sidebar or the builder portrait modal.
-6. Upload a valid PNG, JPEG, or WebP image smaller than `3 MB`.
-7. Reopen the fullscreen viewer and confirm the stored full art is shown.
-8. Upload another portrait and confirm the stored full art is replaced.
-9. Use `Crop portrait`, adjust the crop, and apply it.
-10. Confirm D&D Beyond receives the generated crop and the extension still preserves the original full art for fullscreen viewing.
-11. Reopen the crop workflow and confirm `Edit portrait crop` appears.
-12. Use `Remove stored full art` and confirm the viewer falls back to the D&D Beyond portrait.
-13. Close with `Escape`, the close button, and backdrop click.
-14. Confirm clicking the image itself does not close the viewer.
-15. Confirm the right sidebar stays open when the fullscreen viewer closes.
-16. Navigate to another character page and verify the enhancement still works.
+2. Click the normal portrait to open D&D Beyond's portrait pane.
+3. Click the portrait inside that pane.
+4. The extension opens the image fullscreen.
 
-The fuller validation checklist is in [docs/TESTING.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/TESTING.md:46).
+### Save full art
 
-## Design Constraints
+1. Open D&D Beyond's portrait manager.
+2. Choose a portrait image through D&D Beyond's normal upload flow.
+3. Click D&D Beyond's native portrait confirmation button.
+4. The extension saves that same source image locally as full art.
 
-- Do not lose user artwork.
-- Do not break or block normal D&D Beyond behavior.
-- Keep permissions as narrow as the current feature allows.
-- Centralize D&D Beyond selectors and assumptions behind adapters.
-- Prefer small, direct modules over generalized frameworks.
+### Crop a portrait
 
-These constraints are documented in [AGENTS.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/AGENTS.md:1).
+1. Open the portrait manager after full art is available.
+2. Choose `Crop portrait` or `Edit portrait crop`.
+3. Drag and zoom until the portrait framing looks right.
+4. Apply the crop.
+5. Finish the D&D Beyond portrait flow if it asks you to confirm the change.
+
+## Privacy
+
+- Your artwork is stored locally in your browser
+- The extension does not upload your art to an external service
+- Removing the extension removes access to the stored local art
+- There is currently no cloud sync
+
+## Current Status
+
+Available now:
+
+- Fullscreen art viewer
+- Local full-art storage
+- Portrait crop workflow
+- Manual removal of stored full art
+
+Planned next:
+
+- Better cleanup when a D&D Beyond character is deleted
+
+## Known Limits
+
+- No Chrome Web Store release yet
+- Local art is tied to the browser where you installed the extension
+- Only one active full-art image is stored per character right now
+
+## For Developers
+
+If you want the product and architecture details, start here:
+
+- [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
+- [docs/DECISIONS.md](docs/DECISIONS.md)
+- [docs/TESTING.md](docs/TESTING.md)
+
+Repository-specific contributor guidance lives in [AGENTS.md](AGENTS.md).
+
+## Disclaimer
+
+This is an independent fan-made extension. It is not affiliated with or endorsed by D&D Beyond or Wizards of the Coast.
