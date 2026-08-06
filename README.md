@@ -1,5 +1,9 @@
 # Beyond Full Art
 
+<p align="center">
+  <img src="assets/readme/banner.png" alt="Beyond Full Art banner" width="900" />
+</p>
+
 Beyond Full Art is a Chrome extension for D&D Beyond that makes character portraits and artwork feel a little better to use.
 
 It keeps D&D Beyond's existing portrait flow, but adds two quality-of-life improvements: an easier way to crop portrait art and a better way to view full character artwork.
@@ -37,34 +41,43 @@ Beyond Full Art is for players who want a smoother character-art experience with
 
 ## Screenshots
 
+<table>
+  <tr>
+    <td align="center" valign="top">
+      <strong>Fullscreen art viewing</strong>
+      <br />
+      Open character art at a size that actually lets you appreciate it.
+      <br /><br />
+      <img src="assets/readme/svg/fullscreen-viewer.svg" alt="Fullscreen art viewer opened from the character portrait" height="320" />
+    </td>
+    <td align="center" valign="top">
+      <strong>Better portrait cropping</strong>
+      <br />
+      Frame a square portrait from full-size art without leaving D&amp;D Beyond.
+      <br /><br />
+      <img src="assets/readme/svg/portrait-crop-dialog.svg" alt="Portrait crop dialog with live drag and zoom editing" height="320" />
+    </td>
+  </tr>
+</table>
+
+### Where to find these in D&D Beyond
+
 <p align="center">
-  <img src="assets/readme/svg/fullscreen-viewer.svg" alt="Fullscreen art viewer opened from the character portrait" width="700" />
+  <strong>Character sheet</strong><br />
+  Open the normal portrait area on the character sheet to view art fullscreen, then use the portrait tools in the sidebar.
+</p>
+<p align="center">
+  <img src="assets/readme/svg/sidebar-entry-point.svg" alt="Right-side character pane with the normal portrait entry point" height="320" />
+  <img src="assets/readme/sidebar-compact-layout.png" alt="Compact right-sidebar portrait tools on the character sheet" height="320" />
 </p>
 
 <p align="center">
-  <img src="assets/readme/builder-current-full-art.png" alt="Builder portrait manager showing the current custom portrait and current full art" width="420" />
-  <img src="assets/readme/svg/builder-proposed-full-art.svg" alt="Builder portrait manager showing the proposed full art and portrait preview before confirming" width="420" />
+  <strong>Builder modal</strong><br />
+  Use the portrait manager in the builder to save full art, preview the portrait crop, and keep the portrait and artwork connected in one flow.
 </p>
 <p align="center">
-  When full art has already been saved locally, it appears alongside the current D&amp;D Beyond portrait. Before you finish the portrait flow, you can preview both the portrait crop and the full art that will stay available in the extension.
-</p>
-<p align="center">
-  Once saved, the character's artwork can be opened at a much more useful size directly from the sheet.
-</p>
-<p align="center">
-  <img src="assets/readme/svg/sidebar-entry-point.svg" alt="Right-side character pane with the normal portrait entry point" width="320" />
-  <img src="assets/readme/sidebar-compact-layout.png" alt="Compact right-sidebar portrait tools on the character sheet" width="320" />
-</p>
-<p align="center">
-  The extension starts from D&amp;D Beyond's existing portrait flow and also fits into the narrower character-sheet sidebar without forcing a separate workflow.
-</p>
-
-
-<p align="center">
-  <img src="assets/readme/svg/portrait-crop-dialog.svg" alt="Portrait crop dialog with live drag and zoom editing" width="760" />
-</p>
-<p align="center">
-  The crop editor lets you frame a square portrait while keeping the original artwork intact.
+  <img src="assets/readme/builder-current-full-art.png" alt="Builder portrait manager showing the current custom portrait and current full art" height="320" />
+  <img src="assets/readme/svg/builder-proposed-full-art.svg" alt="Builder portrait manager showing the proposed full art and portrait preview before confirming" height="320" />
 </p>
 
 ## How To Install
@@ -123,6 +136,15 @@ PATH="$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH" npm run build
 - Removing the extension removes access to the stored local art
 - There is currently no cloud sync
 
+## Storage Expectations
+
+- For normal use, local storage should be fine
+- Storage use grows as you save more full-art images
+- If you save artwork for a lot of characters, the extension can start taking up a noticeable amount of browser storage
+- The biggest factor is the size of the original images you save
+- Right now, the extension keeps one active full-art image per character, plus any saved portrait crop for that character
+- If you expect to store art for a large roster, it is a good idea to occasionally remove artwork you no longer need
+
 ## Current Status
 
 Available now:
@@ -141,6 +163,7 @@ Planned next:
 - No Chrome Web Store release yet
 - Local art is tied to the browser where you installed the extension
 - Only one active full-art image is stored per character right now
+- There is not yet a built-in storage dashboard or usage meter
 
 ## For Developers
 
