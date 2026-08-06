@@ -1,11 +1,20 @@
 import characterArtStyles from './upload-control.css?raw';
 import type {CharacterArtService} from './art-service';
-import type {CharacterId} from './art-types';
+import type {
+  CharacterArtMetadata,
+  CharacterId,
+  CharacterPortraitCropMetadata,
+} from './art-types';
+import type {
+  CharacterPortraitCropWorkflow,
+  CropWorkflowStatus,
+} from '../crop-workflow/crop-workflow';
 import {
   CHARACTER_ART_CONTROLS_ATTRIBUTE_NAME,
   CHARACTER_ART_STYLES_ATTRIBUTE_NAME,
   PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
 } from '../../platform/dndbeyond/selectors';
+import {isExtensionDrivenPortraitUpload} from '../../platform/dndbeyond/portrait-upload-handoff';
 import {isHtmlInputElement, isHtmlElement} from '../../shared/dom';
 import type {Cleanup} from '../../shared/types';
 
@@ -13,11 +22,13 @@ type StatusTone = 'error' | 'info' | 'success';
 
 export interface CharacterArtControlsController {
   cleanup: Cleanup;
+  refresh(): Promise<void>;
   setStatus(message: string, tone: StatusTone): void;
 }
 
 export interface CharacterArtControlsTarget {
   manager: HTMLElement;
+  uploadInput: HTMLInputElement;
   uploadSection: HTMLElement;
 }
 
@@ -29,6 +40,7 @@ interface StatusState {
 export function installCharacterArtControls(
     target: CharacterArtControlsTarget,
     service: CharacterArtService,
+    cropWorkflow: CharacterPortraitCropWorkflow,
     characterId: CharacterId,
     doc: Document = document,
 ): CharacterArtControlsController {
@@ -40,13 +52,16 @@ export function installCharacterArtControls(
   if (existingControls !== null) {
     return {
       cleanup() {},
+      async refresh() {},
       setStatus() {},
     };
   }
 
   const state = {
     destroyed: false,
+    fullArtMetadata: null as CharacterArtMetadata | null,
     isBusy: false,
+    portraitCropMetadata: null as CharacterPortraitCropMetadata | null,
     status: ({
       message: '',
       tone: 'info',
@@ -58,9 +73,34 @@ export function installCharacterArtControls(
   controls.setAttribute(CHARACTER_ART_CONTROLS_ATTRIBUTE_NAME, 'true');
   controls.classList.add(resolveThemeClassName(target.uploadSection, doc));
 
+  const buttonRow = doc.createElement('div');
+  buttonRow.className = 'bfa-art-sync__buttons';
   const statusText = doc.createElement('p');
   statusText.className = 'bfa-art-sync__status bfa-art-sync__status--info';
   statusText.hidden = true;
+
+  const refresh = async () => {
+    const [metadataResult, cropMetadataResult] = await Promise.all([
+      service.getMetadata(characterId),
+      service.getCropMetadata(characterId),
+    ]);
+
+    if (!metadataResult.ok) {
+      setStatus(metadataResult.error, 'error');
+      render();
+      return;
+    }
+
+    if (!cropMetadataResult.ok) {
+      setStatus(cropMetadataResult.error, 'error');
+      render();
+      return;
+    }
+
+    state.fullArtMetadata = metadataResult.value;
+    state.portraitCropMetadata = cropMetadataResult.value;
+    render();
+  };
 
   const setBusy = (isBusy: boolean) => {
     state.isBusy = isBusy;
@@ -82,7 +122,12 @@ export function installCharacterArtControls(
       return;
     }
 
+    if (isExtensionDrivenPortraitUpload(uploadInput)) {
+      return;
+    }
+
     const selectedFile = uploadInput.files?.[0];
+    render();
     if (selectedFile === undefined || state.isBusy) {
       return;
     }
@@ -97,7 +142,31 @@ export function installCharacterArtControls(
       return;
     }
 
+    await refresh();
     setStatus('Portrait saved locally as full art.', 'success');
+    render();
+  };
+
+  const handleCropClick = async () => {
+    if (state.isBusy) {
+      return;
+    }
+
+    setBusy(true);
+    const result = await cropWorkflow.openForCharacter(characterId, target.uploadInput);
+    setBusy(false);
+
+    if (!result.ok) {
+      setStatus(result.error, 'error');
+      return;
+    }
+
+    if (result.value === null) {
+      return;
+    }
+
+    await refresh();
+    setStatus(result.value.message, result.value.tone);
     render();
   };
 
@@ -107,10 +176,11 @@ export function installCharacterArtControls(
 
   target.manager.addEventListener('change', onManagerChange);
 
-  controls.append(statusText);
+  controls.append(buttonRow, statusText);
   target.uploadSection.append(controls);
 
   render();
+  void refresh();
 
   return {
     cleanup() {
@@ -121,6 +191,7 @@ export function installCharacterArtControls(
         removeCharacterArtStyles(doc);
       }
     },
+    refresh,
     setStatus,
   };
 
@@ -129,8 +200,45 @@ export function installCharacterArtControls(
       return;
     }
 
+    buttonRow.replaceChildren();
+    if (state.fullArtMetadata !== null && hasSelectedPortraitUpload(target.uploadInput)) {
+      buttonRow.append(createButton(
+          doc,
+          state.isBusy
+            ? 'Working...'
+            : state.portraitCropMetadata === null
+              ? 'Create portrait crop'
+              : 'Edit portrait crop',
+          'bfa-art-sync__button',
+          handleCropClick,
+          state.isBusy,
+      ));
+    }
+    buttonRow.hidden = buttonRow.childElementCount === 0;
     renderStatus(statusText, state.status);
   }
+}
+
+function hasSelectedPortraitUpload(uploadInput: HTMLInputElement): boolean {
+  return uploadInput.files?.[0] !== undefined;
+}
+
+function createButton(
+    doc: Document,
+    label: string,
+    className: string,
+    onClick: () => void,
+    disabled: boolean,
+): HTMLButtonElement {
+  const button = doc.createElement('button');
+  button.className = className;
+  button.disabled = disabled;
+  button.textContent = label;
+  button.type = 'button';
+  button.addEventListener('click', () => {
+    onClick();
+  });
+  return button;
 }
 
 function ensureCharacterArtStyles(doc: Document): void {

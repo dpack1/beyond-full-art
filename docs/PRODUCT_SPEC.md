@@ -85,7 +85,36 @@ As a user, I can upload the original full artwork for a character and have it st
 - Backup and export behavior.
 - Multiple images per character.
 
-## Phase 3, character deletion cleanup
+## Phase 3, cropping
+
+Allow the user to upload original artwork, select a crop for portrait use, and preserve the original separately.
+
+This phase requires research into whether and how D&D Beyond portrait upload can be safely automated beyond passive observation. Do not assume the extension can programmatically update D&D Beyond's portrait until verified.
+
+### Required behavior
+
+- Start from stored full art rather than forcing the user to upload the same source again.
+- Open an extension-owned crop workflow from the existing D&D Beyond portrait-management surface.
+- Preserve the original full art separately from the generated portrait crop.
+- Save the generated crop locally as a separate artifact.
+- Reopen and revise the crop later while the same original full art remains current.
+- Submit the generated crop back through D&D Beyond's existing portrait upload input when supported by browser behavior.
+- If the original full art changes, invalidate the old derived crop rather than silently reusing it.
+
+### Current implementation defaults
+
+- Crop aspect ratio: square
+- Generated crop output: `512 x 512` PNG
+- Crop state is derived from stored full art and saved separately from the original
+- Current handoff path: programmatically populate D&D Beyond's existing portrait upload input and dispatch the native upload events
+
+### Remaining validation
+
+- Confirm the generated crop handoff behaves consistently on the live site in both the sheet sidebar and builder modal.
+- Confirm the chosen square crop and output size look correct in D&D Beyond's portrait displays.
+- Decide whether a future phase should add an explicit assisted fallback when the upload-input handoff fails.
+
+## Phase 4, character deletion cleanup
 
 ### User story
 
@@ -128,12 +157,6 @@ ask | delete | keep
 - If the deletion request fails, preserve local art and do not prompt.
 - If the character ID cannot be determined confidently, preserve local art.
 - If storage deletion fails, show an error and preserve recoverability where possible.
-
-## Phase 4, cropping
-
-Allow the user to upload original artwork, select a crop for portrait use, and preserve the original separately.
-
-This phase requires research into whether and how D&D Beyond portrait upload can be safely automated beyond passive observation. Do not assume the extension can programmatically update D&D Beyond's portrait until verified.
 
 ## Non-goals for early phases
 

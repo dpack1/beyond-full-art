@@ -1,4 +1,4 @@
-# Phase 3 Character Deletion Cleanup Prompt
+# Phase 4 Character Deletion Cleanup Prompt
 
 ## Goal
 When a user deletes a D&D Beyond character that has locally stored full art, the extension safely decides what to do with that local art: prompt the user, delete it automatically, or keep it automatically based on an explicit stored preference.
@@ -56,7 +56,7 @@ Verification plan:
 - Confirm behavior across retries, duplicate events, multiple tabs, and service worker suspension.
 
 ## Approach
-Phase 3 should preserve the project’s core safety rule: never lose user artwork unless deletion is explicit and fully verified.
+Phase 4 should preserve the project’s core safety rule: never lose user artwork unless deletion is explicit and fully verified.
 
 ### Preferred design
 
@@ -179,7 +179,7 @@ Rollback:
 - If the dialog or correlation logic proves unreliable, ship no automatic cleanup rather than a partial cleanup feature.
 
 ## Progress log
-- 2026-08-06: Drafted the Phase 3 ExecPlan after Phase 2 merged to `main`.
+- 2026-08-06: Drafted the Phase 4 ExecPlan after Phase 2 merged to `main`.
 
 ## Decision log
 - 2026-08-06: Treat `webRequest` as the first-choice observation seam, but do not commit to it until DELETE-body visibility is proven in the target Chrome version.

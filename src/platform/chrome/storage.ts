@@ -1,14 +1,20 @@
 import type {
   CharacterArtMetadata,
   CharacterId,
+  CharacterPortraitCropMetadata,
 } from '../../features/character-art/art-types';
 import {
   CHARACTER_ART_SCHEMA_VERSION,
   isCharacterArtMetadata,
+  CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION,
+  isCharacterPortraitCropMetadata,
 } from '../../features/character-art/art-types';
 
 const CHARACTER_ART_SCHEMA_VERSION_KEY = 'bfa.characterArt.schemaVersion';
 const CHARACTER_ART_METADATA_KEY_PREFIX = 'bfa.characterArt.metadata.';
+const CHARACTER_PORTRAIT_CROP_METADATA_KEY_PREFIX = 'bfa.characterArt.cropMetadata.';
+const CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION_KEY =
+  'bfa.characterArt.cropSchemaVersion';
 
 type ChromeStorageLocal = Pick<
   chrome.storage.StorageArea,
@@ -39,6 +45,31 @@ export async function setStoredCharacterArtMetadata(
   }, storageArea);
 }
 
+export async function getStoredCharacterPortraitCropMetadata(
+    characterId: CharacterId,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<CharacterPortraitCropMetadata | null> {
+  const metadataKey = getCharacterPortraitCropMetadataKey(characterId);
+  const storedValues = await callStorageGet(metadataKey, storageArea);
+  const metadataValue = storedValues[metadataKey];
+  if (!isCharacterPortraitCropMetadata(metadataValue)) {
+    return null;
+  }
+
+  return metadataValue;
+}
+
+export async function setStoredCharacterPortraitCropMetadata(
+    metadata: CharacterPortraitCropMetadata,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  await callStorageSet({
+    [CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION_KEY]:
+      CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION,
+    [getCharacterPortraitCropMetadataKey(metadata.characterId)]: metadata,
+  }, storageArea);
+}
+
 export async function deleteStoredCharacterArtMetadata(
     characterId: CharacterId,
     storageArea: ChromeStorageLocal = getStorageArea(),
@@ -46,8 +77,24 @@ export async function deleteStoredCharacterArtMetadata(
   await callStorageRemove(getCharacterArtMetadataKey(characterId), storageArea);
 }
 
+export async function deleteStoredCharacterPortraitCropMetadata(
+    characterId: CharacterId,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  await callStorageRemove(
+      getCharacterPortraitCropMetadataKey(characterId),
+      storageArea,
+  );
+}
+
 export function getCharacterArtMetadataKey(characterId: CharacterId): string {
   return `${CHARACTER_ART_METADATA_KEY_PREFIX}${characterId}`;
+}
+
+export function getCharacterPortraitCropMetadataKey(
+    characterId: CharacterId,
+): string {
+  return `${CHARACTER_PORTRAIT_CROP_METADATA_KEY_PREFIX}${characterId}`;
 }
 
 function callStorageGet(

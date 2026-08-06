@@ -2,7 +2,10 @@ import {
   MAX_CHARACTER_ART_FILE_BYTES,
   type CharacterArtMetadata,
   type CharacterId,
+  type CharacterPortraitCropMetadata,
   type SaveCharacterArtInput,
+  type SaveCharacterPortraitCropInput,
+  type StoredCharacterArtData,
   type SupportedCharacterArtMimeType,
   type ViewerImageResolution,
   isSupportedCharacterArtMimeType,
@@ -11,7 +14,10 @@ import {
   deleteStoredCharacterArt,
   getStoredCharacterArtImageData,
   getStoredCharacterArtMetadata,
+  getStoredCharacterPortraitCropImageData,
+  getStoredCharacterPortraitCropMetadata,
   saveStoredCharacterArt,
+  saveStoredCharacterPortraitCrop,
 } from '../../platform/chrome/messages';
 import {err, ok, type Result} from '../../shared/result';
 
@@ -25,9 +31,22 @@ interface ValidatedArtFile {
   mimeType: SupportedCharacterArtMimeType;
 }
 
+export interface CropSourceImage {
+  imageData: StoredCharacterArtData;
+  metadata: CharacterArtMetadata;
+  portraitCropMetadata: CharacterPortraitCropMetadata | null;
+}
+
 export interface CharacterArtService {
   deleteArt(characterId: CharacterId): Promise<Result<void, string>>;
+  getCropMetadata(
+      characterId: CharacterId,
+  ): Promise<Result<CharacterPortraitCropMetadata | null, string>>;
   getMetadata(characterId: CharacterId): Promise<Result<CharacterArtMetadata | null, string>>;
+  getPortraitCropImageData(
+      characterId: CharacterId,
+  ): Promise<Result<StoredCharacterArtData | null, string>>;
+  loadCropSource(characterId: CharacterId): Promise<Result<CropSourceImage, string>>;
   resolveViewerImage(
       characterId: CharacterId,
       fallbackSource: FallbackViewerImageSource,
@@ -36,6 +55,9 @@ export interface CharacterArtService {
       characterId: CharacterId,
       file: File,
   ): Promise<Result<CharacterArtMetadata, string>>;
+  savePortraitCrop(
+      input: SaveCharacterPortraitCropInput,
+  ): Promise<Result<CharacterPortraitCropMetadata, string>>;
 }
 
 export function createCharacterArtService(
@@ -61,6 +83,52 @@ export function createCharacterArtService(
         return err(asUserFacingError(
             error,
             'Stored full art status could not be loaded.',
+        ));
+      }
+    },
+    async getCropMetadata(characterId) {
+      try {
+        return ok(await getStoredCharacterPortraitCropMetadata(characterId));
+      } catch (error) {
+        return err(asUserFacingError(
+            error,
+            'Stored portrait crop status could not be loaded.',
+        ));
+      }
+    },
+    async getPortraitCropImageData(characterId) {
+      try {
+        return ok(await getStoredCharacterPortraitCropImageData(characterId));
+      } catch (error) {
+        return err(asUserFacingError(
+            error,
+            'Stored portrait crop could not be loaded.',
+        ));
+      }
+    },
+    async loadCropSource(characterId) {
+      try {
+        const [metadata, imageData, portraitCropMetadata] = await Promise.all([
+          getStoredCharacterArtMetadata(characterId),
+          getStoredCharacterArtImageData(characterId),
+          getStoredCharacterPortraitCropMetadata(characterId),
+        ]);
+        if (metadata === null || imageData === null) {
+          return err('Stored full art is required before creating a portrait crop.');
+        }
+
+        return ok({
+          imageData,
+          metadata,
+          portraitCropMetadata:
+            portraitCropMetadata?.sourceArtBlobKey === metadata.blobKey
+              ? portraitCropMetadata
+              : null,
+        });
+      } catch (error) {
+        return err(asUserFacingError(
+            error,
+            'Stored full art could not be loaded for cropping.',
         ));
       }
     },
@@ -128,6 +196,16 @@ export function createCharacterArtService(
         return err(asUserFacingError(
             error,
             'Stored full art could not be saved locally.',
+        ));
+      }
+    },
+    async savePortraitCrop(input) {
+      try {
+        return ok(await saveStoredCharacterPortraitCrop(input));
+      } catch (error) {
+        return err(asUserFacingError(
+            error,
+            'Portrait crop could not be saved locally.',
         ));
       }
     },
@@ -200,6 +278,14 @@ function validateSelectedFile(
     file,
     mimeType: file.type,
   });
+}
+
+export function createPortraitCropFileName(fileName: string): string {
+  const periodIndex = fileName.lastIndexOf('.');
+  const baseName = periodIndex <= 0
+    ? fileName
+    : fileName.slice(0, periodIndex);
+  return `${baseName}-portrait-crop.png`;
 }
 
 function createObjectUrl(blob: Blob): string {

@@ -123,3 +123,29 @@ Why:
 - It avoids coupling the product to a second upload surface that users would have to learn separately.
 
 The extension still owns its own status and delete UI, and it passively observes the selected file without modifying D&D Beyond's upload behavior.
+
+## ADR-011: Phase 3 stores portrait crops separately from original full art
+
+Status: Accepted
+
+Phase 3 stores the generated portrait crop as a separate metadata record and Blob rather than rewriting the existing Phase 2 full-art metadata shape.
+
+Why:
+
+- It keeps the original full-art path stable while crop behavior is introduced.
+- It avoids a risky metadata migration for users who already saved full art in Phase 2.
+- It makes invalidating a stale crop on full-art replacement explicit and easy to reason about.
+
+## ADR-012: Phase 3 hands generated crops back through D&D Beyond's existing upload input
+
+Status: Accepted for the first implementation slice
+
+Phase 3 submits the generated crop by populating D&D Beyond's existing portrait upload input and dispatching the native upload events.
+
+Why:
+
+- It stays inside the existing user-facing portrait-management flow.
+- It avoids depending on undocumented private D&D Beyond endpoints.
+- It keeps the implementation small enough to validate before investing in a more elaborate fallback path.
+
+If live-site validation proves this unreliable, the product should fall back to an explicit user-assisted flow rather than private endpoint automation.

@@ -1,18 +1,24 @@
 import type {
   CharacterArtMetadata,
   CharacterId,
+  CharacterPortraitCropMetadata,
   SaveCharacterArtInput,
+  SaveCharacterPortraitCropInput,
   StoredCharacterArtData,
 } from '../../features/character-art/art-types';
 import {
   isCharacterArtMetadata,
+  isCharacterPortraitCropMetadata,
   isSupportedCharacterArtMimeType,
 } from '../../features/character-art/art-types';
 
 type CharacterArtOperation =
   | 'art:delete'
+  | 'art:get-crop-image-data'
+  | 'art:get-crop-metadata'
   | 'art:get-image-data'
   | 'art:get-metadata'
+  | 'art:save-crop'
   | 'art:save';
 
 export const CHARACTER_ART_MESSAGE_SOURCE = 'beyond-full-art';
@@ -41,6 +47,11 @@ interface GetCharacterArtImageDataRequest extends CharacterArtEnvelope {
   type: 'art:get-image-data';
 }
 
+interface GetCharacterArtCropImageDataRequest extends CharacterArtEnvelope {
+  characterId: CharacterId;
+  type: 'art:get-crop-image-data';
+}
+
 interface GetCharacterArtImageDataSuccessResponse extends CharacterArtEnvelope {
   imageData: {
     byteBase64?: string;
@@ -51,14 +62,34 @@ interface GetCharacterArtImageDataSuccessResponse extends CharacterArtEnvelope {
   type: 'art:get-image-data:success';
 }
 
+interface GetCharacterArtCropImageDataSuccessResponse extends CharacterArtEnvelope {
+  imageData: {
+    byteBase64?: string;
+    byteBuffer?: ArrayBuffer;
+    fileName: string;
+    mimeType: StoredCharacterArtData['mimeType'];
+  } | null;
+  type: 'art:get-crop-image-data:success';
+}
+
 interface GetCharacterArtMetadataRequest extends CharacterArtEnvelope {
   characterId: CharacterId;
   type: 'art:get-metadata';
 }
 
+interface GetCharacterArtCropMetadataRequest extends CharacterArtEnvelope {
+  characterId: CharacterId;
+  type: 'art:get-crop-metadata';
+}
+
 interface GetCharacterArtMetadataSuccessResponse extends CharacterArtEnvelope {
   metadata: CharacterArtMetadata | null;
   type: 'art:get-metadata:success';
+}
+
+interface GetCharacterArtCropMetadataSuccessResponse extends CharacterArtEnvelope {
+  metadata: CharacterPortraitCropMetadata | null;
+  type: 'art:get-crop-metadata:success';
 }
 
 interface SaveCharacterArtRequest extends CharacterArtEnvelope {
@@ -73,22 +104,47 @@ interface SaveCharacterArtRequest extends CharacterArtEnvelope {
   width: number | null;
 }
 
+interface SaveCharacterArtCropRequest extends CharacterArtEnvelope {
+  byteBase64: string;
+  byteBuffer?: ArrayBuffer;
+  byteSize: number;
+  characterId: CharacterId;
+  cropRect: SaveCharacterPortraitCropInput['cropRect'];
+  fileName: string;
+  height: number;
+  mimeType: SaveCharacterPortraitCropInput['mimeType'];
+  sourceArtBlobKey: string;
+  type: 'art:save-crop';
+  width: number;
+}
+
 interface SaveCharacterArtSuccessResponse extends CharacterArtEnvelope {
   metadata: CharacterArtMetadata;
   type: 'art:save:success';
 }
 
+interface SaveCharacterArtCropSuccessResponse extends CharacterArtEnvelope {
+  metadata: CharacterPortraitCropMetadata;
+  type: 'art:save-crop:success';
+}
+
 export type CharacterArtRequest =
   | DeleteCharacterArtRequest
+  | GetCharacterArtCropImageDataRequest
+  | GetCharacterArtCropMetadataRequest
   | GetCharacterArtImageDataRequest
   | GetCharacterArtMetadataRequest
+  | SaveCharacterArtCropRequest
   | SaveCharacterArtRequest;
 
 type CharacterArtResponse =
   | DeleteCharacterArtSuccessResponse
   | ErrorResponse
+  | GetCharacterArtCropImageDataSuccessResponse
+  | GetCharacterArtCropMetadataSuccessResponse
   | GetCharacterArtImageDataSuccessResponse
   | GetCharacterArtMetadataSuccessResponse
+  | SaveCharacterArtCropSuccessResponse
   | SaveCharacterArtSuccessResponse;
 
 type ParsedCharacterArtResponse =
@@ -97,9 +153,16 @@ type ParsedCharacterArtResponse =
   | {
     imageData: StoredCharacterArtData | null;
     source: typeof CHARACTER_ART_MESSAGE_SOURCE;
+    type: 'art:get-crop-image-data:success';
+  }
+  | {
+    imageData: StoredCharacterArtData | null;
+    source: typeof CHARACTER_ART_MESSAGE_SOURCE;
     type: 'art:get-image-data:success';
   }
+  | GetCharacterArtCropMetadataSuccessResponse
   | GetCharacterArtMetadataSuccessResponse
+  | SaveCharacterArtCropSuccessResponse
   | SaveCharacterArtSuccessResponse;
 
 export function asCharacterArtRequest(
@@ -134,6 +197,16 @@ export function asCharacterArtRequest(
         source: CHARACTER_ART_MESSAGE_SOURCE,
         type: 'art:get-image-data',
       };
+    case 'art:get-crop-image-data':
+      if (typeof value.characterId !== 'string') {
+        return null;
+      }
+
+      return {
+        characterId: value.characterId,
+        source: CHARACTER_ART_MESSAGE_SOURCE,
+        type: 'art:get-crop-image-data',
+      };
     case 'art:get-metadata':
       if (typeof value.characterId !== 'string') {
         return null;
@@ -143,6 +216,16 @@ export function asCharacterArtRequest(
         characterId: value.characterId,
         source: CHARACTER_ART_MESSAGE_SOURCE,
         type: 'art:get-metadata',
+      };
+    case 'art:get-crop-metadata':
+      if (typeof value.characterId !== 'string') {
+        return null;
+      }
+
+      return {
+        characterId: value.characterId,
+        source: CHARACTER_ART_MESSAGE_SOURCE,
+        type: 'art:get-crop-metadata',
       };
     case 'art:save':
       if (
@@ -172,6 +255,36 @@ export function asCharacterArtRequest(
         type: 'art:save',
         width: value.width,
       };
+    case 'art:save-crop':
+      if (
+        typeof value.characterId !== 'string'
+        || typeof value.fileName !== 'string'
+        || typeof value.byteSize !== 'number'
+        || typeof value.mimeType !== 'string'
+        || !isSupportedCharacterArtMimeType(value.mimeType)
+        || typeof value.byteBase64 !== 'string'
+        || typeof value.height !== 'number'
+        || typeof value.sourceArtBlobKey !== 'string'
+        || typeof value.width !== 'number'
+        || !isCharacterPortraitCropRect(value.cropRect)
+      ) {
+        return null;
+      }
+
+      return {
+        byteBase64: value.byteBase64,
+        byteBuffer: decodeBase64ToArrayBuffer(value.byteBase64),
+        byteSize: value.byteSize,
+        characterId: value.characterId,
+        cropRect: value.cropRect,
+        fileName: value.fileName,
+        height: value.height,
+        mimeType: value.mimeType,
+        sourceArtBlobKey: value.sourceArtBlobKey,
+        source: CHARACTER_ART_MESSAGE_SOURCE,
+        type: 'art:save-crop',
+        width: value.width,
+      };
     default:
       return null;
   }
@@ -181,8 +294,11 @@ export function isCharacterArtOperationType(value: unknown):
 boolean {
   return (
     value === 'art:delete'
+    || value === 'art:get-crop-image-data'
+    || value === 'art:get-crop-metadata'
     || value === 'art:get-image-data'
     || value === 'art:get-metadata'
+    || value === 'art:save-crop'
     || value === 'art:save'
   );
 }
@@ -217,6 +333,22 @@ export async function getStoredCharacterArtImageData(
   return response.imageData;
 }
 
+export async function getStoredCharacterPortraitCropImageData(
+    characterId: CharacterId,
+): Promise<StoredCharacterArtData | null> {
+  const response = await sendCharacterArtMessage({
+    characterId,
+    source: CHARACTER_ART_MESSAGE_SOURCE,
+    type: 'art:get-crop-image-data',
+  });
+
+  if (response.type !== 'art:get-crop-image-data:success') {
+    throw new Error('Invalid crop image-data response');
+  }
+
+  return response.imageData;
+}
+
 export async function getStoredCharacterArtMetadata(
     characterId: CharacterId,
 ): Promise<CharacterArtMetadata | null> {
@@ -228,6 +360,22 @@ export async function getStoredCharacterArtMetadata(
 
   if (response.type !== 'art:get-metadata:success') {
     throw new Error('Invalid metadata response');
+  }
+
+  return response.metadata;
+}
+
+export async function getStoredCharacterPortraitCropMetadata(
+    characterId: CharacterId,
+): Promise<CharacterPortraitCropMetadata | null> {
+  const response = await sendCharacterArtMessage({
+    characterId,
+    source: CHARACTER_ART_MESSAGE_SOURCE,
+    type: 'art:get-crop-metadata',
+  });
+
+  if (response.type !== 'art:get-crop-metadata:success') {
+    throw new Error('Invalid crop metadata response');
   }
 
   return response.metadata;
@@ -245,6 +393,23 @@ export async function saveStoredCharacterArt(
 
   if (response.type !== 'art:save:success') {
     throw new Error('Invalid save response');
+  }
+
+  return response.metadata;
+}
+
+export async function saveStoredCharacterPortraitCrop(
+    input: SaveCharacterPortraitCropInput,
+): Promise<CharacterPortraitCropMetadata> {
+  const response = await sendCharacterArtMessage({
+    ...input,
+    byteBase64: encodeArrayBufferToBase64(input.byteBuffer),
+    source: CHARACTER_ART_MESSAGE_SOURCE,
+    type: 'art:save-crop',
+  });
+
+  if (response.type !== 'art:save-crop:success') {
+    throw new Error('Invalid save crop response');
   }
 
   return response.metadata;
@@ -286,6 +451,22 @@ export function createGetCharacterArtImageDataSuccessResponse(
   };
 }
 
+export function createGetCharacterArtCropImageDataSuccessResponse(
+    imageData: StoredCharacterArtData | null,
+): GetCharacterArtCropImageDataSuccessResponse {
+  return {
+    imageData: imageData === null
+      ? null
+      : {
+        byteBase64: encodeArrayBufferToBase64(imageData.byteBuffer),
+        fileName: imageData.fileName,
+        mimeType: imageData.mimeType,
+      },
+    source: CHARACTER_ART_MESSAGE_SOURCE,
+    type: 'art:get-crop-image-data:success',
+  };
+}
+
 export function createGetCharacterArtMetadataSuccessResponse(
     metadata: CharacterArtMetadata | null,
 ): GetCharacterArtMetadataSuccessResponse {
@@ -296,6 +477,16 @@ export function createGetCharacterArtMetadataSuccessResponse(
   };
 }
 
+export function createGetCharacterArtCropMetadataSuccessResponse(
+    metadata: CharacterPortraitCropMetadata | null,
+): GetCharacterArtCropMetadataSuccessResponse {
+  return {
+    metadata,
+    source: CHARACTER_ART_MESSAGE_SOURCE,
+    type: 'art:get-crop-metadata:success',
+  };
+}
+
 export function createSaveCharacterArtSuccessResponse(
     metadata: CharacterArtMetadata,
 ): SaveCharacterArtSuccessResponse {
@@ -303,6 +494,16 @@ export function createSaveCharacterArtSuccessResponse(
     metadata,
     source: CHARACTER_ART_MESSAGE_SOURCE,
     type: 'art:save:success',
+  };
+}
+
+export function createSaveCharacterArtCropSuccessResponse(
+    metadata: CharacterPortraitCropMetadata,
+): SaveCharacterArtCropSuccessResponse {
+  return {
+    metadata,
+    source: CHARACTER_ART_MESSAGE_SOURCE,
+    type: 'art:save-crop:success',
   };
 }
 
@@ -353,6 +554,37 @@ function asCharacterArtResponse(
         source: CHARACTER_ART_MESSAGE_SOURCE,
         type: 'art:error',
       };
+    case 'art:get-crop-image-data:success':
+      if (
+        value.imageData !== null
+        && (
+          !isRecord(value.imageData)
+          || typeof value.imageData.byteBase64 !== 'string'
+          || typeof value.imageData.fileName !== 'string'
+          || typeof value.imageData.mimeType !== 'string'
+          || !isSupportedCharacterArtMimeType(value.imageData.mimeType)
+        )
+      ) {
+        return null;
+      }
+
+      if (value.imageData === null) {
+        return {
+          imageData: null,
+          source: CHARACTER_ART_MESSAGE_SOURCE,
+          type: 'art:get-crop-image-data:success',
+        };
+      }
+
+      return {
+        imageData: {
+          byteBuffer: decodeBase64ToArrayBuffer(value.imageData.byteBase64 as string),
+          fileName: value.imageData.fileName as string,
+          mimeType: value.imageData.mimeType as StoredCharacterArtData['mimeType'],
+        },
+        source: CHARACTER_ART_MESSAGE_SOURCE,
+        type: 'art:get-crop-image-data:success',
+      };
     case 'art:get-image-data:success':
       if (
         value.imageData !== null
@@ -388,6 +620,19 @@ function asCharacterArtResponse(
         source: CHARACTER_ART_MESSAGE_SOURCE,
         type: 'art:get-image-data:success',
       };
+    case 'art:get-crop-metadata:success':
+      if (
+        value.metadata !== null
+        && !isCharacterPortraitCropMetadata(value.metadata)
+      ) {
+        return null;
+      }
+
+      return {
+        metadata: value.metadata,
+        source: CHARACTER_ART_MESSAGE_SOURCE,
+        type: 'art:get-crop-metadata:success',
+      };
     case 'art:get-metadata:success':
       if (
         value.metadata !== null
@@ -400,6 +645,16 @@ function asCharacterArtResponse(
         metadata: value.metadata,
         source: CHARACTER_ART_MESSAGE_SOURCE,
         type: 'art:get-metadata:success',
+      };
+    case 'art:save-crop:success':
+      if (!isCharacterPortraitCropMetadata(value.metadata)) {
+        return null;
+      }
+
+      return {
+        metadata: value.metadata,
+        source: CHARACTER_ART_MESSAGE_SOURCE,
+        type: 'art:save-crop:success',
       };
     case 'art:save:success':
       if (!isCharacterArtMetadata(value.metadata)) {
@@ -418,6 +673,21 @@ function asCharacterArtResponse(
 
 function isNullableNumber(value: unknown): value is number | null {
   return value === null || typeof value === 'number';
+}
+
+function isCharacterPortraitCropRect(
+    value: unknown,
+): value is SaveCharacterPortraitCropInput['cropRect'] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.height === 'number'
+    && typeof value.width === 'number'
+    && typeof value.x === 'number'
+    && typeof value.y === 'number'
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

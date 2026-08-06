@@ -2,7 +2,7 @@
 
 `Beyond Full Art` is a Chrome Manifest V3 extension for D&D Beyond. It enhances the existing character portrait experience without replacing or redesigning D&D Beyond's UI.
 
-The current implementation includes the Phase 1 fullscreen viewer and the first full-art storage slice from Phase 2: portrait uploads made through D&D Beyond's existing portrait UI are also saved locally as full art for fullscreen viewing.
+The current implementation includes the Phase 1 fullscreen viewer, the Phase 2 full-art storage slice, and the first Phase 3 crop workflow slice: portrait uploads made through D&D Beyond's existing portrait UI are saved locally as full art, and stored full art can now be cropped into a separate portrait image for D&D Beyond.
 
 ## Current Features
 
@@ -12,6 +12,9 @@ The current implementation includes the Phase 1 fullscreen viewer and the first 
 - Opens the current portrait image in a fullscreen overlay.
 - Saves the file selected through D&D Beyond's portrait upload UI as one local full-art image per character.
 - Stores image bytes locally in extension-owned IndexedDB and metadata in `chrome.storage.local`.
+- Lets the user open a crop workflow from the portrait-management surface when stored full art exists.
+- Saves a generated portrait crop locally as a separate artifact from the original full art.
+- Submits the generated crop back through D&D Beyond's existing portrait upload input.
 - Lets the user replace stored full art by uploading another portrait and remove stored full art explicitly.
 - Falls back to the live D&D Beyond portrait when no stored art exists.
 - Supports close via `Escape`, close button, and backdrop click.
@@ -22,8 +25,8 @@ The current implementation includes the Phase 1 fullscreen viewer and the first 
 
 - Phase 1: fullscreen portrait viewer MVP
 - Phase 2: local full-art upload and storage
-- Phase 3: deletion cleanup prompt for locally stored art
-- Phase 4: crop workflow research and implementation
+- Phase 3: crop workflow research and implementation
+- Phase 4: deletion cleanup prompt for locally stored art
 
 See [docs/PRODUCT_SPEC.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/PRODUCT_SPEC.md:1), [docs/ARCHITECTURE.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/ARCHITECTURE.md:1), and [docs/IMPLEMENTATION_PLAN.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/IMPLEMENTATION_PLAN.md:1) for the detailed product and technical plan.
 
@@ -98,11 +101,14 @@ After loading the extension:
 6. Upload a valid PNG, JPEG, or WebP image smaller than `3 MB`.
 7. Reopen the fullscreen viewer and confirm the stored full art is shown.
 8. Upload another portrait and confirm the stored full art is replaced.
-9. Use `Remove stored full art` and confirm the viewer falls back to the D&D Beyond portrait.
-10. Close with `Escape`, the close button, and backdrop click.
-11. Confirm clicking the image itself does not close the viewer.
-12. Confirm the right sidebar stays open when the fullscreen viewer closes.
-13. Navigate to another character page and verify the enhancement still works.
+9. Use `Create portrait crop`, adjust the crop, and apply it.
+10. Confirm D&D Beyond receives the generated crop and the extension still preserves the original full art for fullscreen viewing.
+11. Reopen the crop workflow and confirm `Edit portrait crop` appears.
+12. Use `Remove stored full art` and confirm the viewer falls back to the D&D Beyond portrait.
+13. Close with `Escape`, the close button, and backdrop click.
+14. Confirm clicking the image itself does not close the viewer.
+15. Confirm the right sidebar stays open when the fullscreen viewer closes.
+16. Navigate to another character page and verify the enhancement still works.
 
 The fuller validation checklist is in [docs/TESTING.md](/Users/dylanpackham/Documents/Personal/TTRPG/character-gallery/docs/TESTING.md:46).
 

@@ -2,8 +2,11 @@ import {beforeEach, describe, expect, it} from 'vitest';
 
 import {
   deleteStoredCharacterArtMetadata,
+  deleteStoredCharacterPortraitCropMetadata,
   getStoredCharacterArtMetadata,
+  getStoredCharacterPortraitCropMetadata,
   setStoredCharacterArtMetadata,
+  setStoredCharacterPortraitCropMetadata,
 } from '../../src/platform/chrome/storage';
 
 describe('character art storage metadata', () => {
@@ -38,6 +41,39 @@ describe('character art storage metadata', () => {
     await deleteStoredCharacterArtMetadata('169418374', storageArea as never);
     expect(
         await getStoredCharacterArtMetadata('169418374', storageArea as never),
+    ).toBeNull();
+  });
+
+  it('round-trips portrait crop metadata through the storage wrapper', async () => {
+    const storageArea = createFakeStorageArea();
+    const metadata = {
+      blobKey: 'blob-crop-1',
+      byteSize: 1024,
+      characterId: '169418374',
+      createdAt: '2026-08-06T00:00:00.000Z',
+      cropRect: {
+        height: 450,
+        width: 450,
+        x: 100,
+        y: 25,
+      },
+      fileName: 'zurelda-portrait-crop.png',
+      height: 512,
+      mimeType: 'image/png' as const,
+      schemaVersion: 1 as const,
+      sourceArtBlobKey: 'blob-full-1',
+      updatedAt: '2026-08-06T00:00:00.000Z',
+      width: 512,
+    };
+
+    await setStoredCharacterPortraitCropMetadata(metadata, storageArea as never);
+    expect(
+        await getStoredCharacterPortraitCropMetadata('169418374', storageArea as never),
+    ).toEqual(metadata);
+
+    await deleteStoredCharacterPortraitCropMetadata('169418374', storageArea as never);
+    expect(
+        await getStoredCharacterPortraitCropMetadata('169418374', storageArea as never),
     ).toBeNull();
   });
 });
