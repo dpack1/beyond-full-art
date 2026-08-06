@@ -78,7 +78,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 
 ## Delete cleanup manual checklist
 
-When Phase 3 is implemented:
+When Phase 4 is implemented:
 
 1. Create disposable test characters and disposable local artwork.
 2. Verify the exact request in DevTools.
@@ -88,6 +88,19 @@ When Phase 3 is implemented:
 6. Delete two characters in quick succession and verify IDs do not cross.
 7. Confirm no prompt appears when a character has no stored art.
 8. Confirm resetting the preference returns behavior to `ask`.
+
+## Crop workflow manual checklist
+
+When Phase 3 is implemented:
+
+1. Save full art through D&D Beyond's existing portrait upload flow.
+2. Confirm `Create portrait crop` appears in the portrait-management surface.
+3. Open the crop workflow and confirm the stored full art loads into the crop editor.
+4. Drag and zoom the artwork and confirm the preview updates.
+5. Apply the crop and confirm D&D Beyond receives the generated portrait.
+6. Reopen the crop workflow and confirm `Edit portrait crop` appears.
+7. Replace the stored full art and confirm the prior crop is invalidated.
+8. Confirm the fullscreen viewer still uses the original full art rather than the cropped portrait.
 
 ## Release gate
 

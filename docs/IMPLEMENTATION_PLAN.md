@@ -68,7 +68,24 @@ Create a new ExecPlan before beginning.
 - Failed replacement does not destroy the prior image.
 - No image bytes are stored in page-origin storage.
 
-## Phase 3, deletion cleanup prompt
+## Phase 3, crop workflow
+
+Create and maintain a dedicated ExecPlan before changing this phase further.
+
+Current implementation slice:
+
+- extension-owned crop dialog,
+- stored full art as the crop source,
+- separate local portrait-crop blob and metadata,
+- handoff through D&D Beyond's existing portrait upload input.
+
+Remaining work:
+
+- validate the upload-input handoff on the live site across supported surfaces,
+- decide whether an explicit assisted fallback is needed,
+- refine crop UX and any persisted revision behavior based on live testing.
+
+## Phase 4, deletion cleanup prompt
 
 Create a new ExecPlan before beginning.
 
@@ -103,17 +120,3 @@ Do not ship automatic cleanup until the character ID and successful completion c
 - The prompt appears only when relevant local art exists.
 - Remembered decisions apply consistently.
 - The user can reset the remembered preference.
-
-## Phase 4, crop workflow
-
-This phase is deliberately undefined until D&D Beyond portrait upload behavior is researched.
-
-Likely work:
-
-- crop UI,
-- original-versus-crop data model,
-- export or handoff to D&D Beyond portrait upload,
-- accessibility and touch interactions,
-- multiple aspect-ratio previews.
-
-Do not begin this phase by assuming a private D&D Beyond upload endpoint can be called safely.

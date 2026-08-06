@@ -43,6 +43,30 @@ describe('character art messages', () => {
     expect(request).toBeNull();
   });
 
+  it('accepts a valid save-crop request', () => {
+    const request = asCharacterArtRequest({
+      byteBase64: 'AQIDBAUGBwg=',
+      byteSize: 8,
+      characterId: '169418374',
+      cropRect: {
+        height: 450,
+        width: 450,
+        x: 10,
+        y: 20,
+      },
+      fileName: 'zurelda-portrait-crop.png',
+      height: 512,
+      mimeType: 'image/png',
+      source: CHARACTER_ART_MESSAGE_SOURCE,
+      sourceArtBlobKey: 'blob-full-1',
+      type: 'art:save-crop',
+      width: 512,
+    });
+
+    expect(request).not.toBeNull();
+    expect(request?.type).toBe('art:save-crop');
+  });
+
   it('identifies known character-art operations', () => {
     expect(isCharacterArtOperationType('art:get-metadata')).toBe(true);
     expect(isCharacterArtOperationType('art:save')).toBe(true);

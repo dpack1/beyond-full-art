@@ -167,5 +167,5 @@ Rollback:
 ## Decision log
 - 2026-08-06: Keep Phase 1 content-script-only to minimize permissions and avoid premature background/storage abstractions.
 - 2026-08-06: Treat live D&D Beyond DOM verification as an explicit milestone before implementation details are locked in.
-- 2026-08-06: Do not scaffold Phase 2 and Phase 3 modules in the MVP unless they become necessary for the build or tests.
+- 2026-08-06: Do not scaffold Phase 2, Phase 3, or Phase 4 modules in the MVP unless they become necessary for the build or tests.
 - 2026-08-06: Use the portrait image itself as the keyboard-focusable click surface to avoid adding overlay buttons or intercepting more of D&D Beyond's sidebar UI than necessary.

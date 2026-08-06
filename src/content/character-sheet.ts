@@ -1,4 +1,5 @@
 import {createCharacterArtService} from '../features/character-art/art-service';
+import {createCharacterPortraitCropWorkflow} from '../features/crop-workflow/crop-workflow';
 import {
   installCharacterArtControls,
   type CharacterArtControlsController,
@@ -45,6 +46,7 @@ export function installCharacterSheetEnhancement(
   }
 
   const artService = createCharacterArtService(doc);
+  const cropWorkflow = createCharacterPortraitCropWorkflow(artService, doc);
   const viewer = createFullscreenViewer(doc);
   const cleanups = new Set<Cleanup>();
   let activeControls: CharacterArtControlsController | null = null;
@@ -54,6 +56,7 @@ export function installCharacterSheetEnhancement(
     const controls = installCharacterArtControls(
         target,
         artService,
+        cropWorkflow,
         characterId,
         doc,
     );
@@ -158,6 +161,7 @@ function enhancePortraitTarget(
                   };
                 }
 
+                await getControls()?.refresh();
                 getControls()?.setStatus('Stored full art deleted.', 'success');
                 return {
                   nextSource: {

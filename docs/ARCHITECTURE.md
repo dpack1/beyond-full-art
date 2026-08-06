@@ -33,6 +33,11 @@ src/
     character-art/
       art-service.ts
       art-types.ts
+    crop-workflow/
+      crop-workflow.ts
+      crop-dialog.ts
+      crop-math.ts
+      crop-types.ts
     deletion-cleanup/
       cleanup-controller.ts
       cleanup-dialog.ts
@@ -47,6 +52,7 @@ src/
       selectors.ts
       portrait-adapter.ts
       portrait-manager-adapter.ts
+      portrait-upload-handoff.ts
       delete-request-adapter.ts
   shared/
     result.ts
@@ -174,6 +180,20 @@ The current implementation uses:
 
 Replacement writes use a new blob key first, then update metadata, then attempt to delete the old blob so a failed replacement does not destroy the prior image.
 
+### Phase 3 implementation direction chosen on 2026-08-06
+
+The current crop implementation uses:
+
+- stored full art as the source image for crop generation,
+- extension-owned crop UI injected into the page,
+- pure crop math for zoom/pan state and source-rect reconstruction,
+- a separate portrait-crop metadata record in `chrome.storage.local`,
+- a separate portrait-crop blob in extension-origin IndexedDB,
+- invalidation of the saved crop whenever the stored full art is replaced,
+- programmatic handoff of the generated crop through D&D Beyond's existing portrait upload input.
+
+This intentionally avoids rewriting the existing full-art metadata shape during the first crop slice.
+
 ### Proposed metadata
 
 ```ts
@@ -194,7 +214,7 @@ export interface CharacterArtMetadata {
 
 Do not duplicate image bytes in `chrome.storage.local`.
 
-## Phase 3 deletion signal
+## Phase 4 deletion signal
 
 Preferred product behavior is network-driven because the extension cares about a completed character deletion, not the shape or text of a delete button.
 
@@ -258,6 +278,10 @@ The implemented MVP should remain content-script-only. A background service work
 Add `storage`. Consider `unlimitedStorage` only after measuring realistic image usage and documenting why it is needed.
 
 The current implementation adds `storage` only. It does not request `unlimitedStorage`.
+
+### Crop workflow
+
+The current crop implementation adds no new Chrome permissions beyond Phase 2. It reuses the existing `storage` permission and the current character-page content-script surface.
 
 ### Delete cleanup
 

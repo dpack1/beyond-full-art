@@ -11,4 +11,5 @@ export const PORTRAIT_MANAGER_UPLOAD_SELECTOR = '.ct-decoration-manager__upload'
 export const SIDEBAR_PORTAL_SELECTOR = '.ct-sidebar__portal';
 export const ENHANCED_ATTRIBUTE_NAME = 'data-bfa-enhanced';
 export const PANEL_PORTRAIT_TRIGGER_CLASS_NAME = 'bfa-panel-portrait-trigger';
+export const CROP_DIALOG_STYLE_ATTRIBUTE_NAME = 'data-bfa-crop-dialog-styles';
 export const VIEWER_STYLE_ATTRIBUTE_NAME = 'data-bfa-viewer-styles';

@@ -1,7 +1,9 @@
 import type {Cleanup} from '../../shared/types';
 
 export const CHARACTER_ART_SCHEMA_VERSION = 1 as const;
+export const CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION = 1 as const;
 export const MAX_CHARACTER_ART_FILE_BYTES = 3 * 1024 * 1024;
+export const PORTRAIT_CROP_OUTPUT_SIZE = 512;
 export const SUPPORTED_CHARACTER_ART_MIME_TYPES = [
   'image/jpeg',
   'image/png',
@@ -25,6 +27,28 @@ export interface CharacterArtMetadata {
   width: number | null;
 }
 
+export interface CharacterPortraitCropRect {
+  height: number;
+  width: number;
+  x: number;
+  y: number;
+}
+
+export interface CharacterPortraitCropMetadata {
+  blobKey: string;
+  byteSize: number;
+  characterId: CharacterId;
+  createdAt: string;
+  cropRect: CharacterPortraitCropRect;
+  fileName: string;
+  height: number;
+  mimeType: SupportedCharacterArtMimeType;
+  schemaVersion: typeof CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION;
+  sourceArtBlobKey: string;
+  updatedAt: string;
+  width: number;
+}
+
 export interface SaveCharacterArtInput {
   byteBuffer: ArrayBuffer;
   byteSize: number;
@@ -33,6 +57,18 @@ export interface SaveCharacterArtInput {
   height: number | null;
   mimeType: SupportedCharacterArtMimeType;
   width: number | null;
+}
+
+export interface SaveCharacterPortraitCropInput {
+  byteBuffer: ArrayBuffer;
+  byteSize: number;
+  characterId: CharacterId;
+  cropRect: CharacterPortraitCropRect;
+  fileName: string;
+  height: number;
+  mimeType: SupportedCharacterArtMimeType;
+  sourceArtBlobKey: string;
+  width: number;
 }
 
 export interface StoredCharacterArtData {
@@ -92,8 +128,46 @@ export function isStoredCharacterArtData(
   );
 }
 
+export function isCharacterPortraitCropMetadata(
+    value: unknown,
+): value is CharacterPortraitCropMetadata {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.blobKey === 'string'
+    && typeof value.byteSize === 'number'
+    && typeof value.characterId === 'string'
+    && typeof value.createdAt === 'string'
+    && isCharacterPortraitCropRect(value.cropRect)
+    && typeof value.fileName === 'string'
+    && typeof value.height === 'number'
+    && isSupportedCharacterArtMimeTypeValue(value.mimeType)
+    && value.schemaVersion === CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION
+    && typeof value.sourceArtBlobKey === 'string'
+    && typeof value.updatedAt === 'string'
+    && typeof value.width === 'number'
+  );
+}
+
 function isNullableNumber(value: unknown): value is number | null {
   return value === null || typeof value === 'number';
+}
+
+function isCharacterPortraitCropRect(
+    value: unknown,
+): value is CharacterPortraitCropRect {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.height === 'number'
+    && typeof value.width === 'number'
+    && typeof value.x === 'number'
+    && typeof value.y === 'number'
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
