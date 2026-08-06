@@ -59,20 +59,29 @@ As a user, I can upload the original full artwork for a character and have it st
 
 ### Required behavior
 
-- Add an explicit `Upload full art` action.
+- Use D&D Beyond's existing portrait upload flow as the upload entrypoint.
+- Support that portrait-management flow in both the sheet sidebar and the builder modal when those surfaces exist.
+- Save the selected portrait-upload file locally as full art without blocking or modifying D&D Beyond's upload behavior.
 - Associate one active full-art image with a character ID.
 - Store image bytes locally in extension-origin IndexedDB.
 - Store metadata and preferences in `chrome.storage.local`.
 - Display the stored full artwork in the fullscreen viewer when available.
 - Fall back to the D&D Beyond portrait when no full artwork is stored.
-- Allow replacement and explicit deletion of stored art.
+- Allow replacement via a later portrait upload and explicit deletion of stored art.
 - Clearly communicate that uninstalling the extension removes locally stored art.
+
+### Current implementation defaults
+
+- Supported image types: `image/png`, `image/jpeg`, `image/webp`
+- Maximum image size: `3 MB`
+- Preserve exact uploaded bytes
+- One active full-art image per character
+- No derived preview image yet
+- The current implementation observes D&D Beyond's portrait upload input and does not add a separate extension-owned file picker
 
 ### Deferred product decisions
 
-- Maximum image size.
-- Supported image types.
-- Whether images should be resized or compressed before storage.
+- Whether images should ever be resized or compressed before storage.
 - Backup and export behavior.
 - Multiple images per character.
 
@@ -124,7 +133,7 @@ ask | delete | keep
 
 Allow the user to upload original artwork, select a crop for portrait use, and preserve the original separately.
 
-This phase requires research into whether and how D&D Beyond portrait upload can be safely integrated. Do not assume the extension can programmatically update D&D Beyond's portrait until verified.
+This phase requires research into whether and how D&D Beyond portrait upload can be safely automated beyond passive observation. Do not assume the extension can programmatically update D&D Beyond's portrait until verified.
 
 ## Non-goals for early phases
 

@@ -27,14 +27,28 @@
 
 .bfa-viewer-dialog {
   align-items: center;
-  display: inline-flex;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
   max-height: calc(100vh - 48px);
-  max-width: min(96vw, 1400px);
+  max-width: min(calc(100vw - 48px), 1400px);
+  padding: 56px 16px 16px;
   position: relative;
   width: fit-content;
 }
 
+.bfa-viewer-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  left: 16px;
+  position: absolute;
+  right: 16px;
+  top: 16px;
+}
+
+.bfa-viewer-secondary-action,
 .bfa-viewer-close {
   appearance: none;
   background: rgba(18, 24, 28, 0.92);
@@ -45,24 +59,79 @@
   font: inherit;
   line-height: 1;
   padding: 10px 14px;
-  position: absolute;
-  right: 16px;
-  top: 16px;
 }
 
+.bfa-viewer-secondary-action {
+  background: rgba(121, 26, 26, 0.92);
+}
+
+.bfa-viewer-secondary-action:hover,
+.bfa-viewer-secondary-action:focus-visible,
 .bfa-viewer-close:hover,
 .bfa-viewer-close:focus-visible {
   border-color: rgba(197, 49, 49, 0.95);
   outline: none;
 }
 
+.bfa-viewer-secondary-action[disabled],
+.bfa-viewer-close[disabled] {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.bfa-viewer-status {
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0 0 12px;
+  max-width: min(100%, 680px);
+  text-align: center;
+}
+
+.bfa-viewer-status--error {
+  color: #ffb3b3;
+}
+
+.bfa-viewer-status--success {
+  color: #c7f0c2;
+}
+
 .bfa-viewer-image {
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   display: block;
-  max-height: 100%;
-  max-width: 100%;
+  max-height: calc(100vh - 120px);
+  max-width: min(calc(100vw - 80px), 1368px);
   object-fit: contain;
+}
+
+@media (max-width: 640px) {
+  .bfa-viewer-overlay {
+    padding: 12px;
+  }
+
+  .bfa-viewer-dialog {
+    max-height: calc(100vh - 24px);
+    max-width: calc(100vw - 24px);
+    padding: 52px 8px 8px;
+  }
+
+  .bfa-viewer-controls {
+    gap: 8px;
+    left: 8px;
+    right: 8px;
+    top: 8px;
+  }
+
+  .bfa-viewer-secondary-action,
+  .bfa-viewer-close {
+    padding: 8px 12px;
+  }
+
+  .bfa-viewer-image {
+    max-height: calc(100vh - 84px);
+    max-width: calc(100vw - 40px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -13,9 +13,11 @@
     "watch": "node ./scripts/build.mjs --watch"
   },
   "devDependencies": {
+    "@types/chrome": "^0.1.17",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^24.3.0",
     "esbuild": "^0.25.9",
+    "fake-indexeddb": "^6.0.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"

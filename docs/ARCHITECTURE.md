@@ -46,6 +46,7 @@ src/
       urls.ts
       selectors.ts
       portrait-adapter.ts
+      portrait-manager-adapter.ts
       delete-request-adapter.ts
   shared/
     result.ts
@@ -111,6 +112,16 @@ From the provided right-side character manage-pane DOM capture, the current MVP 
 
 The hashed `styles_*` class names in the same subtree should be treated as unstable build output and should not be primary selectors.
 
+### Phase 2 DOM hooks observed on 2026-08-06
+
+From the provided portrait-management captures for both the sheet sidebar flow and the builder modal flow, the current upload integration can anchor on:
+
+- portrait manager root: `.ct-decoration-manager`
+- upload section: `.ct-decoration-manager__upload`
+- native file input: `.ct-decoration-manager__upload-file-input[type="file"]`
+
+The current implementation passively listens to that D&D Beyond file input and saves the selected file locally as full art. It does not replace the input, call `preventDefault()`, or modify D&D Beyond's portrait-upload request.
+
 ## Viewer design
 
 The viewer is extension-owned DOM injected into the page.
@@ -134,7 +145,7 @@ Use the highest-quality URL already available from the target image when possibl
 
 ```mermaid
 flowchart TD
-    INPUT[User selects local image] --> VALIDATE[Validate type and size]
+    INPUT[User selects a portrait file in D and D Beyond] --> VALIDATE[Validate type and size]
     VALIDATE --> WRITE[Write Blob to extension IndexedDB]
     WRITE --> META[Write metadata keyed by character ID]
     META --> VIEW[Viewer resolves stored art first]
@@ -149,6 +160,19 @@ flowchart TD
 - access IndexedDB from an extension context, preferably the service worker or an extension page.
 
 The transfer mechanism for large files between an injected file input and extension-origin storage requires a Phase 2 spike. Avoid prematurely encoding large files as base64 unless measurements show it is acceptable.
+
+### Phase 2 implementation direction chosen on 2026-08-06
+
+The current implementation uses:
+
+- passive observation of D&D Beyond's portrait-upload file input,
+- content script file validation,
+- structured-clone transfer of an `ArrayBuffer` plus metadata through `chrome.runtime.sendMessage`,
+- a Manifest V3 service worker as the storage owner,
+- extension-origin IndexedDB for the stored image `Blob`,
+- `chrome.storage.local` for per-character metadata.
+
+Replacement writes use a new blob key first, then update metadata, then attempt to delete the old blob so a failed replacement does not destroy the prior image.
 
 ### Proposed metadata
 
@@ -232,6 +256,8 @@ The implemented MVP should remain content-script-only. A background service work
 ### Full-art storage
 
 Add `storage`. Consider `unlimitedStorage` only after measuring realistic image usage and documenting why it is needed.
+
+The current implementation adds `storage` only. It does not request `unlimitedStorage`.
 
 ### Delete cleanup
 

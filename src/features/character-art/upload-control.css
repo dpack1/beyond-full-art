@@ -1,0 +1,66 @@
+.bfa-art-sync {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.bfa-art-sync--light {
+  border-top-color: rgba(15, 23, 31, 0.12);
+}
+
+.bfa-art-sync__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bfa-art-sync__button {
+  appearance: none;
+  background: rgba(18, 24, 28, 0.92);
+  border: 1px solid rgba(197, 49, 49, 0.9);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
+.bfa-art-sync__button:hover,
+.bfa-art-sync__button:focus-visible {
+  background: rgba(31, 39, 46, 0.96);
+  outline: none;
+}
+
+.bfa-art-sync__button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.bfa-art-sync__status {
+  line-height: 1.4;
+  margin: 0;
+}
+
+.bfa-art-sync__status {
+  font-size: 12px;
+  min-height: 17px;
+}
+
+.bfa-art-sync__status--error {
+  color: #ff9c92;
+}
+
+.bfa-art-sync__status--info {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.bfa-art-sync--light .bfa-art-sync__status--info {
+  color: rgba(15, 23, 31, 0.64);
+}
+
+.bfa-art-sync__status--success {
+  color: #9dd9aa;
+}

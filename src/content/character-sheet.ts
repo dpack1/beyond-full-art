@@ -1,4 +1,14 @@
-import {createFullscreenViewer} from '../features/fullscreen-viewer/viewer';
+import {createCharacterArtService} from '../features/character-art/art-service';
+import {
+  installCharacterArtControls,
+  type CharacterArtControlsController,
+} from '../features/character-art/upload-control';
+import {
+  createFullscreenViewer,
+  type ViewerImageSource,
+  type ViewerActionResult,
+} from '../features/fullscreen-viewer/viewer';
+import {observePortraitManagementTargets} from '../platform/dndbeyond/portrait-manager-adapter';
 import {
   ENHANCED_ATTRIBUTE_NAME,
   PANEL_PORTRAIT_TRIGGER_CLASS_NAME,
@@ -7,7 +17,10 @@ import {
   observePanelPortraits,
   type PortraitTarget,
 } from '../platform/dndbeyond/portrait-adapter';
-import {isCharacterSheetUrl} from '../platform/dndbeyond/urls';
+import {
+  isCharacterPageUrl,
+  parseCharacterIdFromCharacterPageUrl,
+} from '../platform/dndbeyond/urls';
 import {isKeyboardActivationKey} from '../shared/dom';
 import type {Cleanup} from '../shared/types';
 
@@ -21,23 +34,59 @@ interface ElementStateSnapshot {
 export function installCharacterSheetEnhancement(
     doc: Document = document,
 ): Cleanup {
-  if (!isCharacterSheetUrl(new URL(doc.location.href))) {
+  const currentUrl = new URL(doc.location.href);
+  if (!isCharacterPageUrl(currentUrl)) {
     return () => {};
   }
 
+  const characterId = parseCharacterIdFromCharacterPageUrl(currentUrl);
+  if (characterId === null) {
+    return () => {};
+  }
+
+  const artService = createCharacterArtService(doc);
   const viewer = createFullscreenViewer(doc);
-  const cleanups = new Map<HTMLElement, Cleanup>();
+  const cleanups = new Set<Cleanup>();
+  let activeControls: CharacterArtControlsController | null = null;
+  const getActiveControls = () => activeControls;
+
+  const stopObservingPortraitManagers = observePortraitManagementTargets((target) => {
+    const controls = installCharacterArtControls(
+        target,
+        artService,
+        characterId,
+        doc,
+    );
+    activeControls = controls;
+    cleanups.add(() => {
+      if (activeControls === controls) {
+        activeControls = null;
+      }
+      controls.cleanup();
+    });
+  }, doc);
+
   const stopObserving = observePanelPortraits((target) => {
-    if (cleanups.has(target.clickSurface)) {
+    if (target.clickSurface.getAttribute(ENHANCED_ATTRIBUTE_NAME) === 'true') {
       return;
     }
 
-    cleanups.set(target.clickSurface, enhancePortraitTarget(target, viewer));
+    const cleanup = enhancePortraitTarget(
+        target,
+        viewer,
+        characterId,
+        artService,
+        getActiveControls,
+    );
+    cleanups.add(() => {
+      cleanup();
+    });
   }, doc);
 
   return () => {
+    stopObservingPortraitManagers();
     stopObserving();
-    for (const cleanup of cleanups.values()) {
+    for (const cleanup of cleanups) {
       cleanup();
     }
     cleanups.clear();
@@ -48,18 +97,88 @@ export function installCharacterSheetEnhancement(
 function enhancePortraitTarget(
     target: PortraitTarget,
     viewer: ReturnType<typeof createFullscreenViewer>,
+    characterId: string,
+    artService: ReturnType<typeof createCharacterArtService>,
+    getControls: () => CharacterArtControlsController | null,
 ): Cleanup {
   const originalState = snapshotElementState(target.clickSurface);
-  const openViewer = () => {
-    const imageUrl = getPreferredImageUrl(target.image);
-    if (imageUrl === null) {
+  let isOpening = false;
+  const openViewer = async () => {
+    if (isOpening) {
       return;
     }
 
-    viewer.open({
-      altText: getViewerAltText(target.image),
-      imageUrl,
-    }, target.clickSurface);
+    const fallbackImageUrl = getPreferredImageUrl(target.image);
+    if (fallbackImageUrl === null) {
+      return;
+    }
+
+    isOpening = true;
+    try {
+      const source = await artService.resolveViewerImage(characterId, {
+        altText: getViewerAltText(target.image),
+        imageUrl: fallbackImageUrl,
+      });
+      if (source.warningMessage !== null) {
+        getControls()?.setStatus(source.warningMessage, 'error');
+      }
+
+      const viewerImageSource = {
+        altText: source.altText,
+        imageUrl: source.imageUrl,
+        ...(source.usingStoredArt
+          ? {
+            secondaryAction: {
+              busyText: 'Removing...',
+              onClick: async (): Promise<ViewerActionResult> => {
+                const confirmationView = document.defaultView;
+                if (confirmationView === null) {
+                  return {
+                    status: {
+                      message: 'Delete confirmation could not be shown.',
+                      tone: 'error',
+                    },
+                  };
+                }
+
+                if (!confirmationView.confirm(
+                    'Remove the stored full art for this character? The D&D Beyond portrait will stay unchanged.',
+                )) {
+                  return {};
+                }
+
+                const deleteResult = await artService.deleteArt(characterId);
+                if (!deleteResult.ok) {
+                  getControls()?.setStatus(deleteResult.error, 'error');
+                  return {
+                    status: {
+                      message: deleteResult.error,
+                      tone: 'error',
+                    },
+                  };
+                }
+
+                getControls()?.setStatus('Stored full art deleted.', 'success');
+                return {
+                  nextSource: {
+                    altText: source.altText,
+                    imageUrl: fallbackImageUrl,
+                  } satisfies ViewerImageSource,
+                };
+              },
+              text: 'Remove stored full art',
+            },
+          }
+          : {}),
+        ...(source.releaseImageUrl === undefined
+          ? {}
+          : {releaseImageUrl: source.releaseImageUrl}),
+      } satisfies ViewerImageSource;
+
+      viewer.open(viewerImageSource, target.clickSurface);
+    } finally {
+      isOpening = false;
+    }
   };
 
   target.clickSurface.setAttribute(ENHANCED_ATTRIBUTE_NAME, 'true');
@@ -71,7 +190,7 @@ function enhancePortraitTarget(
 
   const onClick = (event: MouseEvent) => {
     if (!event.defaultPrevented) {
-      openViewer();
+      void openViewer();
     }
   };
   const onKeyDown = (event: KeyboardEvent) => {
@@ -80,7 +199,7 @@ function enhancePortraitTarget(
     }
 
     event.preventDefault();
-    openViewer();
+    void openViewer();
   };
 
   target.clickSurface.addEventListener('click', onClick);

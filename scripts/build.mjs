@@ -32,6 +32,8 @@ const rawCssPlugin = {
 async function ensureDistRoot() {
   await rm(distRoot, {force: true, recursive: true});
   await mkdir(path.join(distRoot, 'content'), {recursive: true});
+  await mkdir(path.join(distRoot, 'background'), {recursive: true});
+  await mkdir(path.join(distRoot, 'icons'), {recursive: true});
 }
 
 async function copyManifest() {
@@ -39,6 +41,27 @@ async function copyManifest() {
       path.join(repoRoot, 'manifest.json'),
       path.join(distRoot, 'manifest.json'),
   );
+}
+
+async function copyIcons() {
+  await Promise.all([
+    copyFile(
+        path.join(repoRoot, 'assets/icons/icon-16.png'),
+        path.join(distRoot, 'icons/icon-16.png'),
+    ),
+    copyFile(
+        path.join(repoRoot, 'assets/icons/icon-32.png'),
+        path.join(distRoot, 'icons/icon-32.png'),
+    ),
+    copyFile(
+        path.join(repoRoot, 'assets/icons/icon-48.png'),
+        path.join(distRoot, 'icons/icon-48.png'),
+    ),
+    copyFile(
+        path.join(repoRoot, 'assets/icons/icon-128.png'),
+        path.join(distRoot, 'icons/icon-128.png'),
+    ),
+  ]);
 }
 
 async function writeReadme() {
@@ -54,20 +77,34 @@ async function buildOnce() {
   await ensureDistRoot();
   await Promise.all([
     copyManifest(),
+    copyIcons(),
     writeReadme(),
   ]);
 
-  await esbuild.build({
-    absWorkingDir: repoRoot,
-    bundle: true,
-    entryPoints: ['src/content/character-sheet-entry.ts'],
-    format: 'iife',
-    outfile: 'dist/content/character-sheet-entry.js',
-    platform: 'browser',
-    plugins: [rawCssPlugin],
-    sourcemap: true,
-    target: 'chrome114',
-  });
+  await Promise.all([
+    esbuild.build({
+      absWorkingDir: repoRoot,
+      bundle: true,
+      entryPoints: ['src/content/character-sheet-entry.ts'],
+      format: 'iife',
+      outfile: 'dist/content/character-sheet-entry.js',
+      platform: 'browser',
+      plugins: [rawCssPlugin],
+      sourcemap: true,
+      target: 'chrome114',
+    }),
+    esbuild.build({
+      absWorkingDir: repoRoot,
+      bundle: true,
+      entryPoints: ['src/background/service-worker.ts'],
+      format: 'iife',
+      outfile: 'dist/background/service-worker.js',
+      platform: 'browser',
+      plugins: [rawCssPlugin],
+      sourcemap: true,
+      target: 'chrome114',
+    }),
+  ]);
 }
 
 async function main() {
@@ -79,10 +116,11 @@ async function main() {
   await ensureDistRoot();
   await Promise.all([
     copyManifest(),
+    copyIcons(),
     writeReadme(),
   ]);
 
-  const context = await esbuild.context({
+  const contentContext = await esbuild.context({
     absWorkingDir: repoRoot,
     bundle: true,
     entryPoints: ['src/content/character-sheet-entry.ts'],
@@ -94,7 +132,22 @@ async function main() {
     target: 'chrome114',
   });
 
-  await context.watch();
+  const backgroundContext = await esbuild.context({
+    absWorkingDir: repoRoot,
+    bundle: true,
+    entryPoints: ['src/background/service-worker.ts'],
+    format: 'iife',
+    outfile: 'dist/background/service-worker.js',
+    platform: 'browser',
+    plugins: [rawCssPlugin],
+    sourcemap: true,
+    target: 'chrome114',
+  });
+
+  await Promise.all([
+    contentContext.watch(),
+    backgroundContext.watch(),
+  ]);
 }
 
 await main();

@@ -13,11 +13,19 @@ These are not product ambiguities that block the MVP. They are implementation de
 
 ## Full-art storage questions
 
+- Which stable DOM attributes identify D&D Beyond's portrait-management upload flow across the sheet sidebar and builder modal?
+  - Observed on 2026-08-06 from the provided DOM captures: both flows contain `.ct-decoration-manager` with `.ct-decoration-manager__upload` and `.ct-decoration-manager__upload-file-input[type="file"]`.
 - Maximum accepted file size.
+  - Current implementation default: `3 MB`, aligned to the observed D&D Beyond portrait-upload UI text.
 - Supported MIME types.
+  - Current implementation default: `image/png`, `image/jpeg`, `image/webp`
 - Whether to keep exact source bytes or normalize images.
+  - Current implementation preserves exact source bytes.
 - Whether to create a smaller preview for faster viewer startup.
+  - Current implementation does not create one.
 - How to transfer a large selected File into extension-origin IndexedDB without wasteful encoding.
+  - Current implementation uses structured-clone transfer of an `ArrayBuffer` plus metadata to the MV3 service worker.
+- Whether a future phase should also support a separate full-art file that differs from the current D&D Beyond portrait upload.
 - Whether an export or backup feature is required before public release.
 
 ## Deletion cleanup questions
