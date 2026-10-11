@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import {
+  isCampaignPageUrl,
   isCharacterPageUrl,
   parseCharacterIdFromCharacterPageUrl,
 } from '../../src/platform/dndbeyond/urls';
@@ -27,5 +28,22 @@ describe('character page urls', () => {
     expect(isCharacterPageUrl(collectionUrl)).toBe(false);
     expect(isCharacterPageUrl(collectionSubviewUrl)).toBe(false);
     expect(parseCharacterIdFromCharacterPageUrl(collectionUrl)).toBeNull();
+  });
+});
+
+describe('campaign page urls', () => {
+  it('matches campaign paths', () => {
+    expect(
+        isCampaignPageUrl(new URL('https://www.dndbeyond.com/campaigns/12345')),
+    ).toBe(true);
+    expect(
+        isCampaignPageUrl(new URL('https://www.dndbeyond.com/campaigns/12345/characters')),
+    ).toBe(true);
+  });
+
+  it('rejects non-campaign paths', () => {
+    expect(
+        isCampaignPageUrl(new URL('https://www.dndbeyond.com/characters/169418374')),
+    ).toBe(false);
   });
 });

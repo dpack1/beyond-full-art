@@ -1,0 +1,85 @@
+.bfa-popup {
+  background:
+    radial-gradient(circle at top, rgba(189, 47, 54, 0.28), transparent 45%),
+    linear-gradient(180deg, #121821 0%, #0b1016 100%);
+  color: #f2eee7;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  margin: 0;
+  min-width: 320px;
+}
+
+.bfa-popup__main {
+  padding: 16px;
+}
+
+.bfa-popup__eyebrow {
+  color: #d1b26d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.bfa-popup__title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.bfa-popup__description {
+  color: #d5d0c5;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.bfa-popup__section {
+  background: rgba(14, 20, 29, 0.92);
+  border: 1px solid rgba(209, 178, 109, 0.28);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.bfa-popup__toggle {
+  align-items: flex-start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr;
+}
+
+.bfa-popup__checkbox {
+  accent-color: #c83a3d;
+  block-size: 18px;
+  inline-size: 18px;
+  margin: 2px 0 0;
+}
+
+.bfa-popup__label {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.bfa-popup__hint {
+  color: #c3c9d2;
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bfa-popup__status {
+  color: #9fdba8;
+  font-size: 13px;
+  margin: 12px 0 0;
+  min-height: 1.2em;
+}
+
+.bfa-popup__status--error {
+  color: #ff928a;
+}
+
+.bfa-popup__status--hidden {
+  visibility: hidden;
+}

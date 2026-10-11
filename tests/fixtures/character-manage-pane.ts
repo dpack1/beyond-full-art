@@ -41,3 +41,21 @@ export const CHARACTER_MANAGE_PANE_FIXTURE = `
     </div>
   </div>
 `;
+
+export const CURRENT_INFORMATION_SIDEBAR_FIXTURE = `
+  <div class="ct-sidebar__portal">
+    <aside aria-label="Information Sidebar">
+      <div>
+        <h1>Matilda Greywolf</h1>
+        <div
+          class="ddbc-character-avatar__portrait ddbc-character-avatar__portrait--none"
+          style="background-image: url(&quot;https://www.dndbeyond.com/Content/Skins/Waterdeep/images/characters/default-avatar-builder.png&quot;); width: 44px; height: 44px;">
+        </div>
+        <div
+          class="ddbc-character-avatar__portrait styles_avatar__t7tEz ddbc-character-avatar__portrait--none"
+          style="background-image: url(&quot;https://www.dndbeyond.com/avatars/58196/625/1581111423-169418374.jpeg?width=150&amp;height=150&amp;fit=crop&amp;quality=95&amp;auto=webp&quot;); width: 130px; height: 130px;">
+        </div>
+      </div>
+    </aside>
+  </div>
+`;

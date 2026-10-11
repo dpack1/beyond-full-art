@@ -4,7 +4,7 @@
 
 Beyond Full Art is a Chrome extension for D&D Beyond that makes character portraits and artwork feel a little better to use.
 
-It keeps D&D Beyond's existing portrait flow, but adds two quality-of-life improvements: an easier way to crop portrait art and a better way to view full character artwork.
+It keeps D&D Beyond's existing portrait flow, but adds a few quality-of-life improvements: an easier way to crop portrait art, a better way to view full character artwork, and sharper campaign-card portraits when you want them.
 
 ## The Problems It Solves
 
@@ -25,6 +25,7 @@ Beyond Full Art adds a fullscreen viewer so character art can actually be seen a
 - A fullscreen art viewer launched from the existing D&D Beyond portrait flow
 - A local full-art save for each character
 - A portrait crop tool for turning full artwork into a clean square portrait
+- An optional campaign-card portrait enhancement toggle
 - A workflow that stays inside D&D Beyond instead of replacing its UI
 - Local-only artwork storage in your browser
 
@@ -35,6 +36,7 @@ Beyond Full Art is for players who want a smoother character-art experience with
 - Crop portraits from full-size art without leaving D&D Beyond
 - View your own character art and your party's character art at a useful size
 - Keep the portrait and the full artwork tied together
+- Sharpen campaign roster portraits without rebuilding D&D Beyond's card layout
 - Avoid juggling separate offline crop steps every time you want to tweak the framing
 
 ## Screenshots
@@ -96,6 +98,8 @@ If your local `node` path is not already active, use:
 PATH="$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH" npm run build
 ```
 
+Chrome reloads the files already in `dist/`; it does not rebuild TypeScript. Run `npm run build` before clicking Reload in `chrome://extensions` after source changes.
+
 ### 2. Load it in Chrome
 
 1. Open `chrome://extensions`
@@ -127,6 +131,13 @@ PATH="$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH" npm run build
 4. Apply the crop.
 5. Finish the D&D Beyond portrait flow if it asks you to confirm the change.
 
+### Improve campaign card portraits
+
+1. Click the extension icon in Chrome.
+2. Enable or disable `Improve campaign card portraits`.
+3. Open a D&D Beyond campaign page.
+4. When enabled, campaign character cards progressively swap to a sharper portrait source after the page renders.
+
 ## Privacy
 
 - Your artwork is stored locally in your browser
@@ -150,6 +161,7 @@ Available now:
 - Fullscreen art viewer
 - Local full-art storage
 - Portrait crop workflow
+- Optional campaign-card portrait enhancement
 - Manual removal of stored full art
 
 Planned next:

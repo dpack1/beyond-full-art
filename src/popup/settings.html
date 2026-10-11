@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Beyond Full Art</title>
+  </head>
+  <body class="bfa-popup">
+    <main class="bfa-popup__main">
+      <p class="bfa-popup__eyebrow">Beyond Full Art</p>
+      <h1 class="bfa-popup__title">Extension settings</h1>
+      <p class="bfa-popup__description">
+        Control optional D&amp;D Beyond enhancements without changing the site layout.
+      </p>
+
+      <section class="bfa-popup__section" aria-labelledby="campaign-portraits-heading">
+        <label class="bfa-popup__toggle" for="campaign-card-portrait-upgrade">
+          <input
+            id="campaign-card-portrait-upgrade"
+            class="bfa-popup__checkbox"
+            type="checkbox">
+          <span>
+            <span id="campaign-portraits-heading" class="bfa-popup__label">
+              Improve campaign card portraits
+            </span>
+            <span class="bfa-popup__hint">
+              Loads sharper portraits on D&amp;D Beyond campaign character cards.
+            </span>
+          </span>
+        </label>
+        <p
+          id="campaign-card-portrait-upgrade-status"
+          class="bfa-popup__status bfa-popup__status--hidden"
+          aria-live="polite"></p>
+      </section>
+    </main>
+    <script src="./settings.js"></script>
+  </body>
+</html>

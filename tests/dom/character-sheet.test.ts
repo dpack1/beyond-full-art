@@ -1,7 +1,10 @@
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 
 import {installCharacterSheetEnhancement} from '../../src/content/character-sheet';
-import {CHARACTER_MANAGE_PANE_FIXTURE} from '../fixtures/character-manage-pane';
+import {
+  CHARACTER_MANAGE_PANE_FIXTURE,
+  CURRENT_INFORMATION_SIDEBAR_FIXTURE,
+} from '../fixtures/character-manage-pane';
 import {PORTRAIT_MANAGER_FIXTURE} from '../fixtures/portrait-manager';
 
 describe('character sheet enhancement', () => {
@@ -33,6 +36,24 @@ describe('character sheet enhancement', () => {
     const overlay = document.querySelector<HTMLDivElement>('.bfa-viewer-overlay');
     const image = document.querySelector<HTMLImageElement>('.bfa-viewer-image');
     expect(overlay?.hidden).toBe(false);
+    expect(image?.src).toContain('169418374.jpeg');
+
+    cleanup();
+  });
+
+  it('enhances the current background-image sidebar portrait', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CURRENT_INFORMATION_SIDEBAR_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    const portrait = document.querySelector<HTMLElement>('.styles_avatar__t7tEz');
+    expect(portrait?.getAttribute('role')).toBe('button');
+    expect(portrait?.tabIndex).toBe(0);
+
+    portrait?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const image = document.querySelector<HTMLImageElement>('.bfa-viewer-image');
     expect(image?.src).toContain('169418374.jpeg');
 
     cleanup();

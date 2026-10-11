@@ -2,14 +2,16 @@
 
 ## High-level design
 
-Use a Chrome Manifest V3 extension with a small content-script UI layer, an ephemeral background service worker for privileged browser events, and local extension storage.
+Use a Chrome Manifest V3 extension with a small content-script UI layer, an extension popup for lightweight settings, an ephemeral background service worker for privileged browser events, and local extension storage.
 
 ```mermaid
 flowchart LR
     DDB[D&D Beyond tab] --> CS[Isolated content script]
+    POPUP[Extension popup] --> PREFS[chrome.storage.local\npreferences and metadata]
     CS --> VIEWER[Fullscreen viewer UI]
     CS <--> SW[Extension service worker]
-    SW <--> PREFS[chrome.storage.local\npreferences and metadata]
+    CS <--> PREFS
+    SW <--> PREFS
     SW <--> ART[Extension IndexedDB\nfull image blobs]
     SW -. later .-> NET[chrome.webRequest observer]
 ```
@@ -23,9 +25,12 @@ src/
   background/
     service-worker.ts
   content/
+    campaigns-entry.ts
     character-sheet-entry.ts
-    characters-list-entry.ts
   features/
+    campaign-card-portraits/
+      campaign-card-portrait-upgrade.ts
+      avatar-url.ts
     fullscreen-viewer/
       viewer.ts
       viewer.css
@@ -48,12 +53,16 @@ src/
       storage.ts
       indexed-db.ts
     dndbeyond/
+      campaign-card-portrait-adapter.ts
       urls.ts
       selectors.ts
       portrait-adapter.ts
       portrait-manager-adapter.ts
       portrait-upload-handoff.ts
       delete-request-adapter.ts
+  popup/
+    settings.ts
+    settings.css
   shared/
     result.ts
     logging.ts
@@ -118,6 +127,19 @@ From the provided right-side character manage-pane DOM capture, the current MVP 
 
 The hashed `styles_*` class names in the same subtree should be treated as unstable build output and should not be primary selectors.
 
+### Phase 1 DOM hooks observed on 2026-10-10
+
+From live D&D Beyond character sheet inspection, the right-side sheet panel may no longer expose `[data-testid="character-manage-pane"]`, and the displayed portrait may be a `div.ddbc-character-avatar__portrait` with the image URL in CSS `background-image` rather than an `img`.
+
+Current fallback behavior:
+
+- prefer the legacy `[data-testid="character-manage-pane"]` panel when present,
+- otherwise use the accessible `[aria-label="Information Sidebar"]` panel when present,
+- prefer the legacy portrait `img`, then fall back to the largest `.ddbc-character-avatar__portrait` surface in the panel,
+- resolve viewer images from `currentSrc`/`src` for images or CSS `background-image` for current portrait surfaces.
+
+Do not depend on the observed hashed `styles_avatar__*` class; it is used only in tests to distinguish fixture elements.
+
 ### Phase 2 DOM hooks observed on 2026-08-06
 
 From the provided portrait-management captures for both the sheet sidebar flow and the builder modal flow, the current upload integration can anchor on:
@@ -127,6 +149,8 @@ From the provided portrait-management captures for both the sheet sidebar flow a
 - native file input: `.ct-decoration-manager__upload-file-input[type="file"]`
 
 The current implementation passively listens to that D&D Beyond file input for preview state, then saves the selected file locally as full art only after the user activates D&D Beyond's native `Change Portrait` action. It does not replace the input, call `preventDefault()`, or modify D&D Beyond's portrait-upload request.
+
+As of live inspection on 2026-10-10, D&D Beyond's sheet-sidebar appearance flow has changed to a "Current Decorations" / "Browse Decorations" interface. The old `.ct-decoration-manager` upload hooks were not visible in that first-level sidebar view, so the full-art upload adapter likely needs renewed live-site research before changing the upload flow.
 
 ## Viewer design
 

@@ -1,10 +1,12 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 
 import {
+  getCampaignCardPortraitUpgradeEnabled,
   deleteStoredCharacterArtMetadata,
   deleteStoredCharacterPortraitCropMetadata,
   getStoredCharacterArtMetadata,
   getStoredCharacterPortraitCropMetadata,
+  setCampaignCardPortraitUpgradeEnabled,
   setStoredCharacterArtMetadata,
   setStoredCharacterPortraitCropMetadata,
 } from '../../src/platform/chrome/storage';
@@ -75,6 +77,23 @@ describe('character art storage metadata', () => {
     expect(
         await getStoredCharacterPortraitCropMetadata('169418374', storageArea as never),
     ).toBeNull();
+  });
+
+  it('defaults the campaign portrait enhancement setting to enabled', async () => {
+    const storageArea = createFakeStorageArea();
+
+    expect(
+        await getCampaignCardPortraitUpgradeEnabled(storageArea as never),
+    ).toBe(true);
+  });
+
+  it('round-trips the campaign portrait enhancement setting', async () => {
+    const storageArea = createFakeStorageArea();
+
+    await setCampaignCardPortraitUpgradeEnabled(false, storageArea as never);
+    expect(
+        await getCampaignCardPortraitUpgradeEnabled(storageArea as never),
+    ).toBe(false);
   });
 });
 

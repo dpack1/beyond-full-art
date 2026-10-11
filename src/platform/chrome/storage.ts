@@ -15,6 +15,9 @@ const CHARACTER_ART_METADATA_KEY_PREFIX = 'bfa.characterArt.metadata.';
 const CHARACTER_PORTRAIT_CROP_METADATA_KEY_PREFIX = 'bfa.characterArt.cropMetadata.';
 const CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION_KEY =
   'bfa.characterArt.cropSchemaVersion';
+export const CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY =
+  'bfa.preferences.campaignCardPortraitUpgradeEnabled';
+const DEFAULT_CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED = true;
 
 type ChromeStorageLocal = Pick<
   chrome.storage.StorageArea,
@@ -85,6 +88,28 @@ export async function deleteStoredCharacterPortraitCropMetadata(
       getCharacterPortraitCropMetadataKey(characterId),
       storageArea,
   );
+}
+
+export async function getCampaignCardPortraitUpgradeEnabled(
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<boolean> {
+  const storedValues = await callStorageGet(
+      CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY,
+      storageArea,
+  );
+  const storedValue = storedValues[CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY];
+  return typeof storedValue === 'boolean'
+    ? storedValue
+    : DEFAULT_CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED;
+}
+
+export async function setCampaignCardPortraitUpgradeEnabled(
+    enabled: boolean,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  await callStorageSet({
+    [CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY]: enabled,
+  }, storageArea);
 }
 
 export function getCharacterArtMetadataKey(characterId: CharacterId): string {

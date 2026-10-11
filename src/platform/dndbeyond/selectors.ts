@@ -4,6 +4,10 @@ export const CHARACTER_ART_CONTROLS_ATTRIBUTE_NAME = 'data-bfa-art-controls';
 export const CHARACTER_ART_STYLES_ATTRIBUTE_NAME = 'data-bfa-art-styles';
 export const CHARACTER_PORTRAIT_SELECTOR =
   'img.ddbc-character-avatar__portrait[alt="Character portrait"]';
+export const CHARACTER_PORTRAIT_SURFACE_SELECTOR =
+  '.ddbc-character-avatar__portrait';
+export const INFORMATION_SIDEBAR_SELECTOR =
+  '[aria-label="Information Sidebar"]';
 export const PORTRAIT_MANAGER_SELECTOR = '.ct-decoration-manager';
 export const PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR =
   '.ct-decoration-manager__upload-file-input[type="file"]';
@@ -13,3 +17,9 @@ export const ENHANCED_ATTRIBUTE_NAME = 'data-bfa-enhanced';
 export const PANEL_PORTRAIT_TRIGGER_CLASS_NAME = 'bfa-panel-portrait-trigger';
 export const CROP_DIALOG_STYLE_ATTRIBUTE_NAME = 'data-bfa-crop-dialog-styles';
 export const VIEWER_STYLE_ATTRIBUTE_NAME = 'data-bfa-viewer-styles';
+export const CAMPAIGN_CHARACTER_CARD_SELECTOR =
+  '.ddb-campaigns-character-card-header-upper';
+export const CAMPAIGN_CHARACTER_CARD_LINK_SELECTOR =
+  'a.ddb-campaigns-character-card-header-upper-details-link[href^="/characters/"]';
+export const CAMPAIGN_CHARACTER_CARD_PORTRAIT_SELECTOR =
+  '.ddb-campaigns-character-card-header-upper-portrait .image.user-selected-avatar';

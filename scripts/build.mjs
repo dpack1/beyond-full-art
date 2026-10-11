@@ -34,6 +34,7 @@ async function ensureDistRoot() {
   await mkdir(path.join(distRoot, 'content'), {recursive: true});
   await mkdir(path.join(distRoot, 'background'), {recursive: true});
   await mkdir(path.join(distRoot, 'icons'), {recursive: true});
+  await mkdir(path.join(distRoot, 'popup'), {recursive: true});
 }
 
 async function copyManifest() {
@@ -73,11 +74,19 @@ async function writeReadme() {
   await writeFile(path.join(distRoot, 'README.txt'), contents, 'utf8');
 }
 
+async function copyPopupHtml() {
+  await copyFile(
+      path.join(repoRoot, 'src/popup/settings.html'),
+      path.join(distRoot, 'popup/settings.html'),
+  );
+}
+
 async function buildOnce() {
   await ensureDistRoot();
   await Promise.all([
     copyManifest(),
     copyIcons(),
+    copyPopupHtml(),
     writeReadme(),
   ]);
 
@@ -96,9 +105,31 @@ async function buildOnce() {
     esbuild.build({
       absWorkingDir: repoRoot,
       bundle: true,
+      entryPoints: ['src/content/campaigns-entry.ts'],
+      format: 'iife',
+      outfile: 'dist/content/campaigns-entry.js',
+      platform: 'browser',
+      plugins: [rawCssPlugin],
+      sourcemap: true,
+      target: 'chrome114',
+    }),
+    esbuild.build({
+      absWorkingDir: repoRoot,
+      bundle: true,
       entryPoints: ['src/background/service-worker.ts'],
       format: 'iife',
       outfile: 'dist/background/service-worker.js',
+      platform: 'browser',
+      plugins: [rawCssPlugin],
+      sourcemap: true,
+      target: 'chrome114',
+    }),
+    esbuild.build({
+      absWorkingDir: repoRoot,
+      bundle: true,
+      entryPoints: ['src/popup/settings.ts'],
+      format: 'iife',
+      outfile: 'dist/popup/settings.js',
       platform: 'browser',
       plugins: [rawCssPlugin],
       sourcemap: true,
@@ -117,6 +148,7 @@ async function main() {
   await Promise.all([
     copyManifest(),
     copyIcons(),
+    copyPopupHtml(),
     writeReadme(),
   ]);
 
@@ -144,9 +176,35 @@ async function main() {
     target: 'chrome114',
   });
 
+  const campaignsContext = await esbuild.context({
+    absWorkingDir: repoRoot,
+    bundle: true,
+    entryPoints: ['src/content/campaigns-entry.ts'],
+    format: 'iife',
+    outfile: 'dist/content/campaigns-entry.js',
+    platform: 'browser',
+    plugins: [rawCssPlugin],
+    sourcemap: true,
+    target: 'chrome114',
+  });
+
+  const popupContext = await esbuild.context({
+    absWorkingDir: repoRoot,
+    bundle: true,
+    entryPoints: ['src/popup/settings.ts'],
+    format: 'iife',
+    outfile: 'dist/popup/settings.js',
+    platform: 'browser',
+    plugins: [rawCssPlugin],
+    sourcemap: true,
+    target: 'chrome114',
+  });
+
   await Promise.all([
     contentContext.watch(),
     backgroundContext.watch(),
+    campaignsContext.watch(),
+    popupContext.watch(),
   ]);
 }
 

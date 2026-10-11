@@ -4,7 +4,10 @@ import {
   findPanelPortrait,
   observePanelPortraits,
 } from '../../src/platform/dndbeyond/portrait-adapter';
-import {CHARACTER_MANAGE_PANE_FIXTURE} from '../fixtures/character-manage-pane';
+import {
+  CHARACTER_MANAGE_PANE_FIXTURE,
+  CURRENT_INFORMATION_SIDEBAR_FIXTURE,
+} from '../fixtures/character-manage-pane';
 
 describe('portrait adapter', () => {
   beforeEach(() => {
@@ -21,8 +24,18 @@ describe('portrait adapter', () => {
     const target = findPanelPortrait(document);
 
     expect(target).not.toBeNull();
-    expect(target?.image.alt).toBe('Character portrait');
+    expect(target?.image.getAttribute('alt')).toBe('Character portrait');
     expect(target?.clickSurface).toBe(target?.image);
+  });
+
+  it('finds the current information-sidebar background portrait', () => {
+    document.body.innerHTML = CURRENT_INFORMATION_SIDEBAR_FIXTURE;
+
+    const target = findPanelPortrait(document);
+
+    expect(target).not.toBeNull();
+    expect(target?.image.classList.contains('styles_avatar__t7tEz')).toBe(true);
+    expect(target?.panel.getAttribute('aria-label')).toBe('Information Sidebar');
   });
 
   it('observes lazily rendered sidebars', async () => {

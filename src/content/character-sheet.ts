@@ -218,25 +218,33 @@ function enhancePortraitTarget(
   };
 }
 
-function getPreferredImageUrl(image: HTMLImageElement): string | null {
-  if (image.currentSrc.trim() !== '') {
+function getPreferredImageUrl(image: HTMLElement): string | null {
+  if (image instanceof HTMLImageElement && image.currentSrc.trim() !== '') {
     return image.currentSrc;
   }
 
-  if (image.src.trim() !== '') {
+  if (image instanceof HTMLImageElement && image.src.trim() !== '') {
     return image.src;
   }
 
-  return null;
+  return getBackgroundImageUrl(image);
 }
 
-function getViewerAltText(image: HTMLImageElement): string {
-  const trimmedAltText = image.alt.trim();
+function getViewerAltText(image: HTMLElement): string {
+  const trimmedAltText = image instanceof HTMLImageElement ? image.alt.trim() : '';
   if (trimmedAltText !== '') {
     return trimmedAltText;
   }
 
   return 'Character portrait';
+}
+
+function getBackgroundImageUrl(element: HTMLElement): string | null {
+  const backgroundImage = element.ownerDocument.defaultView
+      ?.getComputedStyle(element)
+      .backgroundImage ?? '';
+  const match = /^url\((['"]?)(.+?)\1\)$/.exec(backgroundImage.trim());
+  return match?.[2] ?? null;
 }
 
 function snapshotElementState(element: HTMLElement): ElementStateSnapshot {

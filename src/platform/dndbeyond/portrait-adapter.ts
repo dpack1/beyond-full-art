@@ -1,6 +1,8 @@
 import {
   CHARACTER_MANAGE_PANE_SELECTOR,
   CHARACTER_PORTRAIT_SELECTOR,
+  CHARACTER_PORTRAIT_SURFACE_SELECTOR,
+  INFORMATION_SIDEBAR_SELECTOR,
   SIDEBAR_PORTAL_SELECTOR,
 } from './selectors';
 import {isHtmlElement, isHtmlImageElement} from '../../shared/dom';
@@ -8,20 +10,20 @@ import type {Cleanup} from '../../shared/types';
 
 export interface PortraitTarget {
   controlsContainer: HTMLElement;
-  image: HTMLImageElement;
+  image: HTMLElement;
   clickSurface: HTMLElement;
   panel: HTMLElement;
 }
 
 export function findPanelPortrait(root: ParentNode): PortraitTarget | null {
   const searchRoot = findSearchRoot(root);
-  const panel = searchRoot.querySelector(CHARACTER_MANAGE_PANE_SELECTOR);
-  if (!isHtmlElement(panel)) {
+  const panel = findPanelRoot(searchRoot);
+  if (panel === null) {
     return null;
   }
 
-  const image = panel.querySelector(CHARACTER_PORTRAIT_SELECTOR);
-  if (!isHtmlImageElement(image)) {
+  const image = findPortraitSurface(panel);
+  if (image === null) {
     return null;
   }
 
@@ -77,6 +79,48 @@ function findSearchRoot(root: ParentNode): ParentNode {
   }
 
   return root;
+}
+
+function findPanelRoot(root: ParentNode): HTMLElement | null {
+  const legacyPanel = root.querySelector(CHARACTER_MANAGE_PANE_SELECTOR);
+  if (isHtmlElement(legacyPanel)) {
+    return legacyPanel;
+  }
+
+  const informationSidebar = root.querySelector(INFORMATION_SIDEBAR_SELECTOR);
+  if (isHtmlElement(informationSidebar)) {
+    return informationSidebar;
+  }
+
+  if (root instanceof HTMLElement && findPortraitSurface(root) !== null) {
+    return root;
+  }
+
+  return null;
+}
+
+function findPortraitSurface(root: ParentNode): HTMLElement | null {
+  const legacyPortrait = root.querySelector(CHARACTER_PORTRAIT_SELECTOR);
+  if (isHtmlImageElement(legacyPortrait)) {
+    return legacyPortrait;
+  }
+
+  const portraitSurfaces = [...root.querySelectorAll(
+      CHARACTER_PORTRAIT_SURFACE_SELECTOR,
+  )].filter(isHtmlElement);
+
+  if (portraitSurfaces.length === 0) {
+    return null;
+  }
+
+  return portraitSurfaces.reduce((largest, candidate) => (
+    getElementArea(candidate) >= getElementArea(largest) ? candidate : largest
+  ));
+}
+
+function getElementArea(element: HTMLElement): number {
+  const rect = element.getBoundingClientRect();
+  return rect.width * rect.height;
 }
 
 function findControlsContainer(panel: HTMLElement): HTMLElement {

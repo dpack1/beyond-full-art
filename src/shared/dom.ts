@@ -14,6 +14,12 @@ export function isHtmlButtonElement(
   return value instanceof HTMLButtonElement;
 }
 
+export function isHtmlAnchorElement(
+    value: Element | null,
+): value is HTMLAnchorElement {
+  return value instanceof HTMLAnchorElement;
+}
+
 export function isHtmlImageElement(
     value: Element | null,
 ): value is HTMLImageElement {

@@ -9,6 +9,9 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
+  "action": {
+    "default_popup": "popup/settings.html"
+  },
   "permissions": ["storage"],
   "background": {
     "service_worker": "background/service-worker.js"
@@ -17,6 +20,11 @@
     {
       "matches": ["https://www.dndbeyond.com/characters/*"],
       "js": ["content/character-sheet-entry.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.dndbeyond.com/campaigns/*"],
+      "js": ["content/campaigns-entry.js"],
       "run_at": "document_idle"
     }
   ]
