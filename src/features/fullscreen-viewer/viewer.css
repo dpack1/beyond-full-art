@@ -48,6 +48,13 @@
   top: 16px;
 }
 
+.bfa-viewer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .bfa-viewer-secondary-action,
 .bfa-viewer-close {
   appearance: none;
@@ -61,7 +68,7 @@
   padding: 10px 14px;
 }
 
-.bfa-viewer-secondary-action {
+.bfa-viewer-secondary-action--danger {
   background: rgba(121, 26, 26, 0.92);
 }
 
@@ -121,6 +128,10 @@
     left: 8px;
     right: 8px;
     top: 8px;
+  }
+
+  .bfa-viewer-actions {
+    gap: 6px;
   }
 
   .bfa-viewer-secondary-action,

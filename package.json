@@ -9,10 +9,13 @@
   "scripts": {
     "build": "node ./scripts/build.mjs",
     "test": "vitest run",
+    "test:all": "npm run typecheck && npm test && npm run build && playwright test",
+    "test:e2e": "npm run build && playwright test",
     "typecheck": "tsc --noEmit",
     "watch": "node ./scripts/build.mjs --watch"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/chrome": "^0.1.17",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^24.3.0",

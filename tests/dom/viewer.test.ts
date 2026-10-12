@@ -77,24 +77,37 @@ describe('fullscreen viewer', () => {
     viewer.destroy();
   });
 
-  it('renders a secondary action to the left of close and swaps back to fallback art', async () => {
+  it('renders action buttons to the left of close and swaps back to fallback art', async () => {
     const trigger = document.createElement('button');
     document.body.append(trigger);
 
     const viewer = createFullscreenViewer(document);
     viewer.open({
+      actions: [
+        {
+          busyText: 'Downloading...',
+          onClick: async () => ({
+            status: {
+              message: 'Download started.',
+              tone: 'success',
+            },
+          }),
+          text: 'Download full art',
+        },
+        {
+          busyText: 'Removing...',
+          onClick: async () => ({
+            nextSource: {
+              altText: 'Character portrait',
+              imageUrl: 'https://example.com/fallback.png',
+            },
+          }),
+          text: 'Remove stored full art',
+          tone: 'danger',
+        },
+      ],
       altText: 'Character portrait',
       imageUrl: 'https://example.com/stored.png',
-      secondaryAction: {
-        busyText: 'Removing...',
-        onClick: async () => ({
-          nextSource: {
-            altText: 'Character portrait',
-            imageUrl: 'https://example.com/fallback.png',
-          },
-        }),
-        text: 'Remove stored full art',
-      },
     }, trigger);
 
     const controlButtons = Array.from(
@@ -102,17 +115,17 @@ describe('fullscreen viewer', () => {
     );
     const image = document.querySelector<HTMLImageElement>('.bfa-viewer-image');
     expect(controlButtons.map((button) => button.textContent)).toEqual([
+      'Download full art',
       'Remove stored full art',
       'Close',
     ]);
 
-    controlButtons[0]?.click();
+    controlButtons[1]?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(image?.src).toBe('https://example.com/fallback.png');
-    expect(
-        document.querySelector<HTMLButtonElement>('.bfa-viewer-secondary-action')?.hidden,
-    ).toBe(true);
+    expect(document.querySelector('.bfa-viewer-actions')?.hasAttribute('hidden'))
+        .toBe(true);
 
     viewer.destroy();
   });

@@ -154,6 +154,7 @@ export function createCharacterArtService(
           releaseImageUrl: () => {
             revokeObjectUrl(objectUrl);
           },
+          storedArtFileName: imageData.fileName,
           usingStoredArt: true,
           warningMessage: null,
         };

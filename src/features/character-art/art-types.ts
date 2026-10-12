@@ -81,6 +81,7 @@ export interface ViewerImageResolution {
   altText: string;
   imageUrl: string;
   releaseImageUrl?: Cleanup;
+  storedArtFileName?: string;
   usingStoredArt: boolean;
   warningMessage: string | null;
 }

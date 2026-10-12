@@ -42,6 +42,16 @@ Exit criteria:
 
 Create a new ExecPlan before beginning.
 
+Current implementation slice:
+
+- passive observation of D&D Beyond portrait-upload file selection,
+- local full-art persistence after D&D Beyond's native portrait confirmation,
+- extension-origin IndexedDB image storage with `chrome.storage.local` metadata,
+- stored full-art resolution before the D&D Beyond portrait in the viewer,
+- embedded status, crop, and delete controls in observed portrait-management surfaces,
+- fullscreen-viewer download for the currently stored full art, using the stored filename when available,
+- focused unit, DOM fixture, and local Playwright fixture coverage.
+
 ### Research spike
 
 - Validate a safe large-file transfer path from content UI to extension-origin IndexedDB.
@@ -60,6 +70,7 @@ Create a new ExecPlan before beginning.
 6. Add embedded status and delete controls in the portrait-management surface.
 7. Add clear errors that preserve existing art on failed replacement.
 8. Add storage schema versioning and migration tests.
+9. Add per-character stored-art download from the fullscreen viewer.
 
 ### Exit criteria
 
@@ -67,6 +78,7 @@ Create a new ExecPlan before beginning.
 - Artwork is removed when the extension is uninstalled.
 - Failed replacement does not destroy the prior image.
 - No image bytes are stored in page-origin storage.
+- Stored full art can be downloaded by the user from the fullscreen viewer without requesting Chrome's `downloads` permission.
 
 ## Phase 3, crop workflow
 

@@ -173,3 +173,19 @@ Why:
 - It keeps the implementation small enough to validate before investing in a more elaborate fallback path.
 
 If live-site validation proves this unreliable, the product should fall back to an explicit user-assisted flow rather than private endpoint automation.
+
+## ADR-015: Stored full art downloads use normal browser downloads
+
+Status: Accepted
+
+When the fullscreen viewer is showing locally stored full art, provide a
+`Download full art` action that points a temporary same-page anchor at the
+existing stored-art object URL.
+
+Why:
+
+- It gives users a simple recovery path for local artwork.
+- It does not require the broad Chrome `downloads` permission.
+- It reuses the already loaded Blob URL instead of creating a second copy of the
+  image bytes.
+- It keeps backup/export behavior user-initiated and local.

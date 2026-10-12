@@ -28,6 +28,26 @@ Use a lightweight DOM test environment for:
 
 Fixtures should contain only the DOM needed for the behavior. Do not copy a large portion of D&D Beyond's page source into the repository.
 
+### Playwright fixture tests
+
+Use local Playwright pages for end-to-end extension checks that need the built
+Manifest V3 extension loaded in Chromium. These tests route D&D Beyond character
+URLs to small fixture documents and verify that the content script enhances the
+expected surfaces without touching the live site.
+
+Run them with:
+
+```text
+npm run test:e2e
+```
+
+If Playwright reports that Chromium is missing, run
+`npx playwright install chromium` once for the checkout.
+
+The suite writes `test-results/selector-health-report.json` with the current
+fixture selector matrix. This file is generated output and should not be
+committed.
+
 ### Storage tests
 
 When full-art storage is implemented:
@@ -112,6 +132,7 @@ A change is not complete until:
 npm run typecheck
 npm test
 npm run build
+npm run test:e2e
 ```
 
 all pass, and the relevant manual checklist has been recorded in the pull request or release notes.

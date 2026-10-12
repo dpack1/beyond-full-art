@@ -12,17 +12,18 @@ export interface ViewerActionResult {
   };
 }
 
-export interface ViewerSecondaryAction {
+export interface ViewerAction {
   busyText: string;
   onClick: () => Promise<ViewerActionResult>;
   text: string;
+  tone?: 'danger' | 'default';
 }
 
 export interface ViewerImageSource {
+  actions?: ViewerAction[];
   altText: string;
   imageUrl: string;
   releaseImageUrl?: () => void;
-  secondaryAction?: ViewerSecondaryAction;
 }
 
 export interface FullscreenViewer {
@@ -33,11 +34,11 @@ export interface FullscreenViewer {
 }
 
 interface ViewerElements {
+  actions: HTMLDivElement;
   closeButton: HTMLButtonElement;
   dialog: HTMLDivElement;
   image: HTMLImageElement;
   overlay: HTMLDivElement;
-  secondaryActionButton: HTMLButtonElement;
   status: HTMLParagraphElement;
 }
 
@@ -51,10 +52,9 @@ export function createFullscreenViewer(
     currentSource: null as ViewerImageSource | null,
     currentImageCleanup: null as (() => void) | null,
     isOpen: false,
+    actionInFlightIndex: null as number | null,
     previousActiveElement: null as HTMLElement | null,
     previousBodyOverflow: '',
-    secondaryActionDefaultText: '',
-    secondaryActionInFlight: false,
   };
 
   const close = () => {
@@ -68,10 +68,9 @@ export function createFullscreenViewer(
     elements.image.removeAttribute('src');
     doc.body.style.overflow = state.previousBodyOverflow;
     state.currentSource = null;
-    state.secondaryActionDefaultText = '';
-    state.secondaryActionInFlight = false;
+    state.actionInFlightIndex = null;
     renderStatus('');
-    renderSecondaryAction(null);
+    renderActions([]);
     restoreFocus(state.previousActiveElement);
   };
 
@@ -129,47 +128,43 @@ export function createFullscreenViewer(
     releaseCurrentImage();
     state.currentSource = source;
     state.currentImageCleanup = source.releaseImageUrl ?? null;
-    state.secondaryActionDefaultText = source.secondaryAction?.text ?? '';
-    state.secondaryActionInFlight = false;
+    state.actionInFlightIndex = null;
     elements.image.alt = source.altText;
     elements.image.src = source.imageUrl;
-    renderSecondaryAction(source.secondaryAction ?? null);
+    renderActions(source.actions ?? []);
     renderStatus('');
   };
 
-  const handleSecondaryActionClick = async () => {
-    const secondaryAction = state.currentSource?.secondaryAction;
-    if (secondaryAction === undefined || state.secondaryActionInFlight) {
+  const handleActionClick = async (index: number) => {
+    const action = state.currentSource?.actions?.[index];
+    if (action === undefined || state.actionInFlightIndex !== null) {
       return;
     }
 
-    state.secondaryActionInFlight = true;
-    elements.secondaryActionButton.disabled = true;
-    elements.secondaryActionButton.textContent = secondaryAction.busyText;
+    state.actionInFlightIndex = index;
+    renderActions(state.currentSource?.actions ?? []);
 
+    let nextSourceApplied = false;
     try {
-      const result = await secondaryAction.onClick();
+      const result = await action.onClick();
       if (result.nextSource !== undefined) {
         applySource(result.nextSource);
+        nextSourceApplied = true;
       } else {
-        renderSecondaryAction(state.currentSource?.secondaryAction ?? null);
+        state.actionInFlightIndex = null;
+        renderActions(state.currentSource?.actions ?? []);
       }
 
       if (result.status !== undefined) {
         renderStatus(result.status.message, result.status.tone);
       }
     } finally {
-      if (state.secondaryActionInFlight) {
-        state.secondaryActionInFlight = false;
-        renderSecondaryAction(state.currentSource?.secondaryAction ?? null);
+      if (!nextSourceApplied && state.actionInFlightIndex !== null) {
+        state.actionInFlightIndex = null;
+        renderActions(state.currentSource?.actions ?? []);
       }
     }
   };
-
-  elements.secondaryActionButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    void handleSecondaryActionClick();
-  });
 
   return {
     close,
@@ -184,21 +179,36 @@ export function createFullscreenViewer(
     open,
   };
 
-  function renderSecondaryAction(
-      secondaryAction: ViewerSecondaryAction | null,
+  function renderActions(
+      actions: ViewerAction[],
   ): void {
-    if (secondaryAction === null) {
-      elements.secondaryActionButton.hidden = true;
-      elements.secondaryActionButton.disabled = false;
-      elements.secondaryActionButton.textContent = '';
+    elements.actions.replaceChildren();
+
+    if (actions.length === 0) {
+      elements.actions.hidden = true;
       return;
     }
 
-    elements.secondaryActionButton.hidden = false;
-    elements.secondaryActionButton.disabled = state.secondaryActionInFlight;
-    elements.secondaryActionButton.textContent = state.secondaryActionInFlight
-      ? secondaryAction.busyText
-      : secondaryAction.text;
+    elements.actions.hidden = false;
+    actions.forEach((action, index) => {
+      const button = doc.createElement('button');
+      button.className = [
+        'bfa-viewer-secondary-action',
+        action.tone === 'danger'
+          ? 'bfa-viewer-secondary-action--danger'
+          : '',
+      ].filter(Boolean).join(' ');
+      button.disabled = state.actionInFlightIndex !== null;
+      button.textContent = state.actionInFlightIndex === index
+        ? action.busyText
+        : action.text;
+      button.type = 'button';
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        void handleActionClick(index);
+      });
+      elements.actions.append(button);
+    });
   }
 
   function renderStatus(message: string, tone: ViewerStatusTone = 'info'): void {
@@ -240,14 +250,13 @@ function createViewerElements(doc: Document): ViewerElements {
   closeButton.textContent = 'Close';
   closeButton.type = 'button';
 
-  const secondaryActionButton = doc.createElement('button');
-  secondaryActionButton.className = 'bfa-viewer-secondary-action';
-  secondaryActionButton.hidden = true;
-  secondaryActionButton.type = 'button';
+  const actions = doc.createElement('div');
+  actions.className = 'bfa-viewer-actions';
+  actions.hidden = true;
 
   const controls = doc.createElement('div');
   controls.className = 'bfa-viewer-controls';
-  controls.append(secondaryActionButton, closeButton);
+  controls.append(actions, closeButton);
 
   const status = doc.createElement('p');
   status.className = 'bfa-viewer-status bfa-viewer-status--info';
@@ -261,11 +270,11 @@ function createViewerElements(doc: Document): ViewerElements {
   doc.body.append(overlay);
 
   return {
+    actions,
     closeButton,
     dialog,
     image,
     overlay,
-    secondaryActionButton,
     status,
   };
 }

@@ -1,4 +1,7 @@
-import {createCharacterArtService} from '../features/character-art/art-service';
+import {
+  createCharacterArtService,
+  type CharacterArtService,
+} from '../features/character-art/art-service';
 import {createCharacterPortraitCropWorkflow} from '../features/crop-workflow/crop-workflow';
 import {
   installCharacterArtControls,
@@ -6,6 +9,7 @@ import {
 } from '../features/character-art/upload-control';
 import {
   createFullscreenViewer,
+  type ViewerAction,
   type ViewerImageSource,
   type ViewerActionResult,
 } from '../features/fullscreen-viewer/viewer';
@@ -127,53 +131,20 @@ function enhancePortraitTarget(
       }
 
       const viewerImageSource = {
-        altText: source.altText,
-        imageUrl: source.imageUrl,
         ...(source.usingStoredArt
           ? {
-            secondaryAction: {
-              busyText: 'Removing...',
-              onClick: async (): Promise<ViewerActionResult> => {
-                const confirmationView = document.defaultView;
-                if (confirmationView === null) {
-                  return {
-                    status: {
-                      message: 'Delete confirmation could not be shown.',
-                      tone: 'error',
-                    },
-                  };
-                }
-
-                if (!confirmationView.confirm(
-                    'Remove the stored full art for this character? The D&D Beyond portrait will stay unchanged.',
-                )) {
-                  return {};
-                }
-
-                const deleteResult = await artService.deleteArt(characterId);
-                if (!deleteResult.ok) {
-                  getControls()?.setStatus(deleteResult.error, 'error');
-                  return {
-                    status: {
-                      message: deleteResult.error,
-                      tone: 'error',
-                    },
-                  };
-                }
-
-                await getControls()?.refresh();
-                getControls()?.setStatus('Stored full art deleted.', 'success');
-                return {
-                  nextSource: {
-                    altText: source.altText,
-                    imageUrl: fallbackImageUrl,
-                  } satisfies ViewerImageSource,
-                };
-              },
-              text: 'Remove stored full art',
-            },
+            actions: createStoredArtViewerActions(
+                source,
+                characterId,
+                fallbackImageUrl,
+                artService,
+                getControls,
+                target.image.ownerDocument,
+            ),
           }
           : {}),
+        altText: source.altText,
+        imageUrl: source.imageUrl,
         ...(source.releaseImageUrl === undefined
           ? {}
           : {releaseImageUrl: source.releaseImageUrl}),
@@ -216,6 +187,105 @@ function enhancePortraitTarget(
     target.clickSurface.removeAttribute(ENHANCED_ATTRIBUTE_NAME);
     restoreElementState(target.clickSurface, originalState);
   };
+}
+
+function createStoredArtViewerActions(
+    source: Awaited<ReturnType<CharacterArtService['resolveViewerImage']>>,
+    characterId: string,
+    fallbackImageUrl: string,
+    artService: CharacterArtService,
+    getControls: () => CharacterArtControlsController | null,
+    doc: Document,
+): ViewerAction[] {
+  return [
+    {
+      busyText: 'Downloading...',
+      onClick: async (): Promise<ViewerActionResult> => {
+        downloadImage(
+            source.imageUrl,
+            source.storedArtFileName ?? createFallbackDownloadFileName(characterId),
+            doc,
+        );
+        return {
+          status: {
+            message: 'Stored full art download started.',
+            tone: 'success',
+          },
+        };
+      },
+      text: 'Download full art',
+    },
+    {
+      busyText: 'Removing...',
+      onClick: async (): Promise<ViewerActionResult> => {
+        const confirmationView = doc.defaultView;
+        if (confirmationView === null) {
+          return {
+            status: {
+              message: 'Delete confirmation could not be shown.',
+              tone: 'error',
+            },
+          };
+        }
+
+        if (!confirmationView.confirm(
+            'Remove the stored full art for this character? The D&D Beyond portrait will stay unchanged.',
+        )) {
+          return {};
+        }
+
+        const deleteResult = await artService.deleteArt(characterId);
+        if (!deleteResult.ok) {
+          getControls()?.setStatus(deleteResult.error, 'error');
+          return {
+            status: {
+              message: deleteResult.error,
+              tone: 'error',
+            },
+          };
+        }
+
+        await getControls()?.refresh();
+        getControls()?.setStatus('Stored full art deleted.', 'success');
+        return {
+          nextSource: {
+            altText: source.altText,
+            imageUrl: fallbackImageUrl,
+          } satisfies ViewerImageSource,
+        };
+      },
+      text: 'Remove stored full art',
+      tone: 'danger',
+    },
+  ];
+}
+
+function downloadImage(
+    imageUrl: string,
+    fileName: string,
+    doc: Document,
+): void {
+  const link = doc.createElement('a');
+  link.href = imageUrl;
+  link.download = sanitizeDownloadFileName(fileName);
+  link.rel = 'noopener';
+  link.style.display = 'none';
+  doc.body.append(link);
+  link.click();
+  link.remove();
+}
+
+function createFallbackDownloadFileName(characterId: string): string {
+  return `character-${characterId}-full-art`;
+}
+
+function sanitizeDownloadFileName(fileName: string): string {
+  const trimmedFileName = fileName.trim();
+  if (trimmedFileName === '') {
+    return 'character-full-art';
+  }
+
+  return trimmedFileName.replace(/[\\/:*?"<>|]+/g, '-');
 }
 
 function getPreferredImageUrl(image: HTMLElement): string | null {
