@@ -75,7 +75,13 @@ describe('popup settings', () => {
     expect(
         [...document.querySelectorAll('.bfa-popup__button')]
             .map((element) => element.textContent),
-    ).toEqual(['Download', 'Delete', 'Download', 'Delete']);
+    ).toEqual(['Open', 'Download', 'Delete', 'Open', 'Download', 'Delete']);
+    expect(
+        document.querySelector<HTMLAnchorElement>('.bfa-popup__button')?.href,
+    ).toBe('https://www.dndbeyond.com/characters/169418374');
+    expect(
+        document.querySelector<HTMLAnchorElement>('.bfa-popup__button')?.target,
+    ).toBe('_blank');
   });
 
   it('downloads a stored-art inventory item', async () => {
@@ -100,7 +106,7 @@ describe('popup settings', () => {
     );
 
     await initializePopup(document);
-    document.querySelector<HTMLButtonElement>('.bfa-popup__button')?.click();
+    document.querySelector<HTMLButtonElement>('button.bfa-popup__button')?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(messageMocks.getStoredCharacterArtImageData)

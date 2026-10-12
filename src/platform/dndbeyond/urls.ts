@@ -1,5 +1,10 @@
 const CHARACTER_PAGE_PATH_PATTERN = /^\/characters\/(\d+)(?:\/.*)?$/;
 const CAMPAIGN_PAGE_PATH_PATTERN = /^\/campaigns(?:\/.*)?$/;
+const DND_BEYOND_ORIGIN = 'https://www.dndbeyond.com';
+
+export function buildCharacterPageUrl(characterId: string): string {
+  return `${DND_BEYOND_ORIGIN}/characters/${encodeURIComponent(characterId)}`;
+}
 
 export function isCharacterPageUrl(url: URL): boolean {
   return CHARACTER_PAGE_PATH_PATTERN.test(url.pathname);

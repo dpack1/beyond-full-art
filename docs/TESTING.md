@@ -41,6 +41,16 @@ Run them with:
 npm run test:e2e
 ```
 
+The Playwright extension tests run headless by default using Playwright's full
+Chromium channel so unpacked extension loading works. For local visual
+debugging, run them headed with:
+
+```text
+BFA_PLAYWRIGHT_HEADLESS=false npm run test:e2e
+```
+
+To try a different local browser channel, set `BFA_PLAYWRIGHT_CHROMIUM_CHANNEL`.
+
 If Playwright reports that Chromium is missing, run
 `npx playwright install chromium` once for the checkout.
 

@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import {
+  buildCharacterPageUrl,
   isCampaignPageUrl,
   isCharacterPageUrl,
   parseCharacterIdFromCharacterPageUrl,
@@ -28,6 +29,11 @@ describe('character page urls', () => {
     expect(isCharacterPageUrl(collectionUrl)).toBe(false);
     expect(isCharacterPageUrl(collectionSubviewUrl)).toBe(false);
     expect(parseCharacterIdFromCharacterPageUrl(collectionUrl)).toBeNull();
+  });
+
+  it('builds D&D Beyond character page URLs', () => {
+    expect(buildCharacterPageUrl('169418374'))
+        .toBe('https://www.dndbeyond.com/characters/169418374');
   });
 });
 

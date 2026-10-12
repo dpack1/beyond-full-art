@@ -12,7 +12,8 @@ import {fileURLToPath} from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../../..');
 const distPath = path.join(repoRoot, 'dist');
-const chromiumChannel = process.env.BFA_PLAYWRIGHT_CHROMIUM_CHANNEL;
+const chromiumChannel = process.env.BFA_PLAYWRIGHT_CHROMIUM_CHANNEL ?? 'chromium';
+const runHeaded = process.env.BFA_PLAYWRIGHT_HEADLESS === 'false';
 
 type LaunchOptions = NonNullable<
   Parameters<typeof chromium.launchPersistentContext>[1]
@@ -33,9 +34,9 @@ export const test = base.extend<ExtensionFixtures>({
         `--load-extension=${distPath}`,
         '--no-first-run',
       ],
-      headless: false,
+      headless: !runHeaded,
     };
-    if (chromiumChannel !== undefined && chromiumChannel.trim() !== '') {
+    if (chromiumChannel.trim() !== '') {
       launchOptions.channel = chromiumChannel;
     }
 

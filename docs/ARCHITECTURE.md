@@ -206,10 +206,11 @@ The current implementation uses:
 Replacement writes use a new blob key first, then update metadata, then attempt to delete the old blob so a failed replacement does not destroy the prior image.
 
 The popup can request a full-art inventory through the same validated runtime
-message boundary. It lists metadata from `chrome.storage.local`, then uses the
-existing image-data and delete operations for per-item download and deletion.
-Downloads use a temporary same-page anchor with a Blob URL and do not require
-Chrome's `downloads` permission.
+message boundary. It lists metadata from `chrome.storage.local`, builds normal
+D&D Beyond character links from stored character IDs, then uses the existing
+image-data and delete operations for per-item download and deletion. Downloads
+use a temporary same-page anchor with a Blob URL and do not require Chrome's
+`downloads` permission.
 
 ### Phase 3 implementation direction chosen on 2026-08-06
 

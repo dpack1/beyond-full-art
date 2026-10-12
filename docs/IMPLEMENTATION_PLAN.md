@@ -50,7 +50,7 @@ Current implementation slice:
 - stored full-art resolution before the D&D Beyond portrait in the viewer,
 - embedded status, crop, and delete controls in observed portrait-management surfaces,
 - fullscreen-viewer download for the currently stored full art, using the stored filename when available,
-- popup inventory for locally stored full art with per-item download and delete actions,
+- popup inventory for locally stored full art with per-item open, download, and delete actions,
 - focused unit, DOM fixture, and local Playwright fixture coverage.
 
 ### Research spike
@@ -81,7 +81,7 @@ Current implementation slice:
 - Failed replacement does not destroy the prior image.
 - No image bytes are stored in page-origin storage.
 - Stored full art can be downloaded by the user from the fullscreen viewer without requesting Chrome's `downloads` permission.
-- Stored full art can be found, downloaded, and deleted from the extension popup.
+- Stored full art can be found, opened on D&D Beyond, downloaded, and deleted from the extension popup.
 
 ## Phase 3, crop workflow
 

@@ -170,6 +170,7 @@
   font-size: 12px;
   font-weight: 700;
   padding: 7px 10px;
+  text-decoration: none;
 }
 
 .bfa-popup__button--danger {

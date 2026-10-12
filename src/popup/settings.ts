@@ -8,6 +8,7 @@ import {
   getStoredCharacterArtImageData,
   listStoredCharacterArtMetadata,
 } from '../platform/chrome/messages';
+import {buildCharacterPageUrl} from '../platform/dndbeyond/urls';
 import {
   getCampaignCardPortraitUpgradeEnabled,
   setCampaignCardPortraitUpgradeEnabled,
@@ -199,6 +200,13 @@ function createInventoryItem(
   const actions = doc.createElement('div');
   actions.className = 'bfa-popup__stored-art-actions';
 
+  const openLink = doc.createElement('a');
+  openLink.className = 'bfa-popup__button';
+  openLink.href = buildCharacterPageUrl(metadata.characterId);
+  openLink.rel = 'noopener';
+  openLink.target = '_blank';
+  openLink.textContent = 'Open';
+
   const downloadButton = doc.createElement('button');
   downloadButton.className = 'bfa-popup__button';
   downloadButton.textContent = 'Download';
@@ -215,7 +223,7 @@ function createInventoryItem(
     void handleDeleteClick(metadata, elements, doc, deleteButton);
   });
 
-  actions.append(downloadButton, deleteButton);
+  actions.append(openLink, downloadButton, deleteButton);
   item.append(details, actions);
   return item;
 }
