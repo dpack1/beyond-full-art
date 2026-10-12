@@ -2,10 +2,14 @@ import {
   CAMPAIGN_CHARACTER_CARD_LINK_SELECTOR,
   CAMPAIGN_CHARACTER_CARD_PORTRAIT_SELECTOR,
   CAMPAIGN_CHARACTER_CARD_SELECTOR,
+  CHARACTER_LIST_CARD_LINK_SELECTOR,
+  CHARACTER_LIST_CARD_PORTRAIT_SELECTOR,
 } from './selectors';
 import {parseCharacterIdFromCharacterPageUrl} from './urls';
 import {isHtmlAnchorElement, isHtmlElement} from '../../shared/dom';
 import type {Cleanup} from '../../shared/types';
+
+const CHARACTER_ID_IN_PATH_PATTERN = /(?:^|\/)characters\/(\d+)(?:\/|$)/;
 
 export interface CampaignCardPortraitTarget {
   card: HTMLElement;
@@ -18,6 +22,7 @@ export function findCampaignCardPortraitTargets(
     root: ParentNode,
 ): CampaignCardPortraitTarget[] {
   const targets: CampaignCardPortraitTarget[] = [];
+  const seenPortraits = new Set<HTMLElement>();
   const cards = root.querySelectorAll(CAMPAIGN_CHARACTER_CARD_SELECTOR);
 
   for (const card of cards) {
@@ -46,8 +51,10 @@ export function findCampaignCardPortraitTargets(
       detailsLink,
       portrait,
     });
+    seenPortraits.add(portrait);
   }
 
+  targets.push(...findCharacterListCardPortraitTargets(root, seenPortraits));
   return targets;
 }
 
@@ -94,8 +101,84 @@ function parseCharacterIdFromLink(
   }
 
   try {
-    return parseCharacterIdFromCharacterPageUrl(new URL(href, baseUri));
+    const url = new URL(href, baseUri);
+    return parseCharacterIdFromCharacterPageUrl(url) ??
+      parseCharacterIdFromAnyCharacterUrl(url);
   } catch {
     return null;
   }
+}
+
+function parseCharacterIdFromAnyCharacterUrl(url: URL): string | null {
+  const match = CHARACTER_ID_IN_PATH_PATTERN.exec(url.pathname);
+  return match?.[1] ?? null;
+}
+
+function findCharacterListCardPortraitTargets(
+    root: ParentNode,
+    seenPortraits: Set<HTMLElement>,
+): CampaignCardPortraitTarget[] {
+  const targets: CampaignCardPortraitTarget[] = [];
+  const links = root.querySelectorAll(CHARACTER_LIST_CARD_LINK_SELECTOR);
+
+  for (const link of links) {
+    if (!isHtmlAnchorElement(link)) {
+      continue;
+    }
+
+    const characterId = parseCharacterIdFromLink(link, root);
+    if (characterId === null) {
+      continue;
+    }
+
+    const target = findCharacterListTargetForLink(link, characterId);
+    if (target === null || seenPortraits.has(target.portrait)) {
+      continue;
+    }
+
+    targets.push(target);
+    seenPortraits.add(target.portrait);
+  }
+
+  return targets;
+}
+
+function findCharacterListTargetForLink(
+    detailsLink: HTMLAnchorElement,
+    characterId: string,
+): CampaignCardPortraitTarget | null {
+  let candidate: HTMLElement | null = detailsLink.parentElement;
+
+  while (candidate !== null && candidate !== detailsLink.ownerDocument.body) {
+    const portrait = findCharacterListPortrait(candidate);
+    if (portrait !== null) {
+      return {
+        card: candidate,
+        characterId,
+        detailsLink,
+        portrait,
+      };
+    }
+
+    candidate = candidate.parentElement;
+  }
+
+  return null;
+}
+
+function findCharacterListPortrait(root: ParentNode): HTMLElement | null {
+  const candidates = root.querySelectorAll(CHARACTER_LIST_CARD_PORTRAIT_SELECTOR);
+  for (const candidate of candidates) {
+    if (!isHtmlElement(candidate)) {
+      continue;
+    }
+
+    if (candidate.style.backgroundImage.trim() === '') {
+      continue;
+    }
+
+    return candidate;
+  }
+
+  return null;
 }

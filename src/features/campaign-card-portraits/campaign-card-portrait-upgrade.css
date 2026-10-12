@@ -1,0 +1,59 @@
+.bfa-card-portrait-upgrade {
+  transition: box-shadow 160ms ease, filter 160ms ease;
+}
+
+.bfa-card-portrait-upgrade[data-bfa-card-portrait-state="pending"] {
+  animation: bfa-card-portrait-pending 900ms ease-in-out infinite;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.94),
+    0 0 0 5px rgba(197, 49, 49, 0.88);
+  filter: brightness(1.08) saturate(1.08);
+}
+
+.bfa-card-portrait-upgrade[data-bfa-card-portrait-state="upgraded"] {
+  animation: bfa-card-portrait-upgraded 800ms ease-out 1;
+}
+
+.bfa-card-portrait-upgrade[data-bfa-card-portrait-state="failed"] {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 0 0 5px rgba(126, 39, 39, 0.8);
+}
+
+@keyframes bfa-card-portrait-pending {
+  0%,
+  100% {
+    filter: brightness(1.02) saturate(1.04);
+  }
+
+  50% {
+    filter: brightness(1.2) saturate(1.14);
+  }
+}
+
+@keyframes bfa-card-portrait-upgraded {
+  0% {
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.94),
+      0 0 0 6px rgba(51, 145, 88, 0.92);
+    filter: brightness(1.18) saturate(1.12);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(255, 255, 255, 0),
+      0 0 0 0 rgba(51, 145, 88, 0);
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bfa-card-portrait-upgrade {
+    transition: none;
+  }
+
+  .bfa-card-portrait-upgrade[data-bfa-card-portrait-state="pending"],
+  .bfa-card-portrait-upgrade[data-bfa-card-portrait-state="upgraded"] {
+    animation: none;
+  }
+}

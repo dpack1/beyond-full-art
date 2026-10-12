@@ -108,6 +108,18 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 14. Navigate between character pages without a full browser restart.
 15. Confirm the extension does nothing on unrelated D&D Beyond pages.
 
+## Character card portrait manual checklist
+
+1. Build the extension.
+2. Load the unpacked build directory in Chrome.
+3. Open the extension popup and confirm `Improve character card portraits` is enabled.
+4. Open a D&D Beyond campaign page and confirm character-card portraits become sharper after render.
+5. Open `https://www.dndbeyond.com/characters` and confirm My Characters card portraits become sharper after render.
+6. While the cards upgrade, confirm each in-progress portrait gets a subtle red pulse and each completed portrait briefly flashes green.
+7. If a card needs diagnosis, inspect its `data-bfa-card-portrait-state` and `data-bfa-card-portrait-reason` attributes; skipped cards should not keep a visible outline during normal use.
+8. Disable the popup setting and refresh both pages.
+9. Confirm the card portraits remain at D&D Beyond's original small image URLs.
+
 ## Delete cleanup manual checklist
 
 When Phase 4 is implemented:

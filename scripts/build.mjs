@@ -105,9 +105,9 @@ async function buildOnce() {
     esbuild.build({
       absWorkingDir: repoRoot,
       bundle: true,
-      entryPoints: ['src/content/campaigns-entry.ts'],
+      entryPoints: ['src/content/card-portraits-entry.ts'],
       format: 'iife',
-      outfile: 'dist/content/campaigns-entry.js',
+      outfile: 'dist/content/card-portraits-entry.js',
       platform: 'browser',
       plugins: [rawCssPlugin],
       sourcemap: true,
@@ -176,12 +176,12 @@ async function main() {
     target: 'chrome114',
   });
 
-  const campaignsContext = await esbuild.context({
+  const cardPortraitsContext = await esbuild.context({
     absWorkingDir: repoRoot,
     bundle: true,
-    entryPoints: ['src/content/campaigns-entry.ts'],
+    entryPoints: ['src/content/card-portraits-entry.ts'],
     format: 'iife',
-    outfile: 'dist/content/campaigns-entry.js',
+    outfile: 'dist/content/card-portraits-entry.js',
     platform: 'browser',
     plugins: [rawCssPlugin],
     sourcemap: true,
@@ -203,7 +203,7 @@ async function main() {
   await Promise.all([
     contentContext.watch(),
     backgroundContext.watch(),
-    campaignsContext.watch(),
+    cardPortraitsContext.watch(),
     popupContext.watch(),
   ]);
 }

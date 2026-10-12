@@ -51,6 +51,7 @@ Current implementation slice:
 - embedded status, crop, and delete controls in observed portrait-management surfaces,
 - fullscreen-viewer download for the currently stored full art, using the stored filename when available,
 - popup inventory for locally stored full art with per-item open, download, and delete actions,
+- optional sharper character-card portrait URLs on campaign pages and the My Characters page,
 - focused unit, DOM fixture, and local Playwright fixture coverage.
 
 ### Research spike

@@ -7,6 +7,7 @@ import {
   currentInformationSidebarFixture,
   legacyManagePaneFixture,
   missingHooksFixture,
+  myCharactersCardFixture,
   portraitManagerFixture,
   routeDndBeyondFixture,
   type RoutedFixture,
@@ -16,6 +17,7 @@ import {expect, test} from './support/extension-test';
 
 interface ExpectedHealth {
   enhancedPortraitCount?: number;
+  sharperCardPortraitFound?: boolean;
   informationSidebarFound?: boolean;
   legacyPanelFound?: boolean;
   portraitManagerFound?: boolean;
@@ -38,6 +40,7 @@ interface SelectorHealth {
   legacyPanelFound: boolean;
   portraitManagerFound: boolean;
   portraitSurfaceFound: boolean;
+  sharperCardPortraitFound: boolean;
   uploadInputFound: boolean;
   uploadSectionFound: boolean;
   url: string;
@@ -89,6 +92,12 @@ const healthCases: HealthCase[] = [
   },
   {
     expected: {
+      sharperCardPortraitFound: true,
+    },
+    fixture: myCharactersCardFixture,
+  },
+  {
+    expected: {
       enhancedPortraitCount: 0,
       portraitSurfaceFound: false,
       uploadInputFound: false,
@@ -107,6 +116,12 @@ test('writes selector health report for local D&D Beyond fixtures', async (
     await routeDndBeyondFixture(extensionContext, fixture);
     await page.goto(fixture.url);
     await waitForContentScript(page);
+    if (expected.sharperCardPortraitFound === true) {
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll<HTMLElement>('.image.user-selected-avatar')]
+            .some((element) => element.style.backgroundImage.includes('width=600')),
+      );
+    }
 
     const health = await page.evaluate((fixtureName): SelectorHealth => {
       const buttonTexts = [...document.querySelectorAll('button')].map(
@@ -130,6 +145,9 @@ test('writes selector health report for local D&D Beyond fixtures', async (
           document.querySelector('.ct-decoration-manager') !== null,
         portraitSurfaceFound:
           document.querySelector('.ddbc-character-avatar__portrait') !== null,
+        sharperCardPortraitFound:
+          [...document.querySelectorAll<HTMLElement>('.image.user-selected-avatar')]
+              .some((element) => element.style.backgroundImage.includes('width=600')),
         uploadInputFound:
           document.querySelector(
             '.ct-decoration-manager__upload-file-input[type="file"]',

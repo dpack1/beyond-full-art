@@ -25,7 +25,7 @@ src/
   background/
     service-worker.ts
   content/
-    campaigns-entry.ts
+    card-portraits-entry.ts
     character-sheet-entry.ts
   features/
     campaign-card-portraits/
@@ -126,6 +126,35 @@ From the provided right-side character manage-pane DOM capture, the current MVP 
 - sidebar portal fallback root: `.ct-sidebar__portal`
 
 The hashed `styles_*` class names in the same subtree should be treated as unstable build output and should not be primary selectors.
+
+### Character card portrait adapter support added on 2026-10-12
+
+The optional card portrait quality upgrade runs on campaign pages and the My
+Characters collection page.
+
+Campaign cards use the specific campaign card selectors under
+`platform/dndbeyond/selectors.ts`. The My Characters page was not available for
+live authenticated inspection in this implementation pass, so the adapter keeps
+that assumption broad and centralized: it starts from validated
+`/characters/{id}` links on the `/characters` collection route, finds the
+nearest ancestor containing an inline D&D Beyond avatar background, and then
+applies the same verified avatar URL transformation as campaign cards.
+
+Manual release validation should confirm the My Characters DOM still exposes a
+character-page link and an inline avatar background in the same card subtree.
+
+From manual campaign-page inspection on 2026-10-12, the user's assigned
+campaign character card can differ from other participant cards: its character
+actions may live in the footer as `VIEW`, `EDIT`, `UNASSIGN`, and `LEAVE`
+rather than exposing the same hidden header details link. The card portrait
+adapter therefore accepts any link path containing `/characters/{id}` when it
+associates a nearby avatar background with a character card.
+
+The same inspection showed some campaign portraits using D&D Beyond thumbnail
+paths such as `/avatars/thumbnails/{a}/{b}/60/60/{file}`. Query parameters like
+`width=600` do not override those embedded thumbnail dimensions, so the URL
+adapter normalizes thumbnail paths to `/avatars/{a}/{b}/{file}` before adding
+the larger bounded query parameters.
 
 ### Phase 1 DOM hooks observed on 2026-10-10
 

@@ -1,14 +1,21 @@
 import type {BrowserContext, Page} from '@playwright/test';
+import {Buffer} from 'node:buffer';
 
 import {
   CHARACTER_MANAGE_PANE_FIXTURE,
   CURRENT_INFORMATION_SIDEBAR_FIXTURE,
 } from '../../fixtures/character-manage-pane';
+import {MY_CHARACTERS_CARD_FIXTURE} from '../../fixtures/campaign-character-cards';
 import {PORTRAIT_MANAGER_FIXTURE} from '../../fixtures/portrait-manager';
 
 export const CHARACTER_ID = '169418374';
 export const BASE_CHARACTER_URL = `https://www.dndbeyond.com/characters/${CHARACTER_ID}`;
+export const MY_CHARACTERS_URL = 'https://www.dndbeyond.com/characters';
 export const NON_CHARACTER_URL = 'https://www.dndbeyond.com/classes/barbarian';
+const TRANSPARENT_PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+    'base64',
+);
 
 export interface RoutedFixture {
   body: string;
@@ -74,14 +81,31 @@ export const missingHooksFixture: RoutedFixture = {
   url: `${BASE_CHARACTER_URL}?bfaFixture=missing-hooks`,
 };
 
+export const myCharactersCardFixture: RoutedFixture = {
+  body: MY_CHARACTERS_CARD_FIXTURE,
+  name: 'my-characters-card',
+  url: `${MY_CHARACTERS_URL}?bfaFixture=my-characters-card`,
+};
+
 export async function routeDndBeyondFixture(
   context: BrowserContext,
   fixture: RoutedFixture,
 ): Promise<void> {
+  await routeDndBeyondImages(context);
   await context.route(fixture.url, async (route) => {
     await route.fulfill({
       body: wrapFixture(fixture),
       contentType: 'text/html',
+      status: 200,
+    });
+  });
+}
+
+async function routeDndBeyondImages(context: BrowserContext): Promise<void> {
+  await context.route('https://www.dndbeyond.com/avatars/**', async (route) => {
+    await route.fulfill({
+      body: TRANSPARENT_PNG,
+      contentType: 'image/png',
       status: 200,
     });
   });
