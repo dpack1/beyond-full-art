@@ -1,3 +1,4 @@
+import upgradeStyles from './campaign-card-portrait-upgrade.css?raw';
 import {
   buildCampaignCardPortraitUpgradeUrl,
   extractBackgroundImageUrl,
@@ -11,13 +12,32 @@ import {
   observeCampaignCardPortraitTargets,
   type CampaignCardPortraitTarget,
 } from '../../platform/dndbeyond/campaign-card-portrait-adapter';
-import {isCampaignPageUrl} from '../../platform/dndbeyond/urls';
+import {
+  CARD_PORTRAIT_UPGRADE_STYLE_ATTRIBUTE_NAME,
+} from '../../platform/dndbeyond/selectors';
+import {
+  isCampaignPageUrl,
+  isCharacterCollectionPageUrl,
+} from '../../platform/dndbeyond/urls';
 import type {Cleanup} from '../../shared/types';
 
 const LAST_SEEN_BACKGROUND_URL_ATTRIBUTE_NAME =
   'data-bfa-campaign-card-portrait-last-seen-url';
+const STATE_ATTRIBUTE_NAME = 'data-bfa-card-portrait-state';
+const REASON_ATTRIBUTE_NAME = 'data-bfa-card-portrait-reason';
+const NATURAL_HEIGHT_ATTRIBUTE_NAME = 'data-bfa-card-portrait-natural-height';
+const NATURAL_WIDTH_ATTRIBUTE_NAME = 'data-bfa-card-portrait-natural-width';
+const UPGRADE_CLASS_NAME = 'bfa-card-portrait-upgrade';
 const MAX_CONCURRENT_PRELOADS = 3;
 const IDLE_TIMEOUT_MS = 250;
+
+type CardPortraitUpgradeState = 'failed' | 'pending' | 'skipped' | 'upgraded';
+type CardPortraitUpgradeReason =
+  | 'already-target-size'
+  | 'load-failed'
+  | 'no-background-url'
+  | 'source-changed'
+  | 'unsupported-url';
 
 type IdleSchedulerWindow = Window & Partial<{
   cancelIdleCallback: (handle: number) => void;
@@ -33,11 +53,20 @@ interface PendingUpgradeTask {
   upgradedUrl: string;
 }
 
+interface PreloadResult {
+  naturalHeight: number;
+  naturalWidth: number;
+  ok: boolean;
+}
+
 export function installCampaignCardPortraitUpgrade(
     doc: Document = document,
 ): Cleanup {
   const currentUrl = new URL(doc.location.href);
-  if (!isCampaignPageUrl(currentUrl)) {
+  if (
+    !isCampaignPageUrl(currentUrl) &&
+    !isCharacterCollectionPageUrl(currentUrl)
+  ) {
     return () => {};
   }
 
@@ -76,6 +105,7 @@ export function installCampaignCardPortraitUpgrade(
 }
 
 function startCampaignCardPortraitUpgrade(doc: Document): Cleanup {
+  ensureUpgradeStyles(doc);
   const queue = createPortraitUpgradeQueue(doc);
   const stopObserving = observeCampaignCardPortraitTargets((target) => {
     queue.enqueue(target);
@@ -84,6 +114,8 @@ function startCampaignCardPortraitUpgrade(doc: Document): Cleanup {
   return () => {
     stopObserving();
     queue.cleanup();
+    removeUpgradeStates(doc);
+    removeUpgradeStyles(doc);
   };
 }
 
@@ -129,15 +161,29 @@ function createPortraitUpgradeQueue(doc: Document): {
 
     const currentUrl = extractBackgroundImageUrl(target.portrait.style.backgroundImage);
     if (currentUrl === null) {
+      setPortraitUpgradeState(target.portrait, 'skipped', 'no-background-url');
       return;
     }
 
     const upgradedUrl = buildCampaignCardPortraitUpgradeUrl(currentUrl);
     target.portrait.setAttribute(LAST_SEEN_BACKGROUND_URL_ATTRIBUTE_NAME, currentUrl);
-    if (upgradedUrl === null || upgradedUrl === currentUrl) {
+    if (upgradedUrl === null) {
+      setPortraitUpgradeState(target.portrait, 'skipped', 'unsupported-url');
       return;
     }
 
+    if (upgradedUrl === currentUrl) {
+      if (target.portrait.getAttribute(STATE_ATTRIBUTE_NAME) !== 'upgraded') {
+        setPortraitUpgradeState(
+            target.portrait,
+            'skipped',
+            'already-target-size',
+        );
+      }
+      return;
+    }
+
+    setPortraitUpgradeState(target.portrait, 'pending');
     pendingTasks.set(target.portrait, {
       portrait: target.portrait,
       sourceUrl: currentUrl,
@@ -148,6 +194,9 @@ function createPortraitUpgradeQueue(doc: Document): {
 
   const cleanup = () => {
     disposed = true;
+    for (const task of pendingTasks.values()) {
+      clearPortraitUpgradeState(task.portrait);
+    }
     pendingTasks.clear();
     clearScheduledDrain();
   };
@@ -195,11 +244,19 @@ function createPortraitUpgradeQueue(doc: Document): {
 
   async function runTask(task: PendingUpgradeTask): Promise<void> {
     if (!isReadyToUpgrade(task.portrait, task.sourceUrl)) {
+      setPortraitUpgradeState(task.portrait, 'skipped', 'source-changed');
       return;
     }
 
-    const loadSucceeded = await preloadImage(task.upgradedUrl, doc);
-    if (disposed || !loadSucceeded || !isReadyToUpgrade(task.portrait, task.sourceUrl)) {
+    const preloadResult = await preloadImage(task.upgradedUrl, doc);
+    if (
+      disposed ||
+      !preloadResult.ok ||
+      !isReadyToUpgrade(task.portrait, task.sourceUrl)
+    ) {
+      if (!disposed) {
+        setPortraitUpgradeState(task.portrait, 'failed', 'load-failed');
+      }
       return;
     }
 
@@ -208,6 +265,8 @@ function createPortraitUpgradeQueue(doc: Document): {
         LAST_SEEN_BACKGROUND_URL_ATTRIBUTE_NAME,
         task.upgradedUrl,
     );
+    setPortraitNaturalSize(task.portrait, preloadResult);
+    setPortraitUpgradeState(task.portrait, 'upgraded');
   }
 
   function scheduleQueueDrain(): void {
@@ -235,6 +294,53 @@ function createPortraitUpgradeQueue(doc: Document): {
   }
 }
 
+function ensureUpgradeStyles(doc: Document): void {
+  if (
+    doc.head.querySelector(`[${CARD_PORTRAIT_UPGRADE_STYLE_ATTRIBUTE_NAME}]`) !==
+      null
+  ) {
+    return;
+  }
+
+  const styleElement = doc.createElement('style');
+  styleElement.setAttribute(CARD_PORTRAIT_UPGRADE_STYLE_ATTRIBUTE_NAME, 'true');
+  styleElement.textContent = upgradeStyles;
+  doc.head.append(styleElement);
+}
+
+function removeUpgradeStyles(doc: Document): void {
+  doc.head.querySelector(`[${CARD_PORTRAIT_UPGRADE_STYLE_ATTRIBUTE_NAME}]`)?.remove();
+}
+
+function setPortraitUpgradeState(
+    portrait: HTMLElement,
+    state: CardPortraitUpgradeState,
+    reason: CardPortraitUpgradeReason | null = null,
+): void {
+  portrait.classList.add(UPGRADE_CLASS_NAME);
+  portrait.setAttribute(STATE_ATTRIBUTE_NAME, state);
+  if (reason === null) {
+    portrait.removeAttribute(REASON_ATTRIBUTE_NAME);
+  } else {
+    portrait.setAttribute(REASON_ATTRIBUTE_NAME, reason);
+  }
+}
+
+function clearPortraitUpgradeState(portrait: HTMLElement): void {
+  portrait.classList.remove(UPGRADE_CLASS_NAME);
+  portrait.removeAttribute(STATE_ATTRIBUTE_NAME);
+  portrait.removeAttribute(REASON_ATTRIBUTE_NAME);
+  portrait.removeAttribute(NATURAL_HEIGHT_ATTRIBUTE_NAME);
+  portrait.removeAttribute(NATURAL_WIDTH_ATTRIBUTE_NAME);
+}
+
+function removeUpgradeStates(doc: Document): void {
+  const portraits = doc.querySelectorAll<HTMLElement>(`[${STATE_ATTRIBUTE_NAME}]`);
+  for (const portrait of portraits) {
+    clearPortraitUpgradeState(portrait);
+  }
+}
+
 function isReadyToUpgrade(portrait: HTMLElement, sourceUrl: string): boolean {
   if (!portrait.isConnected) {
     return false;
@@ -246,16 +352,38 @@ function isReadyToUpgrade(portrait: HTMLElement, sourceUrl: string): boolean {
   return liveBackgroundImageUrl === sourceUrl;
 }
 
-function preloadImage(imageUrl: string, doc: Document): Promise<boolean> {
+function setPortraitNaturalSize(
+    portrait: HTMLElement,
+    preloadResult: PreloadResult,
+): void {
+  portrait.setAttribute(
+      NATURAL_HEIGHT_ATTRIBUTE_NAME,
+      String(preloadResult.naturalHeight),
+  );
+  portrait.setAttribute(
+      NATURAL_WIDTH_ATTRIBUTE_NAME,
+      String(preloadResult.naturalWidth),
+  );
+}
+
+function preloadImage(imageUrl: string, doc: Document): Promise<PreloadResult> {
   const view = doc.defaultView;
   const ImageConstructor = view?.Image ?? Image;
   return new Promise((resolve) => {
     const image = new ImageConstructor();
     image.addEventListener('error', () => {
-      resolve(false);
+      resolve({
+        naturalHeight: 0,
+        naturalWidth: 0,
+        ok: false,
+      });
     }, {once: true});
     image.addEventListener('load', () => {
-      resolve(true);
+      resolve({
+        naturalHeight: image.naturalHeight,
+        naturalWidth: image.naturalWidth,
+        ok: true,
+      });
     }, {once: true});
     image.src = imageUrl;
   });

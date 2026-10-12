@@ -59,8 +59,8 @@ async function handleCheckboxChange(
     renderStatus(
         status,
         checkbox.checked
-          ? 'Campaign portrait enhancement enabled.'
-          : 'Campaign portrait enhancement disabled.',
+          ? 'Character card portrait enhancement enabled.'
+          : 'Character card portrait enhancement disabled.',
         false,
     );
   } catch (error) {

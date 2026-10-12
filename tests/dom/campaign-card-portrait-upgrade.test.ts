@@ -5,7 +5,12 @@ import {
   CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY,
   setCampaignCardPortraitUpgradeEnabled,
 } from '../../src/platform/chrome/storage';
-import {CAMPAIGN_CHARACTER_CARD_FIXTURE} from '../fixtures/campaign-character-cards';
+import {
+  CAMPAIGN_CHARACTER_CARD_FIXTURE,
+  CAMPAIGN_THUMBNAIL_CHARACTER_CARD_FIXTURE,
+  MY_CHARACTERS_CARD_FIXTURE,
+  OWNED_CAMPAIGN_CHARACTER_CARD_FIXTURE,
+} from '../fixtures/campaign-character-cards';
 
 describe('campaign card portrait upgrade', () => {
   let restoreImageConstructor: (() => void) | null = null;
@@ -43,11 +48,25 @@ describe('campaign card portrait upgrade', () => {
     await flushAsyncWork();
 
     const portrait = getCampaignPortrait();
-    expect(portrait.style.backgroundImage).toContain('width=150');
-    expect(portrait.style.backgroundImage).toContain('height=150');
+    expect(portrait.style.backgroundImage).toContain('width=600');
+    expect(portrait.style.backgroundImage).toContain('height=600');
     expect(portrait.style.backgroundImage).toContain('fit=bounds');
+    expect(portrait.getAttribute('data-bfa-card-portrait-state')).toBe('upgraded');
+    expect(portrait.hasAttribute('data-bfa-card-portrait-reason')).toBe(false);
+    expect(portrait.getAttribute('data-bfa-card-portrait-natural-width')).toBe('600');
+    expect(portrait.getAttribute('data-bfa-card-portrait-natural-height')).toBe('600');
+    expect(portrait.classList.contains('bfa-card-portrait-upgrade')).toBe(true);
+    expect(document.querySelector('[data-bfa-card-portrait-upgrade-styles]'))
+        .not.toBeNull();
 
     cleanup();
+    expect(portrait.hasAttribute('data-bfa-card-portrait-state')).toBe(false);
+    expect(portrait.hasAttribute('data-bfa-card-portrait-reason')).toBe(false);
+    expect(portrait.hasAttribute('data-bfa-card-portrait-natural-width')).toBe(false);
+    expect(portrait.hasAttribute('data-bfa-card-portrait-natural-height')).toBe(false);
+    expect(portrait.classList.contains('bfa-card-portrait-upgrade')).toBe(false);
+    expect(document.querySelector('[data-bfa-card-portrait-upgrade-styles]'))
+        .toBeNull();
   });
 
   it('leaves portraits unchanged when the setting is disabled', async () => {
@@ -63,7 +82,7 @@ describe('campaign card portrait upgrade', () => {
 
     const portrait = getCampaignPortrait();
     expect(portrait.style.backgroundImage).toContain('width=60');
-    expect(portrait.style.backgroundImage).not.toContain('width=150');
+    expect(portrait.style.backgroundImage).not.toContain('width=600');
 
     cleanup();
   });
@@ -76,7 +95,138 @@ describe('campaign card portrait upgrade', () => {
     await flushAsyncWork();
 
     const portrait = getCampaignPortrait();
-    expect(portrait.style.backgroundImage).toContain('width=150');
+    expect(portrait.style.backgroundImage).toContain('width=600');
+
+    cleanup();
+  });
+
+  it('rewrites D&D Beyond thumbnail avatar paths before upgrading', async () => {
+    window.history.replaceState({}, '', '/campaigns/12345');
+    document.body.innerHTML = CAMPAIGN_THUMBNAIL_CHARACTER_CARD_FIXTURE;
+
+    const cleanup = installCampaignCardPortraitUpgrade(document);
+    await flushAsyncWork();
+
+    const portrait = getCampaignPortrait();
+    expect(portrait.style.backgroundImage).toContain('/avatars/25837/58/');
+    expect(portrait.style.backgroundImage).not.toContain('/thumbnails/');
+    expect(portrait.style.backgroundImage).toContain('width=600');
+    expect(portrait.getAttribute('data-bfa-card-portrait-state')).toBe('upgraded');
+
+    cleanup();
+  });
+
+  it('upgrades owned campaign character cards with footer character actions', async () => {
+    window.history.replaceState({}, '', '/campaigns/12345');
+    document.body.innerHTML = OWNED_CAMPAIGN_CHARACTER_CARD_FIXTURE;
+
+    const cleanup = installCampaignCardPortraitUpgrade(document);
+    await flushAsyncWork();
+
+    const portrait = getCampaignPortrait();
+    expect(portrait.style.backgroundImage).toContain('width=600');
+    expect(portrait.getAttribute('data-bfa-card-portrait-state')).toBe('upgraded');
+
+    cleanup();
+  });
+
+  it('marks each portrait pending while its sharper image preloads', async () => {
+    restoreImageConstructor?.();
+    restoreImageConstructor = installNeverResolvingImageStub();
+    window.history.replaceState({}, '', '/characters');
+    document.body.innerHTML = MY_CHARACTERS_CARD_FIXTURE;
+
+    const cleanup = installCampaignCardPortraitUpgrade(document);
+    await flushAsyncWork();
+
+    const portrait = getCampaignPortrait();
+    expect(portrait.getAttribute('data-bfa-card-portrait-state')).toBe('pending');
+    expect(portrait.classList.contains('bfa-card-portrait-upgrade')).toBe(true);
+
+    cleanup();
+  });
+
+  it('marks already-sharp portraits as skipped with a reason', async () => {
+    window.history.replaceState({}, '', '/characters');
+    document.body.innerHTML = MY_CHARACTERS_CARD_FIXTURE.replace(
+        'width=60&amp;height=60',
+        'width=600&amp;height=600',
+    );
+
+    const cleanup = installCampaignCardPortraitUpgrade(document);
+    await flushAsyncWork();
+
+    const portrait = getCampaignPortrait();
+    expect(portrait.getAttribute('data-bfa-card-portrait-state')).toBe('skipped');
+    expect(portrait.getAttribute('data-bfa-card-portrait-reason')).toBe(
+        'already-target-size',
+    );
+    expect(portrait.classList.contains('bfa-card-portrait-upgrade')).toBe(true);
+
+    cleanup();
+  });
+
+  it('marks unsupported portrait URLs as skipped with a reason', async () => {
+    window.history.replaceState({}, '', '/characters');
+    document.body.innerHTML = MY_CHARACTERS_CARD_FIXTURE.replace(
+        'https://www.dndbeyond.com/avatars/58201/262/1581111423-169418374.jpeg',
+        'https://www.dndbeyond.com/Content/Skins/Waterdeep/images/characters/default-avatar-builder.png',
+    );
+
+    const cleanup = installCampaignCardPortraitUpgrade(document);
+    await flushAsyncWork();
+
+    const portrait = getCampaignPortrait();
+    expect(portrait.getAttribute('data-bfa-card-portrait-state')).toBe('skipped');
+    expect(portrait.getAttribute('data-bfa-card-portrait-reason')).toBe(
+        'unsupported-url',
+    );
+
+    cleanup();
+  });
+
+  it('marks failed sharper-image loads with a reason', async () => {
+    restoreImageConstructor?.();
+    restoreImageConstructor = installFailingImageStub();
+    window.history.replaceState({}, '', '/characters');
+    document.body.innerHTML = MY_CHARACTERS_CARD_FIXTURE;
+
+    const cleanup = installCampaignCardPortraitUpgrade(document);
+    await flushAsyncWork();
+
+    const portrait = getCampaignPortrait();
+    expect(portrait.getAttribute('data-bfa-card-portrait-state')).toBe('failed');
+    expect(portrait.getAttribute('data-bfa-card-portrait-reason')).toBe(
+        'load-failed',
+    );
+
+    cleanup();
+  });
+
+  it('upgrades My Characters card portraits on the character collection page', async () => {
+    window.history.replaceState({}, '', '/characters');
+    document.body.innerHTML = MY_CHARACTERS_CARD_FIXTURE;
+
+    const cleanup = installCampaignCardPortraitUpgrade(document);
+    await flushAsyncWork();
+
+    const portrait = getCampaignPortrait();
+    expect(portrait.style.backgroundImage).toContain('width=600');
+    expect(portrait.style.backgroundImage).toContain('height=600');
+
+    cleanup();
+  });
+
+  it('does not run on character sheet pages', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = MY_CHARACTERS_CARD_FIXTURE;
+
+    const cleanup = installCampaignCardPortraitUpgrade(document);
+    await flushAsyncWork();
+
+    const portrait = getCampaignPortrait();
+    expect(portrait.style.backgroundImage).toContain('width=60');
+    expect(portrait.style.backgroundImage).not.toContain('width=600');
 
     cleanup();
   });
@@ -96,7 +246,7 @@ describe('campaign card portrait upgrade', () => {
     await setCampaignCardPortraitUpgradeEnabled(true);
     await flushAsyncWork();
 
-    expect(getCampaignPortrait().style.backgroundImage).toContain('width=150');
+    expect(getCampaignPortrait().style.backgroundImage).toContain('width=600');
 
     cleanup();
   });
@@ -191,9 +341,42 @@ function installImageStub(): () => void {
   const originalImage = window.Image;
 
   class FakeImage extends EventTarget {
+    naturalHeight = 600;
+    naturalWidth = 600;
+
     set src(_value: string) {
       window.setTimeout(() => {
         this.dispatchEvent(new Event('load'));
+      }, 0);
+    }
+  }
+
+  window.Image = FakeImage as typeof window.Image;
+  return () => {
+    window.Image = originalImage;
+  };
+}
+
+function installNeverResolvingImageStub(): () => void {
+  const originalImage = window.Image;
+
+  class FakeImage extends EventTarget {
+    set src(_value: string) {}
+  }
+
+  window.Image = FakeImage as typeof window.Image;
+  return () => {
+    window.Image = originalImage;
+  };
+}
+
+function installFailingImageStub(): () => void {
+  const originalImage = window.Image;
+
+  class FakeImage extends EventTarget {
+    set src(_value: string) {
+      window.setTimeout(() => {
+        this.dispatchEvent(new Event('error'));
       }, 0);
     }
   }

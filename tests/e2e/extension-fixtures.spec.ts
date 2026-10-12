@@ -2,6 +2,7 @@ import {
   currentInformationSidebarFixture,
   legacyManagePaneFixture,
   missingHooksFixture,
+  myCharactersCardFixture,
   NON_CHARACTER_URL,
   routeDndBeyondFixture,
   routeNonCharacterPage,
@@ -72,6 +73,26 @@ test('does not throw or inject controls when known page hooks are missing', asyn
   await expect(page.locator('[data-bfa-enhanced="true"]')).toHaveCount(0);
   await expect(page.locator('.bfa-art-sync')).toHaveCount(0);
   expect(pageErrors).toEqual([]);
+});
+
+test('upgrades My Characters card portrait image quality', async ({
+  extensionContext,
+  page,
+}) => {
+  await routeDndBeyondFixture(extensionContext, myCharactersCardFixture);
+
+  await page.goto(myCharactersCardFixture.url);
+  await waitForContentScript(page);
+
+  const portrait = page.locator('.character-card .image.user-selected-avatar');
+  await expect(portrait).toHaveCSS(
+    'background-image',
+    /width=600.*height=600|height=600.*width=600/,
+  );
+  await expect(portrait).toHaveAttribute(
+    'data-bfa-card-portrait-state',
+    'upgraded',
+  );
 });
 
 test('does not run on unrelated D&D Beyond pages', async ({

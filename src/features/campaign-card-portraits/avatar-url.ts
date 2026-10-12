@@ -1,7 +1,9 @@
 const DND_BEYOND_AVATAR_HOST = 'www.dndbeyond.com';
 const DND_BEYOND_AVATAR_PATH_PREFIX = '/avatars/';
-const TARGET_HEIGHT = '150';
-const TARGET_WIDTH = '150';
+const DND_BEYOND_AVATAR_THUMBNAIL_PATH_PATTERN =
+  /^\/avatars\/thumbnails\/([^/]+)\/([^/]+)\/\d+\/\d+\/(.+)$/;
+const TARGET_HEIGHT = '600';
+const TARGET_WIDTH = '600';
 const TARGET_FIT = 'bounds';
 const TARGET_QUALITY = '95';
 const TARGET_AUTO = 'webp';
@@ -22,6 +24,7 @@ export function buildCampaignCardPortraitUpgradeUrl(
     return null;
   }
 
+  candidateUrl.pathname = normalizeAvatarPath(candidateUrl.pathname);
   candidateUrl.searchParams.set('width', TARGET_WIDTH);
   candidateUrl.searchParams.set('height', TARGET_HEIGHT);
   candidateUrl.searchParams.set('fit', TARGET_FIT);
@@ -53,4 +56,14 @@ export function formatBackgroundImageUrl(backgroundImageUrl: string): string {
 function isDndBeyondAvatarUrl(candidateUrl: URL): boolean {
   return candidateUrl.hostname === DND_BEYOND_AVATAR_HOST &&
     candidateUrl.pathname.startsWith(DND_BEYOND_AVATAR_PATH_PREFIX);
+}
+
+function normalizeAvatarPath(pathname: string): string {
+  const thumbnailMatch = DND_BEYOND_AVATAR_THUMBNAIL_PATH_PATTERN.exec(pathname);
+  if (thumbnailMatch === null) {
+    return pathname;
+  }
+
+  const [, firstPathId, secondPathId, fileName] = thumbnailMatch;
+  return `/avatars/${firstPathId}/${secondPathId}/${fileName}`;
 }

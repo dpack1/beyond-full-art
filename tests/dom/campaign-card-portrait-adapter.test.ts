@@ -4,7 +4,11 @@ import {
   findCampaignCardPortraitTargets,
   observeCampaignCardPortraitTargets,
 } from '../../src/platform/dndbeyond/campaign-card-portrait-adapter';
-import {CAMPAIGN_CHARACTER_CARD_FIXTURE} from '../fixtures/campaign-character-cards';
+import {
+  CAMPAIGN_CHARACTER_CARD_FIXTURE,
+  MY_CHARACTERS_CARD_FIXTURE,
+  OWNED_CAMPAIGN_CHARACTER_CARD_FIXTURE,
+} from '../fixtures/campaign-character-cards';
 
 describe('campaign card portrait adapter', () => {
   beforeEach(() => {
@@ -23,6 +27,40 @@ describe('campaign card portrait adapter', () => {
     expect(targets).toHaveLength(1);
     expect(targets[0]?.characterId).toBe('169418374');
     expect(targets[0]?.portrait.className).toContain('user-selected-avatar');
+  });
+
+  it('finds My Characters card portraits from character links', () => {
+    document.body.innerHTML = MY_CHARACTERS_CARD_FIXTURE;
+
+    const targets = findCampaignCardPortraitTargets(document);
+
+    expect(targets).toHaveLength(1);
+    expect(targets[0]?.characterId).toBe('169418374');
+    expect(targets[0]?.detailsLink.getAttribute('href')).toBe(
+        '/characters/169418374',
+    );
+    expect(targets[0]?.portrait.className).toContain('user-selected-avatar');
+  });
+
+  it('finds owned campaign cards with footer character actions', () => {
+    document.body.innerHTML = OWNED_CAMPAIGN_CHARACTER_CARD_FIXTURE;
+
+    const targets = findCampaignCardPortraitTargets(document);
+
+    expect(targets).toHaveLength(1);
+    expect(targets[0]?.characterId).toBe('900000001');
+    expect(targets[0]?.detailsLink.getAttribute('href')).toBe(
+        '/profile/greywolf/characters/900000001',
+    );
+    expect(targets[0]?.portrait.className).toContain('user-selected-avatar');
+  });
+
+  it('does not duplicate campaign portraits through the generic character-list path', () => {
+    document.body.innerHTML = CAMPAIGN_CHARACTER_CARD_FIXTURE;
+
+    const targets = findCampaignCardPortraitTargets(document);
+
+    expect(targets).toHaveLength(1);
   });
 
   it('observes campaign cards rendered after startup', async () => {

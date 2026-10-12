@@ -3,6 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {
   buildCharacterPageUrl,
   isCampaignPageUrl,
+  isCharacterCollectionPageUrl,
   isCharacterPageUrl,
   parseCharacterIdFromCharacterPageUrl,
 } from '../../src/platform/dndbeyond/urls';
@@ -50,6 +51,25 @@ describe('campaign page urls', () => {
   it('rejects non-campaign paths', () => {
     expect(
         isCampaignPageUrl(new URL('https://www.dndbeyond.com/characters/169418374')),
+    ).toBe(false);
+  });
+});
+
+describe('character collection urls', () => {
+  it('matches the My Characters collection path', () => {
+    expect(
+        isCharacterCollectionPageUrl(new URL('https://www.dndbeyond.com/characters')),
+    ).toBe(true);
+    expect(
+        isCharacterCollectionPageUrl(new URL('https://www.dndbeyond.com/characters/')),
+    ).toBe(true);
+  });
+
+  it('rejects character sheet paths', () => {
+    expect(
+        isCharacterCollectionPageUrl(
+            new URL('https://www.dndbeyond.com/characters/169418374'),
+        ),
     ).toBe(false);
   });
 });

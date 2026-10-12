@@ -189,3 +189,19 @@ Why:
 - It reuses the already loaded Blob URL instead of creating a second copy of the
   image bytes.
 - It keeps backup/export behavior user-initiated and local.
+
+## ADR-016: Character-card portrait upgrades share one adapter boundary
+
+Status: Accepted
+
+Use one D&D Beyond adapter for small character-card avatar upgrades across
+campaign pages and the My Characters collection page.
+
+Why:
+
+- Both surfaces point at normal D&D Beyond character URLs and use small avatar
+  background images.
+- Keeping the route checks and selectors centralized makes private D&D Beyond
+  DOM assumptions easier to find and replace.
+- The existing popup setting should continue to control the optional quality
+  upgrade without migrating stored preferences.

@@ -67,6 +67,8 @@ As a user, I can upload the original full artwork for a character and have it st
 - Store metadata and preferences in `chrome.storage.local`.
 - Display the stored full artwork in the fullscreen viewer when available.
 - Fall back to the D&D Beyond portrait when no full artwork is stored.
+- Improve small D&D Beyond character-card avatar image URLs on campaign pages
+  and the My Characters page when the optional card portrait setting is enabled.
 - Allow replacement via a later portrait upload and explicit deletion of stored art.
 - Allow downloading the locally stored full artwork from the fullscreen viewer.
 - Provide a popup inventory for locally stored full artwork, including per-item open, download, and delete actions.

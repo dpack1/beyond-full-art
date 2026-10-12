@@ -24,7 +24,12 @@
     },
     {
       "matches": ["https://www.dndbeyond.com/campaigns/*"],
-      "js": ["content/campaigns-entry.js"],
+      "js": ["content/card-portraits-entry.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.dndbeyond.com/characters*"],
+      "js": ["content/card-portraits-entry.js"],
       "run_at": "document_idle"
     }
   ]
