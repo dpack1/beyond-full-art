@@ -27,7 +27,7 @@ These are not product ambiguities that block the MVP. They are implementation de
   - Current implementation uses structured-clone transfer of an `ArrayBuffer` plus metadata to the MV3 service worker.
 - Whether a future phase should also support a separate full-art file that differs from the current D&D Beyond portrait upload.
 - Whether bulk export or backup is required before public release.
-  - Current implementation supports downloading the active stored full art from the fullscreen viewer.
+  - Current implementation supports downloading the active stored full art from the fullscreen viewer and per-item download from the popup inventory.
 
 ## Deletion cleanup questions
 

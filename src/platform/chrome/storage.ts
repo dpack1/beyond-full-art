@@ -38,6 +38,23 @@ export async function getStoredCharacterArtMetadata(
   return metadataValue;
 }
 
+export async function getAllStoredCharacterArtMetadata(
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<CharacterArtMetadata[]> {
+  const storedValues = await callStorageGetAll(storageArea);
+  return Object.entries(storedValues)
+      .filter(([key]) => key.startsWith(CHARACTER_ART_METADATA_KEY_PREFIX))
+      .map(([, value]) => value)
+      .filter(isCharacterArtMetadata)
+      .sort((left, right) => {
+        const updatedComparison =
+          right.updatedAt.localeCompare(left.updatedAt);
+        return updatedComparison === 0
+          ? left.characterId.localeCompare(right.characterId)
+          : updatedComparison;
+      });
+}
+
 export async function setStoredCharacterArtMetadata(
     metadata: CharacterArtMetadata,
     storageArea: ChromeStorageLocal = getStorageArea(),
@@ -128,6 +145,22 @@ function callStorageGet(
 ): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     storageArea.get(key, (value) => {
+      const runtimeError = chrome.runtime.lastError;
+      if (runtimeError !== undefined) {
+        reject(new Error(runtimeError.message));
+        return;
+      }
+
+      resolve(value as Record<string, unknown>);
+    });
+  });
+}
+
+function callStorageGetAll(
+    storageArea: ChromeStorageLocal,
+): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    storageArea.get(null, (value) => {
       const runtimeError = chrome.runtime.lastError;
       if (runtimeError !== undefined) {
         reject(new Error(runtimeError.message));

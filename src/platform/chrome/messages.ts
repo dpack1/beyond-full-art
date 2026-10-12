@@ -18,6 +18,7 @@ type CharacterArtOperation =
   | 'art:get-crop-metadata'
   | 'art:get-image-data'
   | 'art:get-metadata'
+  | 'art:list-metadata'
   | 'art:save-crop'
   | 'art:save';
 
@@ -77,6 +78,10 @@ interface GetCharacterArtMetadataRequest extends CharacterArtEnvelope {
   type: 'art:get-metadata';
 }
 
+interface ListCharacterArtMetadataRequest extends CharacterArtEnvelope {
+  type: 'art:list-metadata';
+}
+
 interface GetCharacterArtCropMetadataRequest extends CharacterArtEnvelope {
   characterId: CharacterId;
   type: 'art:get-crop-metadata';
@@ -85,6 +90,11 @@ interface GetCharacterArtCropMetadataRequest extends CharacterArtEnvelope {
 interface GetCharacterArtMetadataSuccessResponse extends CharacterArtEnvelope {
   metadata: CharacterArtMetadata | null;
   type: 'art:get-metadata:success';
+}
+
+interface ListCharacterArtMetadataSuccessResponse extends CharacterArtEnvelope {
+  metadata: CharacterArtMetadata[];
+  type: 'art:list-metadata:success';
 }
 
 interface GetCharacterArtCropMetadataSuccessResponse extends CharacterArtEnvelope {
@@ -134,6 +144,7 @@ export type CharacterArtRequest =
   | GetCharacterArtCropMetadataRequest
   | GetCharacterArtImageDataRequest
   | GetCharacterArtMetadataRequest
+  | ListCharacterArtMetadataRequest
   | SaveCharacterArtCropRequest
   | SaveCharacterArtRequest;
 
@@ -144,6 +155,7 @@ type CharacterArtResponse =
   | GetCharacterArtCropMetadataSuccessResponse
   | GetCharacterArtImageDataSuccessResponse
   | GetCharacterArtMetadataSuccessResponse
+  | ListCharacterArtMetadataSuccessResponse
   | SaveCharacterArtCropSuccessResponse
   | SaveCharacterArtSuccessResponse;
 
@@ -162,6 +174,7 @@ type ParsedCharacterArtResponse =
   }
   | GetCharacterArtCropMetadataSuccessResponse
   | GetCharacterArtMetadataSuccessResponse
+  | ListCharacterArtMetadataSuccessResponse
   | SaveCharacterArtCropSuccessResponse
   | SaveCharacterArtSuccessResponse;
 
@@ -216,6 +229,11 @@ export function asCharacterArtRequest(
         characterId: value.characterId,
         source: CHARACTER_ART_MESSAGE_SOURCE,
         type: 'art:get-metadata',
+      };
+    case 'art:list-metadata':
+      return {
+        source: CHARACTER_ART_MESSAGE_SOURCE,
+        type: 'art:list-metadata',
       };
     case 'art:get-crop-metadata':
       if (typeof value.characterId !== 'string') {
@@ -298,6 +316,7 @@ boolean {
     || value === 'art:get-crop-metadata'
     || value === 'art:get-image-data'
     || value === 'art:get-metadata'
+    || value === 'art:list-metadata'
     || value === 'art:save-crop'
     || value === 'art:save'
   );
@@ -376,6 +395,20 @@ export async function getStoredCharacterPortraitCropMetadata(
 
   if (response.type !== 'art:get-crop-metadata:success') {
     throw new Error('Invalid crop metadata response');
+  }
+
+  return response.metadata;
+}
+
+export async function listStoredCharacterArtMetadata():
+Promise<CharacterArtMetadata[]> {
+  const response = await sendCharacterArtMessage({
+    source: CHARACTER_ART_MESSAGE_SOURCE,
+    type: 'art:list-metadata',
+  });
+
+  if (response.type !== 'art:list-metadata:success') {
+    throw new Error('Invalid metadata-list response');
   }
 
   return response.metadata;
@@ -474,6 +507,16 @@ export function createGetCharacterArtMetadataSuccessResponse(
     metadata,
     source: CHARACTER_ART_MESSAGE_SOURCE,
     type: 'art:get-metadata:success',
+  };
+}
+
+export function createListCharacterArtMetadataSuccessResponse(
+    metadata: CharacterArtMetadata[],
+): ListCharacterArtMetadataSuccessResponse {
+  return {
+    metadata,
+    source: CHARACTER_ART_MESSAGE_SOURCE,
+    type: 'art:list-metadata:success',
   };
 }
 
@@ -645,6 +688,19 @@ function asCharacterArtResponse(
         metadata: value.metadata,
         source: CHARACTER_ART_MESSAGE_SOURCE,
         type: 'art:get-metadata:success',
+      };
+    case 'art:list-metadata:success':
+      if (
+        !Array.isArray(value.metadata)
+        || !value.metadata.every(isCharacterArtMetadata)
+      ) {
+        return null;
+      }
+
+      return {
+        metadata: value.metadata,
+        source: CHARACTER_ART_MESSAGE_SOURCE,
+        type: 'art:list-metadata:success',
       };
     case 'art:save-crop:success':
       if (!isCharacterPortraitCropMetadata(value.metadata)) {
