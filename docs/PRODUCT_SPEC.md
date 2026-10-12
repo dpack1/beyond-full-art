@@ -69,6 +69,7 @@ As a user, I can upload the original full artwork for a character and have it st
 - Fall back to the D&D Beyond portrait when no full artwork is stored.
 - Allow replacement via a later portrait upload and explicit deletion of stored art.
 - Allow downloading the locally stored full artwork from the fullscreen viewer.
+- Provide a popup inventory for locally stored full artwork, including per-item download and delete actions.
 - Clearly communicate that uninstalling the extension removes locally stored art.
 
 ### Current implementation defaults
@@ -79,6 +80,7 @@ As a user, I can upload the original full artwork for a character and have it st
 - One active full-art image per character
 - No derived preview image yet
 - Stored full art can be downloaded from the fullscreen viewer without the Chrome `downloads` permission
+- Stored full art can also be listed, downloaded, and deleted from the extension popup
 - The current implementation observes D&D Beyond's portrait upload input and native portrait-confirmation action, and does not add a separate extension-owned file picker
 
 ### Deferred product decisions

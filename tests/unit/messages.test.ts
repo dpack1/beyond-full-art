@@ -69,8 +69,21 @@ describe('character art messages', () => {
 
   it('identifies known character-art operations', () => {
     expect(isCharacterArtOperationType('art:get-metadata')).toBe(true);
+    expect(isCharacterArtOperationType('art:list-metadata')).toBe(true);
     expect(isCharacterArtOperationType('art:save')).toBe(true);
     expect(isCharacterArtOperationType('other:message')).toBe(false);
+  });
+
+  it('accepts a metadata-list request', () => {
+    const request = asCharacterArtRequest({
+      source: CHARACTER_ART_MESSAGE_SOURCE,
+      type: 'art:list-metadata',
+    });
+
+    expect(request).toEqual({
+      source: CHARACTER_ART_MESSAGE_SOURCE,
+      type: 'art:list-metadata',
+    });
   });
 
   it('rejects matching operation types from other sources', () => {

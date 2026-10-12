@@ -17,6 +17,7 @@ import {
   createErrorResponse,
   createGetCharacterArtImageDataSuccessResponse,
   createGetCharacterArtMetadataSuccessResponse,
+  createListCharacterArtMetadataSuccessResponse,
   createSaveCharacterArtCropSuccessResponse,
   createSaveCharacterArtSuccessResponse,
 } from '../platform/chrome/messages';
@@ -28,6 +29,7 @@ import {
 import {
   deleteStoredCharacterArtMetadata,
   deleteStoredCharacterPortraitCropMetadata,
+  getAllStoredCharacterArtMetadata,
   getStoredCharacterArtMetadata,
   getStoredCharacterPortraitCropMetadata,
   setStoredCharacterArtMetadata,
@@ -80,6 +82,10 @@ async function handleCharacterArtRequest(
     case 'art:get-metadata':
       return createGetCharacterArtMetadataSuccessResponse(
           await getStoredCharacterArtMetadata(request.characterId),
+      );
+    case 'art:list-metadata':
+      return createListCharacterArtMetadataSuccessResponse(
+          await getAllStoredCharacterArtMetadata(),
       );
     case 'art:get-crop-metadata':
       return createGetCharacterArtCropMetadataSuccessResponse(
@@ -309,6 +315,7 @@ function isMalformedCharacterArtMessage(
   | 'art:get-crop-metadata'
   | 'art:get-image-data'
   | 'art:get-metadata'
+  | 'art:list-metadata'
   | 'art:save'
   | 'art:save-crop'
 } {
@@ -324,6 +331,7 @@ function isMalformedCharacterArtMessage(
       || value.type === 'art:get-crop-metadata'
       || value.type === 'art:get-image-data'
       || value.type === 'art:get-metadata'
+      || value.type === 'art:list-metadata'
       || value.type === 'art:save-crop'
       || value.type === 'art:save'
     )
