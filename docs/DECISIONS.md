@@ -245,3 +245,20 @@ Why:
 
 Future image bytes should use extension-origin IndexedDB rather than
 `chrome.storage.local`, matching the full-art storage boundary.
+
+## ADR-019: Journal photos are image blocks in IndexedDB
+
+Status: Accepted
+
+Store each journal photo as an image block on the note. Keep the note record,
+including the block metadata, in `chrome.storage.local`. Keep the photo bytes
+in extension-origin IndexedDB under a `bfa.journal.image.` blob key.
+
+Why:
+
+- The block schema from ADR-018 can grow an image block without rewriting
+  existing text entries, so schema version stays 1.
+- Photo bytes can be large enough to crowd `chrome.storage.local`.
+- A dedicated key prefix keeps journal deletes from touching stored full art
+  in the same object store.
+- Search can use the file name stored on the block without reading the bytes.

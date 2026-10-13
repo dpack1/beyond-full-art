@@ -217,27 +217,19 @@ function createInsertionItem(
 function createJournalTab(referenceTab: HTMLElement): HTMLButtonElement {
   const doc = referenceTab.ownerDocument;
   const tab = doc.createElement('button');
-  const icon = doc.createElement('span');
-  const label = doc.createElement('span');
 
   tab.className = [
     referenceTab.className,
     CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME,
   ].filter(Boolean).join(' ');
   tab.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME, 'true');
-  tab.setAttribute('aria-label', 'Journal');
+  tab.textContent = 'Journal';
   tab.type = 'button';
 
   if (referenceTab.getAttribute('role') === 'tab') {
     tab.setAttribute('aria-selected', 'false');
     tab.setAttribute('role', 'tab');
   }
-
-  icon.className = 'bfa-character-journal-tab-icon';
-  icon.setAttribute('aria-hidden', 'true');
-  label.className = 'bfa-character-journal-tab-label';
-  label.textContent = 'Journal';
-  tab.append(icon, label);
 
   return tab;
 }

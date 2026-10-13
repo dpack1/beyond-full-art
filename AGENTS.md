@@ -20,7 +20,7 @@ src/
   features/
     campaign-card-portraits/            sharper card avatars
     character-art/                      save, status, and portrait edit panel
-    character-journal/                  local Journal tab and entries
+    character-journal/                  local notes, photos, and search
     crop-workflow/                      square portrait crop dialog
     fullscreen-viewer/                  accessible fullscreen overlay
   platform/chrome/                      storage, IndexedDB, runtime messages
@@ -104,7 +104,7 @@ Playwright needs Chromium: `npx playwright install chromium`. The e2e suite is h
 - Do not request `webRequest`, `unlimitedStorage`, or `downloads` before the feature that needs them is implemented.
 - Do not execute remote code.
 - Keep stored artwork local unless a product decision explicitly adds cloud sync.
-- Store preferences, metadata, and journal text in `chrome.storage.local`.
+- Store preferences, metadata, and journal note text in `chrome.storage.local`.
 - Store full image bytes in extension-origin IndexedDB.
 - Do not use page-origin localStorage or IndexedDB from a content script for extension data.
 - Treat the service worker as ephemeral. Persist state instead of relying on global memory.
@@ -128,7 +128,8 @@ Playwright needs Chromium: `npx playwright install chromium`. The e2e suite is h
 - Supported uploads are `image/png`, `image/jpeg`, and `image/webp`, up to 3 MB. The generated crop is a 512×512 PNG.
 - Popup styles are injected by `src/popup/settings.ts` from `settings.css?raw`. `settings.html` has no stylesheet link. The build copies the HTML and bundles the script to `dist/popup/settings.js`.
 - Both popup toggles default to enabled when the preference key is missing.
-- Journal image tiles are a placeholder. Do not store image bytes in `chrome.storage.local`.
+- Journal photos are image blocks on a note. Their bytes live in IndexedDB under keys prefixed `bfa.journal.image.`. Do not store image bytes in `chrome.storage.local`.
+- Playwright journal screenshots are written to `/opt/cursor/artifacts/journal/` by `tests/e2e/character-journal.spec.ts`. The suite loads the unpacked `dist/` extension against a local character-sheet fixture, not the live site.
 - `assets/icons/icon-source.png` is the icon master. The build copies only `icon-16.png`, `icon-32.png`, `icon-48.png`, and `icon-128.png`.
 - README diagrams under `assets/readme/svg/` are the labeled screenshots. Do not commit generated `dist/` or `test-results/`.
 - `.agent/` is gitignored local scratch. Shared design changes go in `docs/DECISIONS.md`. Phase status goes in `docs/IMPLEMENTATION_PLAN.md`.

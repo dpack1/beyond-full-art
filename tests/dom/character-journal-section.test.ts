@@ -36,7 +36,7 @@ describe('character journal section', () => {
     expect(nativePanel.hidden).toBe(true);
     expect(document.querySelector('.bfa-character-journal-images')).not.toBeNull();
     expect(document.querySelector('.bfa-character-journal-list')?.textContent)
-        .toContain('No entries yet.');
+        .toContain('No notes yet.');
 
     section.hide();
 
@@ -58,7 +58,9 @@ describe('character journal section', () => {
 
     expect(entries).toHaveLength(1);
     expect(entries[0]?.title).toBe('First session');
-    expect(entries[0]?.blocks[0]?.text).toBe('Matilda found the locked door.');
+    expect(entries[0]?.blocks[0]?.type === 'text'
+      ? entries[0].blocks[0].text
+      : '').toBe('Matilda found the locked door.');
     expect(getEditorStatus().textContent).toBe('Saved.');
 
     section.destroy();
@@ -73,7 +75,6 @@ describe('character journal section', () => {
       }),
     ];
     const section = createCharacterJournalSection(createFakeService(entries));
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     await showSection(section);
 
@@ -86,9 +87,12 @@ describe('character journal section', () => {
     await flushPromises();
 
     expect(entries[0]?.title).toBe('Updated title');
-    expect(entries[0]?.blocks[0]?.text).toBe('Updated text.');
+    expect(entries[0]?.blocks[0]?.type === 'text'
+      ? entries[0].blocks[0].text
+      : '').toBe('Updated text.');
 
     getDeleteButton().click();
+    getButton('Delete note').click();
     await flushPromises();
 
     expect(entries).toEqual([]);
@@ -115,6 +119,77 @@ describe('character journal section', () => {
 
     section.destroy();
   });
+
+  it('filters notes by the search query', async () => {
+    const entries = [
+      createEntry({
+        id: 'entry-door',
+        text: 'A locked door under the chapel.',
+        title: 'Locked door',
+        updatedAt: '2026-10-13T00:00:00.000Z',
+      }),
+      createEntry({
+        id: 'entry-market',
+        text: 'Bought rope and rations.',
+        title: 'Market day',
+        updatedAt: '2026-10-12T00:00:00.000Z',
+      }),
+    ];
+    const section = createCharacterJournalSection(createFakeService(entries));
+
+    await showSection(section);
+    const search = document.querySelector<HTMLInputElement>(
+        '.bfa-character-journal-search',
+    );
+    if (search === null) {
+      throw new Error('Missing search input');
+    }
+
+    search.value = 'chapel';
+    search.dispatchEvent(new Event('input'));
+
+    const titles = Array.from(
+        document.querySelectorAll('.bfa-character-journal-entry-title'),
+        (element) => element.textContent,
+    );
+    expect(titles).toEqual(['Locked door']);
+
+    search.value = 'nope';
+    search.dispatchEvent(new Event('input'));
+    expect(document.querySelector('.bfa-character-journal-list')?.textContent)
+        .toContain('The open note is hidden by this search.');
+
+    section.destroy();
+  });
+
+  it('adds a photo to the open note', async () => {
+    const entries: CharacterJournalEntry[] = [];
+    const section = createCharacterJournalSection(createFakeService(entries));
+
+    await showSection(section);
+    getTitleInput().value = 'Camp';
+    getBodyInput().value = 'Rain on the tent.';
+    const input = document.querySelector<HTMLInputElement>(
+        '.bfa-character-journal-photo-input',
+    );
+    if (input === null) {
+      throw new Error('Missing photo input');
+    }
+
+    const file = new File(['photo'], 'camp.png', {type: 'image/png'});
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: {0: file, length: 1},
+    });
+    input.dispatchEvent(new Event('change'));
+    await flushPromises();
+
+    expect(document.querySelector('[aria-label="View photo camp.png"]'))
+        .not.toBeNull();
+    expect(entries[0]?.blocks.some((block) => block.type === 'image')).toBe(true);
+
+    section.destroy();
+  });
 });
 
 async function showSection(
@@ -132,14 +207,57 @@ function createFakeService(
     options: {saveError?: Error} = {},
 ): CharacterJournalService {
   return {
+    async attachImage(draft, file) {
+      const entry = createEntry({
+        id: draft.entryId ?? 'entry-photo',
+        text: draft.text,
+        title: draft.title.trim() === '' ? 'Untitled entry' : draft.title.trim(),
+      });
+      entry.blocks.push({
+        blobKey: 'bfa.journal.image.photo-1',
+        byteSize: file.size,
+        fileName: file.name,
+        height: null,
+        id: 'photo-1',
+        mimeType: 'image/png',
+        type: 'image',
+        width: null,
+      });
+      const existingIndex = entries.findIndex((candidate) => candidate.id === entry.id);
+      if (existingIndex >= 0) {
+        entries[existingIndex] = entry;
+      } else {
+        entries.unshift(entry);
+      }
+      return entry;
+    },
     async deleteEntry(_characterId, entryId) {
       const entryIndex = entries.findIndex((entry) => entry.id === entryId);
       if (entryIndex >= 0) {
         entries.splice(entryIndex, 1);
       }
     },
+    async getImage() {
+      return {
+        byteBuffer: new Uint8Array([1, 2, 3]).buffer,
+        mimeType: 'image/png' as const,
+      };
+    },
     async listEntries(characterId) {
       return entries.filter((entry) => entry.characterId === characterId);
+    },
+    async removeImage(draft, imageId) {
+      const entry = createEntry({
+        id: draft.entryId ?? 'entry-photo',
+        text: draft.text,
+        title: draft.title,
+      });
+      entry.blocks = entry.blocks.filter((block) => block.id !== imageId);
+      const existingIndex = entries.findIndex((candidate) => candidate.id === entry.id);
+      if (existingIndex >= 0) {
+        entries[existingIndex] = entry;
+      }
+      return entry;
     },
     async saveTextEntry(draft) {
       if (options.saveError !== undefined) {
@@ -170,6 +288,7 @@ function createEntry(overrides: {
   id: string;
   text: string;
   title: string;
+  updatedAt?: string;
 }): CharacterJournalEntry {
   return {
     blocks: [
@@ -184,7 +303,7 @@ function createEntry(overrides: {
     id: overrides.id,
     schemaVersion: 1,
     title: overrides.title,
-    updatedAt: '2026-10-12T00:00:00.000Z',
+    updatedAt: overrides.updatedAt ?? '2026-10-12T00:00:00.000Z',
   };
 }
 
@@ -251,13 +370,15 @@ function getSaveButton(): HTMLButtonElement {
 }
 
 function getDeleteButton(): HTMLButtonElement {
+  return getButton('Delete');
+}
+
+function getButton(label: string): HTMLButtonElement {
   const button = Array.from(
-      document.querySelectorAll<HTMLButtonElement>(
-          '.bfa-character-journal-button',
-      ),
-  ).find((candidate) => candidate.textContent === 'Delete');
+      document.querySelectorAll<HTMLButtonElement>('button'),
+  ).find((candidate) => candidate.textContent === label);
   if (button === undefined) {
-    throw new Error('Missing delete button');
+    throw new Error(`Missing ${label} button`);
   }
 
   return button;

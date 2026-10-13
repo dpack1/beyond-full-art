@@ -272,7 +272,10 @@ use a temporary same-page anchor with a Blob URL and do not require Chrome's
 The character journal is extension-local and does not write to D&D Beyond
 notes, backstory, or page-origin storage.
 
-The first journal slice stores text entries in `chrome.storage.local`:
+Journal note text is stored in `chrome.storage.local`. Photo bytes are stored
+in the same extension-origin IndexedDB database as full art, under blob keys
+prefixed with `bfa.journal.image.`. The content script sends those bytes
+through a validated runtime message. The service worker is the only writer.
 
 ```text
 bfa.preferences.characterJournalEnabled
@@ -295,9 +298,10 @@ interface CharacterJournalEntry {
 }
 ```
 
-Only text blocks ship in the first slice. Future image bytes should use
-extension-origin IndexedDB, matching the full-art storage boundary, rather than
-`chrome.storage.local`.
+An entry can contain one text block and any number of image blocks. Image
+blocks store the blob key, file name, MIME type, byte size, and dimensions.
+They do not store image bytes. Schema version remains 1 so text-only entries
+saved before photos shipped still load.
 
 ### Phase 3 implementation direction chosen on 2026-08-06
 

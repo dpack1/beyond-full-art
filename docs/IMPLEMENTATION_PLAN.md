@@ -146,18 +146,18 @@ Current implementation slice:
 - extension-owned `Journal` tab inserted after D&D Beyond's `Extras` tab,
 - popup preference to enable or disable the inserted Journal tab,
 - extension-owned journal section inside the character sheet content area,
-- images area with thumbnail-space scaffolding for a later image feature,
 - local text entries keyed by D&D Beyond character ID,
-- block-based entry schema to allow future image blocks,
-- `chrome.storage.local` persistence for text entries,
-- focused unit, DOM fixture, and local Playwright fixture coverage.
+- image blocks whose bytes live in extension-origin IndexedDB,
+- search, photo filter, and newest/oldest ordering,
+- `chrome.storage.local` persistence for note text and photo metadata,
+- unit, DOM fixture, and Playwright coverage, including a visual pass against
+  a local character-sheet fixture.
 
 Remaining work:
 
 - manually verify the live D&D Beyond character-sheet tab DOM,
 - replace or refine the adapter selector strategy if the live tab row differs
   from local fixtures,
-- design image blocks and IndexedDB image-byte storage,
 - decide whether import/export belongs in the journal feature.
 
 ### Exit criteria

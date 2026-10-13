@@ -54,7 +54,7 @@ On campaign pages and `https://www.dndbeyond.com/characters`, enabled card portr
 
 ### Character journal
 
-On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. The journal is an extension-owned section in the sheet content area. It can create, edit, save, and delete text entries for that character. An Images area is visible as a placeholder for a later image upload. Entries stay in `chrome.storage.local`, separate from D&D Beyond notes, backstory, and extras.
+On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. The section matches the sheet's tab row and content area. Each character has local notes, newest first, with search, an all-notes or with-photos filter, and oldest/newest sorting. A note can hold PNG, JPEG, or WebP photos up to 3 MB. Photos open in a viewer and can be removed. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. Nothing is written to D&D Beyond notes, backstory, or extras.
 
 ### Not built yet
 
@@ -171,8 +171,10 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 
 1. Leave **Character Journal tab** enabled in the popup.
 2. Open a character sheet and choose **Journal**, immediately after **Extras**.
-3. Write a title and note, then **Save**. **New entry** starts another note. **Delete** removes the selected entry.
-4. Choose a native D&D Beyond tab to return to the normal sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
+3. Write a title and note, then **Save**. **New entry** starts another note. **Delete** asks before removing the selected entry.
+4. Use **Search notes**, **All notes** / **With photos**, and **Newest** / **Oldest** to find an entry. Notes are newest first by default.
+5. Choose **Add photo** on the open note. Click the thumbnail to view it, then **Remove photo** or the tile's **Remove** control to take it off the note.
+6. Choose a native D&D Beyond tab to return to the normal sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
 
 ## Developer runbook
 
@@ -185,7 +187,7 @@ D&D Beyond tab
   -> runtime messages
   -> service worker
        -> chrome.storage.local (metadata, preferences, journal text)
-       -> IndexedDB (full-art and crop image bytes)
+       -> IndexedDB (full-art, crop, and journal photo bytes)
 
 Toolbar popup
   -> the same storage and art messages
@@ -293,7 +295,7 @@ Planned next:
 - Local art is tied to the browser where you installed the extension.
 - Only one active full-art image is stored per character right now.
 - There is not yet a built-in storage dashboard or usage meter beyond the popup inventory summary.
-- Journal images are a placeholder. Entries are text only.
+- Journal photos are one image per add, up to 3 MB, in PNG, JPEG, or WebP. There is no journal import or export.
 
 ## Disclaimer
 

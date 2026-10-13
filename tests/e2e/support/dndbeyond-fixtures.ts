@@ -151,8 +151,9 @@ function wrapDocument(body: string): string {
         <title>D&D Beyond Fixture</title>
         <style>
           body {
+            background: #e7e3dc;
             color: #242527;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
             margin: 0;
             min-height: 100vh;
           }
@@ -162,7 +163,58 @@ function wrapDocument(body: string): string {
             margin: 0 auto;
             max-width: 1180px;
             min-width: 0;
-            padding: 16px;
+            padding: 28px 16px 40px;
+          }
+
+          .ct-character-sheet-shell {
+            background: #ffffff;
+            box-shadow: 0 1px 2px rgba(36, 37, 39, 0.08), 0 8px 24px rgba(36, 37, 39, 0.06);
+            margin: 0 auto;
+            max-width: 1040px;
+          }
+
+          .ct-character-header {
+            align-items: center;
+            display: flex;
+            gap: 16px;
+            padding: 18px 18px 8px;
+          }
+
+          .ct-character-header__portrait {
+            background:
+              radial-gradient(circle at 35% 30%, #f3d2b0 0 28%, transparent 29%),
+              linear-gradient(160deg, #8d3b32 0%, #2d211c 70%);
+            border-radius: 4px;
+            flex: 0 0 auto;
+            height: 72px;
+            width: 72px;
+          }
+
+          .ct-character-header__eyebrow,
+          .ct-character-header__meta,
+          .ct-character-header__name {
+            margin: 0;
+          }
+
+          .ct-character-header__eyebrow {
+            color: #8a8680;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+
+          .ct-character-header__name {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 0;
+            line-height: 1.15;
+          }
+
+          .ct-character-header__meta {
+            color: #5c5852;
+            font-size: 14px;
+            margin-top: 4px;
           }
 
           .ct-character-sheet-tabs {
@@ -209,7 +261,14 @@ function wrapDocument(body: string): string {
 
           .ct-character-sheet-panel {
             box-sizing: border-box;
-            padding: 18px 16px;
+            padding: 18px 16px 28px;
+          }
+
+          .ct-character-sheet-panel h2 {
+            font-size: 15px;
+            letter-spacing: 0.06em;
+            margin: 0 0 8px;
+            text-transform: uppercase;
           }
 
           @media (max-width: 420px) {

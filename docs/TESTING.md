@@ -120,6 +120,18 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 8. Disable the popup setting and refresh both pages.
 9. Confirm the card portraits remain at D&D Beyond's original small image URLs.
 
+## Character journal manual checklist
+
+1. Build the extension and reload it in `chrome://extensions`.
+2. Open a D&D Beyond character sheet and confirm **Journal** sits after **Extras** and uses the same tab treatment.
+3. Save a note, refresh, and confirm the note is still there.
+4. Add a PNG, JPEG, or WebP photo under 3 MB, open it, and remove it.
+5. Save a second note and confirm search, **With photos**, and **Oldest** find the right note.
+6. Try an oversized or unsupported file and confirm the note text remains.
+7. Turn **Character Journal tab** off in the popup and confirm the tab disappears while the saved note remains after turning it back on.
+
+Automated coverage for the fixture page is `tests/e2e/character-journal.spec.ts`. It does not open the live site.
+
 ## Delete cleanup manual checklist
 
 When Phase 4 is implemented:
