@@ -115,20 +115,6 @@ export function isCharacterArtMetadata(
   );
 }
 
-export function isStoredCharacterArtData(
-    value: unknown,
-): value is StoredCharacterArtData {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    isBinaryBuffer(value.byteBuffer)
-    && typeof value.fileName === 'string'
-    && isSupportedCharacterArtMimeTypeValue(value.mimeType)
-  );
-}
-
 export function isCharacterPortraitCropMetadata(
     value: unknown,
 ): value is CharacterPortraitCropMetadata {
@@ -179,8 +165,4 @@ function isSupportedCharacterArtMimeTypeValue(
     value: unknown,
 ): value is SupportedCharacterArtMimeType {
   return typeof value === 'string' && isSupportedCharacterArtMimeType(value);
-}
-
-function isBinaryBuffer(value: unknown): boolean {
-  return value instanceof ArrayBuffer || ArrayBuffer.isView(value);
 }

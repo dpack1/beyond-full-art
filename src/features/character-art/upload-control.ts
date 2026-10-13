@@ -15,6 +15,11 @@ import type {
 import {
   CHARACTER_ART_CONTROLS_ATTRIBUTE_NAME,
   CHARACTER_ART_STYLES_ATTRIBUTE_NAME,
+  PORTRAIT_MANAGER_AVATAR_IMAGE_SELECTOR,
+  PORTRAIT_MANAGER_CUSTOM_SECTION_SELECTOR,
+  PORTRAIT_MANAGER_UPLOAD_FORM_SELECTOR,
+  PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_SELECTOR,
+  PORTRAIT_MANAGER_UPLOAD_HEADING_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
 } from '../../platform/dndbeyond/selectors';
 import {
@@ -65,10 +70,6 @@ interface PendingPortraitCropState {
 
 type ScheduledRenderHandle = ReturnType<typeof globalThis.setTimeout>;
 
-const CURRENT_CUSTOM_SECTION_SELECTOR = '.ct-decoration-manager__custom';
-const UPLOAD_FORM_SELECTOR = '.ct-decoration-manager__upload-form';
-const UPLOAD_HEADING_SELECTOR = '.ct-decoration-manager__upload-heading';
-const UPLOAD_HEADING_RULES_SELECTOR = '.ct-decoration-manager__upload-heading-rules';
 const COMPACT_LAYOUT_MAX_WIDTH_PX = 540;
 const COMPACT_UPLOAD_RULES_TEXT = '150 x 150 recommended, 3 MB max';
 
@@ -516,16 +517,16 @@ export function installCharacterArtControls(
 
   function ensureTopLayout() {
     const customSection = target.manager.querySelector<HTMLElement>(
-        CURRENT_CUSTOM_SECTION_SELECTOR,
+        PORTRAIT_MANAGER_CUSTOM_SECTION_SELECTOR,
     );
     const uploadHeading = target.uploadSection.querySelector<HTMLElement>(
-        UPLOAD_HEADING_SELECTOR,
+        PORTRAIT_MANAGER_UPLOAD_HEADING_SELECTOR,
     );
     const uploadHeadingRules = target.uploadSection.querySelector<HTMLElement>(
-        UPLOAD_HEADING_RULES_SELECTOR,
+        PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_SELECTOR,
     );
     const uploadForm = target.uploadSection.querySelector<HTMLElement>(
-        UPLOAD_FORM_SELECTOR,
+        PORTRAIT_MANAGER_UPLOAD_FORM_SELECTOR,
     );
 
     if (customSection === null || uploadHeading === null || uploadForm === null) {
@@ -567,7 +568,7 @@ export function installCharacterArtControls(
     topLayout.classList.toggle('bfa-art-sync__top-layout--compact', compactLayout);
 
     const uploadHeadingRules = target.manager.querySelector<HTMLElement>(
-        UPLOAD_HEADING_RULES_SELECTOR,
+        PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_SELECTOR,
     );
     if (uploadHeadingRules !== null) {
       uploadHeadingRules.textContent = compactLayout
@@ -626,7 +627,7 @@ function isCompactLayout(manager: HTMLElement): boolean {
 }
 
 function resolveFallbackViewerImage(manager: HTMLElement): ViewerImageResolution {
-  const portraitImage = manager.querySelector('img.ddbc-character-avatar__portrait');
+  const portraitImage = manager.querySelector(PORTRAIT_MANAGER_AVATAR_IMAGE_SELECTOR);
   const fallbackUrl = isHtmlImageElement(portraitImage)
     ? portraitImage.src
     : '';

@@ -40,7 +40,7 @@ Exit criteria:
 
 ## Phase 2, original full-art upload and local storage
 
-Create a new ExecPlan before beginning.
+Record further design changes in `docs/DECISIONS.md` before expanding this phase.
 
 Current implementation slice:
 
@@ -86,7 +86,7 @@ Current implementation slice:
 
 ## Phase 3, crop workflow
 
-Create and maintain a dedicated ExecPlan before changing this phase further.
+Record further design changes in `docs/DECISIONS.md` before expanding this phase.
 
 Current implementation slice:
 
@@ -103,7 +103,7 @@ Remaining work:
 
 ## Phase 4, deletion cleanup prompt
 
-Create a new ExecPlan before beginning.
+Record further design changes in `docs/DECISIONS.md` before expanding this phase.
 
 ### Research spike
 
@@ -139,7 +139,7 @@ Do not ship automatic cleanup until the character ID and successful completion c
 
 ## Phase 5, character journal
 
-Create and maintain a dedicated ExecPlan before changing this phase further.
+Record further design changes in `docs/DECISIONS.md` before expanding this phase.
 
 Current implementation slice:
 

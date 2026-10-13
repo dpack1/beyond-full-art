@@ -9,6 +9,18 @@ export const CHARACTER_PORTRAIT_SURFACE_SELECTOR =
 export const INFORMATION_SIDEBAR_SELECTOR =
   '[aria-label="Information Sidebar"]';
 export const PORTRAIT_MANAGER_SELECTOR = '.ct-decoration-manager';
+export const PORTRAIT_MANAGER_AVATAR_IMAGE_SELECTOR =
+  'img.ddbc-character-avatar__portrait';
+export const PORTRAIT_MANAGER_CUSTOM_CONTENT_SELECTOR =
+  '.ct-decoration-manager__custom-content';
+export const PORTRAIT_MANAGER_CUSTOM_SECTION_SELECTOR =
+  '.ct-decoration-manager__custom';
+export const PORTRAIT_MANAGER_UPLOAD_FORM_SELECTOR =
+  '.ct-decoration-manager__upload-form';
+export const PORTRAIT_MANAGER_UPLOAD_HEADING_SELECTOR =
+  '.ct-decoration-manager__upload-heading';
+export const PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_SELECTOR =
+  '.ct-decoration-manager__upload-heading-rules';
 export const PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR =
   '.ct-decoration-manager__upload-file-input[type="file"]';
 export const PORTRAIT_MANAGER_UPLOAD_SELECTOR = '.ct-decoration-manager__upload';
