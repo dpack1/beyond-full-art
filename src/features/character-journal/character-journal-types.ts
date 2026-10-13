@@ -47,12 +47,6 @@ export function isCharacterJournalEntry(
   );
 }
 
-export function isCharacterJournalEntryArray(
-    value: unknown,
-): value is CharacterJournalEntry[] {
-  return Array.isArray(value) && value.every(isCharacterJournalEntry);
-}
-
 export function getTextFromJournalEntry(
     entry: CharacterJournalEntry,
 ): string {

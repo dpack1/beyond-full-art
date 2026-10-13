@@ -1,4 +1,5 @@
 import cropDialogStyles from './crop-dialog.css?raw';
+import {createPortraitCropFileName} from '../character-art/art-service';
 import {
   PORTRAIT_CROP_OUTPUT_SIZE,
   type CharacterPortraitCropRect,
@@ -204,21 +205,13 @@ async function buildCropResult(
 
   const blob = await canvasToBlob(canvas);
   return {
-    cropFile: new File([blob], buildCropFileName(sourceFileName), {
+    cropFile: new File([blob], createPortraitCropFileName(sourceFileName), {
       type: 'image/png',
     }),
     cropRect,
     height: PORTRAIT_CROP_OUTPUT_SIZE,
     width: PORTRAIT_CROP_OUTPUT_SIZE,
   };
-}
-
-function buildCropFileName(sourceFileName: string): string {
-  const periodIndex = sourceFileName.lastIndexOf('.');
-  const baseName = periodIndex <= 0
-    ? sourceFileName
-    : sourceFileName.slice(0, periodIndex);
-  return `${baseName}-portrait-crop.png`;
 }
 
 function createElements(doc: Document) {

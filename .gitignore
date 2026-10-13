@@ -6,5 +6,5 @@ test-results/
 *.log
 .tmp-imageenv/
 .venv/
+# Local agent scratch. Plans that should be shared belong in docs/.
 .agent/
-AGENTS.md

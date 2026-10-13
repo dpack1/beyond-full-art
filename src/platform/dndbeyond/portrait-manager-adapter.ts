@@ -1,4 +1,5 @@
 import {
+  PORTRAIT_MANAGER_CUSTOM_CONTENT_SELECTOR,
   PORTRAIT_MANAGER_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_SELECTOR,
@@ -17,7 +18,6 @@ export interface PortraitManagementTarget {
 }
 
 const CHANGE_PORTRAIT_BUTTON_TEXT = 'Change Portrait';
-const CURRENT_CUSTOM_CONTENT_SELECTOR = '.ct-decoration-manager__custom-content';
 
 export function findPortraitManagementTargets(
     root: ParentNode,
@@ -101,7 +101,9 @@ export function findChangePortraitButtonContainer(
 export function findCurrentCustomContent(
     manager: ParentNode,
 ): HTMLElement | null {
-  const customContent = manager.querySelector(CURRENT_CUSTOM_CONTENT_SELECTOR);
+  const customContent = manager.querySelector(
+      PORTRAIT_MANAGER_CUSTOM_CONTENT_SELECTOR,
+  );
   return isHtmlElement(customContent) ? customContent : null;
 }
 

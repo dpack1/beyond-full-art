@@ -1,5 +1,7 @@
 # Reference Assets
 
+These files live in `docs/reference/`. They are evidence for deletion-cleanup research, not extension artwork.
+
 ## `characters-delete-network-request.png`
 
 Chrome DevTools Network details for an observed character deletion request. It shows the character-service URL, DELETE method, and successful 204 response.

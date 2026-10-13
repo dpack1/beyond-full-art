@@ -8,7 +8,7 @@ Observed from Chrome DevTools on 2026-08-06 while deleting a character from:
 https://www.dndbeyond.com/characters
 ```
 
-The screenshots in `reference/` show:
+The screenshots in `docs/reference/` show:
 
 ```text
 Request URL: https://character-service.dndbeyond.com/character/v5/character
@@ -19,8 +19,8 @@ Request payload: { "characterId": 900000001 }
 
 Reference files:
 
-- `reference/characters-delete-network-request.png`
-- `reference/characters-delete-request-payload.png`
+- `docs/reference/characters-delete-network-request.png`
+- `docs/reference/characters-delete-request-payload.png`
 
 This is an observed private-site behavior, not a supported public API contract.
 

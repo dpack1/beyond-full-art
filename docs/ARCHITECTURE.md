@@ -16,9 +16,9 @@ flowchart LR
     SW -. later .-> NET[chrome.webRequest observer]
 ```
 
-The MVP uses only the D&D Beyond tab, content script, and viewer. The other components are added when their phase needs them.
+The shipped extension uses the D&D Beyond tab, content scripts, the settings popup, the service worker, `chrome.storage.local`, and extension-origin IndexedDB. The `chrome.webRequest` observer in the diagram is still future work for character-deletion cleanup.
 
-## Recommended source boundaries
+## Source boundaries
 
 ```text
 src/
@@ -27,53 +27,38 @@ src/
   content/
     card-portraits-entry.ts
     character-sheet-entry.ts
+    character-sheet.ts
   features/
     campaign-card-portraits/
-      campaign-card-portrait-upgrade.ts
-      avatar-url.ts
-    fullscreen-viewer/
-      viewer.ts
-      viewer.css
-      focus.ts
     character-art/
-      art-service.ts
-      art-types.ts
-    crop-workflow/
-      crop-workflow.ts
-      crop-dialog.ts
-      crop-math.ts
-      crop-types.ts
-    deletion-cleanup/
-      cleanup-controller.ts
-      cleanup-dialog.ts
-      cleanup-preference.ts
     character-journal/
-      character-journal-section.ts
-      character-journal-service.ts
-      character-journal-types.ts
+    crop-workflow/
+    fullscreen-viewer/
   platform/
     chrome/
+      indexed-db.ts
       messages.ts
       storage.ts
-      indexed-db.ts
     dndbeyond/
       campaign-card-portrait-adapter.ts
-      urls.ts
-      selectors.ts
+      character-sheet-tabs-adapter.ts
       portrait-adapter.ts
       portrait-manager-adapter.ts
       portrait-upload-handoff.ts
-      delete-request-adapter.ts
-      character-sheet-tabs-adapter.ts
+      selectors.ts
+      urls.ts
   popup/
-    settings.ts
+    settings.html
     settings.css
+    settings.ts
   shared/
+    dom.ts
+    download.ts
     result.ts
-    logging.ts
+    types.ts
 ```
 
-This is a direction, not a demand for empty placeholder modules. Add a module when it owns real behavior.
+Deletion cleanup is specified but not implemented. Do not add empty modules for it until that phase has real behavior. D&D Beyond selectors belong in `platform/dndbeyond`, not in feature modules.
 
 ## Phase 1 sequence
 
