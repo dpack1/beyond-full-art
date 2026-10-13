@@ -205,3 +205,43 @@ Why:
   DOM assumptions easier to find and replace.
 - The existing popup setting should continue to control the optional quality
   upgrade without migrating stored preferences.
+
+## ADR-017: Character journal is extension-owned and local-first
+
+Status: Accepted
+
+Add the character journal as an extension-owned tab and inline character-sheet
+section rather than enhancing D&D Beyond's native notes, backstory, or extras
+fields.
+
+Why:
+
+- Journal entries are user writing and should not depend on D&D Beyond private
+  field behavior in the first slice.
+- Keeping the feature extension-owned avoids encoded fallback content appearing
+  to users without the extension.
+- Local-only storage matches the current extension ownership model and avoids
+  source-of-truth conflicts.
+- The inserted tab and inline section place the feature where users expect
+  character-sheet writing tools while keeping the extension's DOM ownership
+  reversible.
+- A popup preference can disable the inserted tab without deleting journal
+  entries, keeping the feature opt-out reversible and local.
+
+## ADR-018: Journal entries use text blocks from the first slice
+
+Status: Accepted
+
+Store journal entries as block-based records even though the first shipped block
+type is text.
+
+Why:
+
+- Image blocks are a planned follow-up.
+- A flat `body: string` entry would force an immediate migration when images
+  are added.
+- The text-only first slice can still remain simple because the UI reads and
+  writes a single text block.
+
+Future image bytes should use extension-origin IndexedDB rather than
+`chrome.storage.local`, matching the full-art storage boundary.

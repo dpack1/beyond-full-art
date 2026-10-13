@@ -47,6 +47,10 @@ src/
       cleanup-controller.ts
       cleanup-dialog.ts
       cleanup-preference.ts
+    character-journal/
+      character-journal-section.ts
+      character-journal-service.ts
+      character-journal-types.ts
   platform/
     chrome/
       messages.ts
@@ -60,6 +64,7 @@ src/
       portrait-manager-adapter.ts
       portrait-upload-handoff.ts
       delete-request-adapter.ts
+      character-sheet-tabs-adapter.ts
   popup/
     settings.ts
     settings.css
@@ -156,6 +161,42 @@ paths such as `/avatars/thumbnails/{a}/{b}/60/60/{file}`. Query parameters like
 adapter normalizes thumbnail paths to `/avatars/{a}/{b}/{file}` before adding
 the larger bounded query parameters.
 
+### Character journal tab support added on 2026-10-12, refined on 2026-10-13
+
+The character journal feature inserts one extension-owned `Journal` tab after
+D&D Beyond's `Extras` tab on character sheet pages and renders journal content
+inside the sheet content area.
+
+The extension popup owns the feature toggle. The setting defaults to enabled,
+is stored as `bfa.preferences.characterJournalEnabled` in
+`chrome.storage.local`, and is observed by the character-sheet content script.
+Turning the setting off removes the inserted tab and restores any hidden native
+sheet content without deleting journal entries.
+
+The current implementation centralizes this assumption in
+`platform/dndbeyond/character-sheet-tabs-adapter.ts`. The adapter searches for
+a visible `Extras` tab among stable interactive controls first, then falls back
+to an exact-text `Extras` element inside a character-sheet tab strip. The live
+2026-10-13 sheet exposed the tab row to accessibility as radio buttons while
+the DOM did not present those tabs as ordinary radio inputs or tab roles, so the
+adapter recognizes a bounded tab-strip ancestor by the expected sheet labels
+(`Actions`, `Spells`, `Inventory`, `Features & Traits`, `Background`, `Notes`,
+and `Extras`).
+
+The adapter inserts a project-owned button immediately after the tab-strip item
+that contains `Extras`, finds the sheet content host as the sibling panel next
+to that tab strip, and marks the inserted tab with
+`data-bfa-character-journal-tab="true"` for idempotency.
+
+When the journal tab is active, the extension hides the native sheet content
+children in that host, appends `bfa-character-journal-section`, and restores the
+native content when a native D&D Beyond tab is clicked.
+
+Initial live inspection on 2026-10-13 found that the earlier fallback mounted
+the journal under the `Extras` tab container and left the native sheet panel
+visible. The refined adapter is covered by a live-shaped fixture with
+non-semantic tab text nodes and a sibling content panel.
+
 ### Phase 1 DOM hooks observed on 2026-10-10
 
 From live D&D Beyond character sheet inspection, the right-side sheet panel may no longer expose `[data-testid="character-manage-pane"]`, and the displayed portrait may be a `div.ddbc-character-avatar__portrait` with the image URL in CSS `background-image` rather than an `img`.
@@ -240,6 +281,38 @@ D&D Beyond character links from stored character IDs, then uses the existing
 image-data and delete operations for per-item download and deletion. Downloads
 use a temporary same-page anchor with a Blob URL and do not require Chrome's
 `downloads` permission.
+
+## Character journal storage
+
+The character journal is extension-local and does not write to D&D Beyond
+notes, backstory, or page-origin storage.
+
+The first journal slice stores text entries in `chrome.storage.local`:
+
+```text
+bfa.preferences.characterJournalEnabled
+bfa.characterJournal.schemaVersion
+bfa.characterJournal.entries.<characterId>
+```
+
+Each character key stores an array of entries sorted by most recent update. Each
+entry uses a block-based schema:
+
+```ts
+interface CharacterJournalEntry {
+  id: string;
+  characterId: string;
+  title: string;
+  blocks: CharacterJournalBlock[];
+  createdAt: string;
+  updatedAt: string;
+  schemaVersion: 1;
+}
+```
+
+Only text blocks ship in the first slice. Future image bytes should use
+extension-origin IndexedDB, matching the full-art storage boundary, rather than
+`chrome.storage.local`.
 
 ### Phase 3 implementation direction chosen on 2026-08-06
 

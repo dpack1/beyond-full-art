@@ -165,6 +165,51 @@ ask | delete | keep
 - If the character ID cannot be determined confidently, preserve local art.
 - If storage deletion fails, show an error and preserve recoverability where possible.
 
+## Phase 5, character journal
+
+### User story
+
+As a D&D Beyond user, I can keep a local journal for each character from the
+character sheet, so session notes and character writing have a better home than
+a single long native notes field.
+
+### Required behavior
+
+- Run on D&D Beyond character sheet pages.
+- Provide an extension popup setting to enable or disable the Character Journal
+  tab without deleting local journal entries.
+- Add an extension-owned `Journal` tab immediately after D&D Beyond's `Extras`
+  tab when that tab row can be found.
+- Show an extension-owned journal section inside the character sheet content
+  area from the `Journal` tab.
+- Restore the native D&D Beyond sheet section when the user selects another
+  native tab.
+- Include an images area with small thumbnail slots so image support has a
+  natural place to land later.
+- Store journal entries locally by D&D Beyond character ID.
+- Support creating, editing, listing, saving, and deleting text entries.
+- Keep journal data separate from D&D Beyond notes, backstory, and extras.
+- Preserve unsaved editor text when a save fails.
+- Preserve entries when a delete fails.
+
+### Current implementation defaults
+
+- Journal entries are stored in `chrome.storage.local`.
+- The Character Journal tab is enabled by default and controlled by
+  `bfa.preferences.characterJournalEnabled` in `chrome.storage.local`.
+- Entries are text-only in the first slice.
+- The images area ships as a local section placeholder; image upload and
+  thumbnail persistence are deferred.
+- The stored entry schema uses text blocks so image blocks can be added later.
+- There is no cloud sync and no D&D Beyond field sync.
+
+### Deferred product decisions
+
+- Image upload and image blocks inside journal entries.
+- Importing or exporting journals.
+- Search, tags, categories, or timelines.
+- Optional future sync to D&D Beyond fields.
+
 ## Non-goals for early phases
 
 - Rebuilding the D&D Beyond character sheet.

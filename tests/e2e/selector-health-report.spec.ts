@@ -3,6 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {
+  characterSheetTabsFixture,
   currentDecorationsWithoutUploadFixture,
   currentInformationSidebarFixture,
   legacyManagePaneFixture,
@@ -17,6 +18,8 @@ import {expect, test} from './support/extension-test';
 
 interface ExpectedHealth {
   enhancedPortraitCount?: number;
+  journalSectionFound?: boolean;
+  journalTabFound?: boolean;
   sharperCardPortraitFound?: boolean;
   informationSidebarFound?: boolean;
   legacyPanelFound?: boolean;
@@ -37,6 +40,8 @@ interface SelectorHealth {
   enhancedPortraitCount: number;
   fixtureName: string;
   informationSidebarFound: boolean;
+  journalSectionFound: boolean;
+  journalTabFound: boolean;
   legacyPanelFound: boolean;
   portraitManagerFound: boolean;
   portraitSurfaceFound: boolean;
@@ -98,6 +103,13 @@ const healthCases: HealthCase[] = [
   },
   {
     expected: {
+      journalSectionFound: false,
+      journalTabFound: true,
+    },
+    fixture: characterSheetTabsFixture,
+  },
+  {
+    expected: {
       enhancedPortraitCount: 0,
       portraitSurfaceFound: false,
       uploadInputFound: false,
@@ -122,6 +134,12 @@ test('writes selector health report for local D&D Beyond fixtures', async (
             .some((element) => element.style.backgroundImage.includes('width=600')),
       );
     }
+    if (expected.journalTabFound === true) {
+      await page.waitForFunction(() =>
+        document.querySelector('[data-bfa-character-journal-tab="true"]') !==
+        null,
+      );
+    }
 
     const health = await page.evaluate((fixtureName): SelectorHealth => {
       const buttonTexts = [...document.querySelectorAll('button')].map(
@@ -138,6 +156,11 @@ test('writes selector health report for local D&D Beyond fixtures', async (
         fixtureName,
         informationSidebarFound:
           document.querySelector('[aria-label="Information Sidebar"]') !== null,
+        journalTabFound:
+          document.querySelector('[data-bfa-character-journal-tab="true"]') !==
+          null,
+        journalSectionFound:
+          document.querySelector('.bfa-character-journal-section') !== null,
         legacyPanelFound:
           document.querySelector('[data-testid="character-manage-pane"]') !==
           null,

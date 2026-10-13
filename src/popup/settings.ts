@@ -11,7 +11,9 @@ import {
 import {buildCharacterPageUrl} from '../platform/dndbeyond/urls';
 import {
   getCampaignCardPortraitUpgradeEnabled,
+  getCharacterJournalEnabled,
   setCampaignCardPortraitUpgradeEnabled,
+  setCharacterJournalEnabled,
 } from '../platform/chrome/storage';
 import {
   createCharacterArtDownloadFileName,
@@ -34,14 +36,37 @@ export async function initializePopup(doc: Document): Promise<void> {
   const status = doc.querySelector<HTMLParagraphElement>(
       '#campaign-card-portrait-upgrade-status',
   );
-  if (checkbox === null || status === null) {
-    return;
+  if (checkbox !== null && status !== null) {
+    checkbox.checked = await getCampaignCardPortraitUpgradeEnabled();
+    checkbox.addEventListener('change', () => {
+      void handleCheckboxChange({
+        checkbox,
+        disabledMessage: 'Character card portrait enhancement disabled.',
+        enabledMessage: 'Character card portrait enhancement enabled.',
+        setValue: setCampaignCardPortraitUpgradeEnabled,
+        status,
+      });
+    });
   }
 
-  checkbox.checked = await getCampaignCardPortraitUpgradeEnabled();
-  checkbox.addEventListener('change', () => {
-    void handleCheckboxChange(checkbox, status);
-  });
+  const journalCheckbox = doc.querySelector<HTMLInputElement>(
+      '#character-journal-enabled',
+  );
+  const journalStatus = doc.querySelector<HTMLParagraphElement>(
+      '#character-journal-status',
+  );
+  if (journalCheckbox !== null && journalStatus !== null) {
+    journalCheckbox.checked = await getCharacterJournalEnabled();
+    journalCheckbox.addEventListener('change', () => {
+      void handleCheckboxChange({
+        checkbox: journalCheckbox,
+        disabledMessage: 'Character Journal tab disabled.',
+        enabledMessage: 'Character Journal tab enabled.',
+        setValue: setCharacterJournalEnabled,
+        status: journalStatus,
+      });
+    });
+  }
 
   const inventory = findInventoryElements(doc);
   if (inventory !== null) {
@@ -49,18 +74,27 @@ export async function initializePopup(doc: Document): Promise<void> {
   }
 }
 
-async function handleCheckboxChange(
-    checkbox: HTMLInputElement,
-    status: HTMLParagraphElement,
-): Promise<void> {
+async function handleCheckboxChange(options: {
+  checkbox: HTMLInputElement;
+  disabledMessage: string;
+  enabledMessage: string;
+  setValue: (enabled: boolean) => Promise<void>;
+  status: HTMLParagraphElement;
+}): Promise<void> {
+  const {
+    checkbox,
+    disabledMessage,
+    enabledMessage,
+    setValue,
+    status,
+  } = options;
+
   checkbox.disabled = true;
   try {
-    await setCampaignCardPortraitUpgradeEnabled(checkbox.checked);
+    await setValue(checkbox.checked);
     renderStatus(
         status,
-        checkbox.checked
-          ? 'Character card portrait enhancement enabled.'
-          : 'Character card portrait enhancement disabled.',
+        checkbox.checked ? enabledMessage : disabledMessage,
         false,
     );
   } catch (error) {

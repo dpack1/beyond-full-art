@@ -2,7 +2,9 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 const storageMocks = vi.hoisted(() => ({
   getCampaignCardPortraitUpgradeEnabled: vi.fn(),
+  getCharacterJournalEnabled: vi.fn(),
   setCampaignCardPortraitUpgradeEnabled: vi.fn(),
+  setCharacterJournalEnabled: vi.fn(),
 }));
 
 const messageMocks = vi.hoisted(() => ({
@@ -24,7 +26,9 @@ describe('popup settings', () => {
     document.head.innerHTML = '';
     document.body.innerHTML = createPopupFixture();
     storageMocks.getCampaignCardPortraitUpgradeEnabled.mockResolvedValue(true);
+    storageMocks.getCharacterJournalEnabled.mockResolvedValue(true);
     storageMocks.setCampaignCardPortraitUpgradeEnabled.mockResolvedValue(undefined);
+    storageMocks.setCharacterJournalEnabled.mockResolvedValue(undefined);
     messageMocks.deleteStoredCharacterArt.mockResolvedValue(undefined);
     messageMocks.getStoredCharacterArtImageData.mockResolvedValue(null);
     messageMocks.listStoredCharacterArtMetadata.mockResolvedValue([]);
@@ -142,6 +146,23 @@ describe('popup settings', () => {
     expect(document.querySelector('#stored-art-status')?.textContent)
         .toBe('Stored full art deleted.');
   });
+
+  it('toggles the character journal setting', async () => {
+    storageMocks.getCharacterJournalEnabled.mockResolvedValue(false);
+
+    await initializePopup(document);
+    const checkbox = document.querySelector<HTMLInputElement>(
+        '#character-journal-enabled',
+    );
+    expect(checkbox?.checked).toBe(false);
+
+    checkbox?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(storageMocks.setCharacterJournalEnabled).toHaveBeenCalledWith(true);
+    expect(document.querySelector('#character-journal-status')?.textContent)
+        .toBe('Character Journal tab enabled.');
+  });
 });
 
 function createMetadata(overrides: {
@@ -172,6 +193,14 @@ function createPopupFixture(): string {
         </label>
         <p
           id="campaign-card-portrait-upgrade-status"
+          class="bfa-popup__status bfa-popup__status--hidden"></p>
+      </section>
+      <section class="bfa-popup__section">
+        <label for="character-journal-enabled">
+          <input id="character-journal-enabled" type="checkbox">
+        </label>
+        <p
+          id="character-journal-status"
           class="bfa-popup__status bfa-popup__status--hidden"></p>
       </section>
       <section class="bfa-popup__section">

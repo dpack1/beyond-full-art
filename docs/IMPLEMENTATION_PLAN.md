@@ -136,3 +136,40 @@ Do not ship automatic cleanup until the character ID and successful completion c
 - The prompt appears only when relevant local art exists.
 - Remembered decisions apply consistently.
 - The user can reset the remembered preference.
+
+## Phase 5, character journal
+
+Create and maintain a dedicated ExecPlan before changing this phase further.
+
+Current implementation slice:
+
+- extension-owned `Journal` tab inserted after D&D Beyond's `Extras` tab,
+- popup preference to enable or disable the inserted Journal tab,
+- extension-owned journal section inside the character sheet content area,
+- images area with thumbnail-space scaffolding for a later image feature,
+- local text entries keyed by D&D Beyond character ID,
+- block-based entry schema to allow future image blocks,
+- `chrome.storage.local` persistence for text entries,
+- focused unit, DOM fixture, and local Playwright fixture coverage.
+
+Remaining work:
+
+- manually verify the live D&D Beyond character-sheet tab DOM,
+- replace or refine the adapter selector strategy if the live tab row differs
+  from local fixtures,
+- design image blocks and IndexedDB image-byte storage,
+- decide whether import/export belongs in the journal feature.
+
+### Exit criteria
+
+- The `Journal` tab appears immediately after `Extras` when the tab row is
+  present.
+- D&D Beyond's original tabs continue to work.
+- The Journal tab shows inline content and restores native sheet content when
+  the user selects another native tab.
+- Entries persist after page refresh and are character-specific.
+- The extension popup can disable the Journal tab and re-enable it without
+  deleting entries.
+- Failed saves preserve unsaved text in the editor.
+- Failed deletes preserve the entry.
+- Journal data is never written to page-origin storage.

@@ -1,4 +1,5 @@
 import {
+  characterSheetTabsFixture,
   currentInformationSidebarFixture,
   legacyManagePaneFixture,
   missingHooksFixture,
@@ -93,6 +94,95 @@ test('upgrades My Characters card portrait image quality', async ({
     'data-bfa-card-portrait-state',
     'upgraded',
   );
+});
+
+test('adds a local character journal tab with persisted entries', async ({
+  extensionContext,
+  page,
+}) => {
+  await routeDndBeyondFixture(extensionContext, characterSheetTabsFixture);
+
+  await page.goto(characterSheetTabsFixture.url);
+  await waitForContentScript(page);
+  await expect(page.getByRole('button', {name: 'Journal'})).toBeVisible();
+
+  const tabLabels = await page
+    .locator('.ct-character-sheet-tab-item button')
+    .evaluateAll((buttons) =>
+      buttons.map((button) => button.textContent?.trim() ?? ''),
+    );
+  expect(tabLabels).toEqual([
+    'Actions',
+    'Inventory',
+    'Extras',
+    'Journal',
+    'Notes',
+  ]);
+
+  await page.getByRole('button', {name: 'Journal'}).click();
+  await expect(page.locator('.bfa-character-journal-section')).toBeVisible();
+  await expect(page.locator('[data-testid="native-character-panel"]')).toBeHidden();
+  await expect(page.locator('.bfa-character-journal-images')).toBeVisible();
+
+  await page.getByLabel('Journal entry title').fill('Session note');
+  await page.getByLabel('Journal entry body').fill('Matilda wrote this locally.');
+  await page.getByRole('button', {name: 'Save'}).click();
+  await expect(
+      page.locator('.bfa-character-journal-editor > .bfa-character-journal-status'),
+  ).toHaveText('Saved.');
+
+  await page.reload();
+  await waitForContentScript(page);
+  await page.getByRole('button', {name: 'Journal'}).click();
+
+  await expect(page.getByLabel('Journal entry title')).toHaveValue('Session note');
+  await expect(page.getByLabel('Journal entry body'))
+      .toHaveValue('Matilda wrote this locally.');
+
+  await page.getByRole('button', {name: 'Actions'}).click();
+  await expect(page.locator('.bfa-character-journal-section')).toBeHidden();
+  await expect(page.locator('[data-testid="native-character-panel"]')).toBeVisible();
+});
+
+test('keeps the character journal reachable across viewport sizes', async ({
+  extensionContext,
+  page,
+}) => {
+  await routeDndBeyondFixture(extensionContext, characterSheetTabsFixture);
+
+  for (const viewport of [
+    {height: 812, name: 'phone', width: 375},
+    {height: 900, name: 'tablet', width: 768},
+    {height: 900, name: 'desktop', width: 1440},
+  ]) {
+    await page.setViewportSize({
+      height: viewport.height,
+      width: viewport.width,
+    });
+    await page.goto(characterSheetTabsFixture.url);
+    await waitForContentScript(page);
+
+    const journalTab = page.getByRole('button', {name: 'Journal'});
+    await expect(journalTab, viewport.name).toBeVisible();
+    await journalTab.click();
+
+    await expect(page.locator('.bfa-character-journal-section'), viewport.name)
+        .toBeVisible();
+    await expect(page.getByLabel('Journal entry title'), viewport.name)
+        .toBeVisible();
+    await expect(page.getByLabel('Journal entry body'), viewport.name)
+        .toBeVisible();
+    await expect(page.getByRole('button', {name: 'Save'}), viewport.name)
+        .toBeVisible();
+    await expect(page.getByRole('button', {name: 'New entry'}), viewport.name)
+        .toBeVisible();
+
+    const hasPageOverflow = await page.evaluate(() =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth,
+    );
+    expect(hasPageOverflow, viewport.name).toBe(false);
+  }
 });
 
 test('does not run on unrelated D&D Beyond pages', async ({

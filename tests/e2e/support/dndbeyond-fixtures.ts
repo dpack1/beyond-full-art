@@ -6,6 +6,7 @@ import {
   CURRENT_INFORMATION_SIDEBAR_FIXTURE,
 } from '../../fixtures/character-manage-pane';
 import {MY_CHARACTERS_CARD_FIXTURE} from '../../fixtures/campaign-character-cards';
+import {CHARACTER_SHEET_TABS_FIXTURE} from '../../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../../fixtures/portrait-manager';
 
 export const CHARACTER_ID = '169418374';
@@ -33,6 +34,12 @@ export const currentInformationSidebarFixture: RoutedFixture = {
   body: CURRENT_INFORMATION_SIDEBAR_FIXTURE,
   name: 'current-information-sidebar',
   url: `${BASE_CHARACTER_URL}?bfaFixture=current-information-sidebar`,
+};
+
+export const characterSheetTabsFixture: RoutedFixture = {
+  body: CHARACTER_SHEET_TABS_FIXTURE,
+  name: 'character-sheet-tabs',
+  url: `${BASE_CHARACTER_URL}?bfaFixture=character-sheet-tabs`,
 };
 
 export const currentDecorationsWithoutUploadFixture: RoutedFixture = {
@@ -144,8 +151,76 @@ function wrapDocument(body: string): string {
         <title>D&D Beyond Fixture</title>
         <style>
           body {
+            color: #242527;
+            font-family: Arial, Helvetica, sans-serif;
             margin: 0;
             min-height: 100vh;
+          }
+
+          main[data-fixture-name="character-sheet-tabs"] {
+            box-sizing: border-box;
+            margin: 0 auto;
+            max-width: 1180px;
+            min-width: 0;
+            padding: 16px;
+          }
+
+          .ct-character-sheet-tabs {
+            border-bottom: 1px solid rgba(36, 37, 39, 0.22);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            list-style: none;
+            margin: 0;
+            min-width: 0;
+            padding: 0;
+          }
+
+          .ct-character-sheet-tab-item {
+            display: flex;
+            min-width: 0;
+          }
+
+          .ct-character-sheet-tab {
+            appearance: none;
+            background: transparent;
+            border: 0;
+            border-bottom: 3px solid transparent;
+            box-sizing: border-box;
+            color: #242527;
+            cursor: pointer;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            min-height: 42px;
+            padding: 0 11px;
+            text-transform: uppercase;
+          }
+
+          .ct-character-sheet-tab.bfa-character-journal-tab--active {
+            border-bottom-color: #c5312d;
+            color: #c5312d;
+          }
+
+          .ct-character-sheet-content {
+            box-sizing: border-box;
+            min-width: 0;
+          }
+
+          .ct-character-sheet-panel {
+            box-sizing: border-box;
+            padding: 18px 16px;
+          }
+
+          @media (max-width: 420px) {
+            main[data-fixture-name="character-sheet-tabs"] {
+              padding: 10px;
+            }
+
+            .ct-character-sheet-tab {
+              min-height: 38px;
+              padding: 0 8px;
+            }
           }
 
           .ct-sidebar__portal {
