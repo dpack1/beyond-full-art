@@ -17,6 +17,10 @@ import {
   CHARACTER_MANAGE_PANE_FIXTURE,
   CURRENT_INFORMATION_SIDEBAR_FIXTURE,
 } from '../fixtures/character-manage-pane';
+import {
+  CHARACTER_SHEET_TABS_FIXTURE,
+  CURRENT_CHARACTER_SHEET_TABS_FIXTURE,
+} from '../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../fixtures/portrait-manager';
 
 describe('character sheet enhancement', () => {
@@ -27,6 +31,7 @@ describe('character sheet enhancement', () => {
     document.body.innerHTML = '';
     document.head.querySelector('[data-bfa-viewer-styles]')?.remove();
     document.head.querySelector('[data-bfa-art-styles]')?.remove();
+    document.head.querySelector('[data-bfa-character-journal-styles]')?.remove();
     chromeMessageMocks.deleteStoredCharacterArt.mockResolvedValue(undefined);
     chromeMessageMocks.getStoredCharacterArtImageData.mockResolvedValue(null);
     chromeMessageMocks.getStoredCharacterArtMetadata.mockResolvedValue(null);
@@ -34,6 +39,12 @@ describe('character sheet enhancement', () => {
     chromeMessageMocks.getStoredCharacterPortraitCropMetadata.mockResolvedValue(null);
     chromeMessageMocks.saveStoredCharacterArt.mockRejectedValue(new Error('Not used'));
     chromeMessageMocks.saveStoredCharacterPortraitCrop.mockRejectedValue(new Error('Not used'));
+    (globalThis as {chrome?: unknown}).chrome = {
+      runtime: {
+        lastError: undefined,
+      },
+      storage: createFakeChromeStorage(),
+    };
     URL.createObjectURL = vi.fn(() => 'blob:stored-full-art');
     URL.revokeObjectURL = vi.fn();
   });
@@ -42,6 +53,7 @@ describe('character sheet enhancement', () => {
     document.body.innerHTML = '';
     document.head.querySelector('[data-bfa-viewer-styles]')?.remove();
     document.head.querySelector('[data-bfa-art-styles]')?.remove();
+    document.head.querySelector('[data-bfa-character-journal-styles]')?.remove();
     window.history.replaceState({}, '', '/');
     URL.createObjectURL = originalCreateObjectUrl;
     URL.revokeObjectURL = originalRevokeObjectUrl;
@@ -131,7 +143,7 @@ describe('character sheet enhancement', () => {
   it('enhances builder portrait management when the modal renders later', async () => {
     window.history.replaceState({}, '', '/characters/169418374/builder');
 
-    installCharacterSheetEnhancement(document);
+    const cleanup = installCharacterSheetEnhancement(document);
     document.body.innerHTML = `
       <div class="builder-page">
         <img
@@ -146,6 +158,138 @@ describe('character sheet enhancement', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(document.querySelector('.bfa-art-sync')).not.toBeNull();
+
+    cleanup();
+  });
+
+  it('inserts a character journal tab after Extras', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const labels = Array.from(
+        document.querySelectorAll('.ct-character-sheet-tab-item button'),
+        (button) => button.textContent?.trim(),
+    );
+
+    expect(labels).toEqual([
+      'Actions',
+      'Inventory',
+      'Extras',
+      'Journal',
+      'Notes',
+    ]);
+    expect(document.querySelector('[data-bfa-character-journal-styles]'))
+        .not.toBeNull();
+
+    cleanup();
+  });
+
+  it('does not insert the character journal tab when the setting is disabled', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    (globalThis as {chrome: {storage: unknown}}).chrome.storage =
+      createFakeChromeStorage({
+        'bfa.preferences.characterJournalEnabled': false,
+      });
+    document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelector('[data-bfa-character-journal-tab]')).toBeNull();
+
+    cleanup();
+  });
+
+  it('removes the character journal tab when the popup setting changes', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    const storage = createFakeChromeStorage();
+    (globalThis as {chrome: {storage: unknown}}).chrome.storage = storage;
+    document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[data-bfa-character-journal-tab]')).not.toBeNull();
+
+    storage.local.set({
+      'bfa.preferences.characterJournalEnabled': false,
+    }, () => {});
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelector('[data-bfa-character-journal-tab]')).toBeNull();
+
+    storage.local.set({
+      'bfa.preferences.characterJournalEnabled': true,
+    }, () => {});
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelector('[data-bfa-character-journal-tab]')).not.toBeNull();
+
+    cleanup();
+  });
+
+  it('shows the character journal section inside the sheet content area', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>(
+        '[data-bfa-character-journal-tab="true"]',
+    )?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(
+        document.querySelector('.ct-character-sheet-content .bfa-character-journal-section'),
+    ).not.toBeNull();
+    expect(
+        document.querySelector<HTMLElement>('[data-testid="native-character-panel"]')
+            ?.hidden,
+    ).toBe(true);
+
+    document.querySelectorAll<HTMLButtonElement>('.ct-character-sheet-tab')[0]
+        ?.click();
+
+    expect(
+        document.querySelector<HTMLElement>('[data-testid="native-character-panel"]')
+            ?.hidden,
+    ).toBe(false);
+
+    cleanup();
+  });
+
+  it('restores live-shaped native sheet content when a native tab is selected', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CURRENT_CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>(
+        '[data-bfa-character-journal-tab="true"]',
+    )?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const nativePanel = document.querySelector<HTMLElement>(
+        '[data-testid="native-character-panel"]',
+    );
+
+    expect(
+        document.querySelector('.ct-character-sheet-content .bfa-character-journal-section'),
+    ).not.toBeNull();
+    expect(nativePanel?.hidden).toBe(true);
+
+    Array.from(document.querySelectorAll<HTMLElement>('.ct-character-sheet-tab'))
+        .find((tab) => tab.textContent?.includes('FEATURES & TRAITS'))
+        ?.click();
+
+    expect(nativePanel?.hidden).toBe(false);
+    expect(
+        document.querySelector<HTMLElement>('.bfa-character-journal-section')
+            ?.hidden,
+    ).toBe(true);
+
+    cleanup();
   });
 
   it('does nothing on non-character-sheet pages', () => {
@@ -160,3 +304,67 @@ describe('character sheet enhancement', () => {
     cleanup();
   });
 });
+
+type StorageChangeListener = (
+  changes: Record<string, chrome.storage.StorageChange>,
+  areaName: string,
+) => void;
+
+function createFakeChromeStorage(initialValues: Record<string, unknown> = {}) {
+  const listeners = new Set<StorageChangeListener>();
+  return {
+    local: createFakeStorageArea(initialValues, (changes) => {
+      for (const listener of listeners) {
+        listener(changes, 'local');
+      }
+    }),
+    onChanged: {
+      addListener(listener: StorageChangeListener) {
+        listeners.add(listener);
+      },
+      removeListener(listener: StorageChangeListener) {
+        listeners.delete(listener);
+      },
+    },
+  };
+}
+
+function createFakeStorageArea(
+    initialValues: Record<string, unknown> = {},
+    onSet: (changes: Record<string, chrome.storage.StorageChange>) => void =
+      () => {},
+) {
+  const values: Record<string, unknown> = {...initialValues};
+
+  return {
+    get(
+        key: string | null,
+        callback: (value: Record<string, unknown>) => void,
+    ) {
+      if (key === null) {
+        callback({...values});
+        return;
+      }
+
+      callback({
+        [key]: values[key],
+      });
+    },
+    remove(key: string, callback: () => void) {
+      delete values[key];
+      callback();
+    },
+    set(nextValues: Record<string, unknown>, callback: () => void) {
+      const changes: Record<string, chrome.storage.StorageChange> = {};
+      for (const [key, newValue] of Object.entries(nextValues)) {
+        changes[key] = {
+          newValue,
+          oldValue: values[key],
+        };
+      }
+      Object.assign(values, nextValues);
+      onSet(changes);
+      callback();
+    },
+  };
+}

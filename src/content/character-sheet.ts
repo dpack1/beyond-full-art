@@ -2,6 +2,8 @@ import {
   createCharacterArtService,
   type CharacterArtService,
 } from '../features/character-art/art-service';
+import {createCharacterJournalSection} from '../features/character-journal/character-journal-section';
+import {createCharacterJournalService} from '../features/character-journal/character-journal-service';
 import {createCharacterPortraitCropWorkflow} from '../features/crop-workflow/crop-workflow';
 import {
   installCharacterArtControls,
@@ -19,6 +21,10 @@ import {
   PANEL_PORTRAIT_TRIGGER_CLASS_NAME,
 } from '../platform/dndbeyond/selectors';
 import {
+  CHARACTER_JOURNAL_ENABLED_KEY,
+  getCharacterJournalEnabled,
+} from '../platform/chrome/storage';
+import {
   observePanelPortraits,
   type PortraitTarget,
 } from '../platform/dndbeyond/portrait-adapter';
@@ -26,6 +32,7 @@ import {
   isCharacterPageUrl,
   parseCharacterIdFromCharacterPageUrl,
 } from '../platform/dndbeyond/urls';
+import {observeJournalTabTargets} from '../platform/dndbeyond/character-sheet-tabs-adapter';
 import {
   createCharacterArtDownloadFileName,
   downloadBlobUrl,
@@ -55,9 +62,14 @@ export function installCharacterSheetEnhancement(
 
   const artService = createCharacterArtService(doc);
   const cropWorkflow = createCharacterPortraitCropWorkflow(artService, doc);
+  const journalService = createCharacterJournalService();
+  const journalSection = createCharacterJournalSection(journalService, doc);
   const viewer = createFullscreenViewer(doc);
   const cleanups = new Set<Cleanup>();
+  const journalCleanups = new Set<Cleanup>();
   let activeControls: CharacterArtControlsController | null = null;
+  let journalSyncGeneration = 0;
+  let stopObservingJournalTabs: Cleanup | null = null;
   const getActiveControls = () => activeControls;
 
   const stopObservingPortraitManagers = observePortraitManagementTargets((target) => {
@@ -94,14 +106,104 @@ export function installCharacterSheetEnhancement(
     });
   }, doc);
 
+  const startJournalFeature = () => {
+    if (stopObservingJournalTabs !== null) {
+      return;
+    }
+
+    stopObservingJournalTabs = observeJournalTabTargets((target) => {
+      const onClick = (event: MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void journalSection.show({
+          characterId,
+          contentHost: target.contentHost,
+          tab: target.tab,
+        });
+      };
+      const onNativeTabClick = () => {
+        journalSection.hide();
+      };
+
+      target.tab.addEventListener('click', onClick);
+      for (const nativeTab of target.nativeTabs) {
+        nativeTab.addEventListener('click', onNativeTabClick);
+      }
+      journalCleanups.add(() => {
+        target.tab.removeEventListener('click', onClick);
+        for (const nativeTab of target.nativeTabs) {
+          nativeTab.removeEventListener('click', onNativeTabClick);
+        }
+      });
+    }, doc);
+  };
+
+  const stopJournalFeature = () => {
+    stopObservingJournalTabs?.();
+    stopObservingJournalTabs = null;
+    for (const cleanup of journalCleanups) {
+      cleanup();
+    }
+    journalCleanups.clear();
+    journalSection.hide();
+  };
+
+  const syncJournalEnabledState = async () => {
+    const generation = ++journalSyncGeneration;
+    const isEnabled = await getCharacterJournalEnabled();
+    if (generation !== journalSyncGeneration) {
+      return;
+    }
+
+    if (isEnabled) {
+      startJournalFeature();
+      return;
+    }
+
+    stopJournalFeature();
+  };
+
+  const stopJournalStorageListener = installStorageListener(
+      CHARACTER_JOURNAL_ENABLED_KEY,
+      syncJournalEnabledState,
+  );
+  void syncJournalEnabledState();
+
   return () => {
     stopObservingPortraitManagers();
     stopObserving();
+    stopJournalStorageListener();
+    journalSyncGeneration += 1;
+    stopJournalFeature();
     for (const cleanup of cleanups) {
       cleanup();
     }
     cleanups.clear();
+    journalSection.destroy();
     viewer.destroy();
+  };
+}
+
+function installStorageListener(
+    key: string,
+    onChange: () => void,
+): Cleanup {
+  if (typeof chrome === 'undefined' || chrome.storage?.onChanged === undefined) {
+    return () => {};
+  }
+
+  const listener: Parameters<typeof chrome.storage.onChanged.addListener>[0] =
+    (changes, areaName) => {
+      if (areaName !== 'local' || !Object.hasOwn(changes, key)) {
+        return;
+      }
+
+      onChange();
+    };
+
+  chrome.storage.onChanged.addListener(listener);
+  return () => {
+    chrome.storage.onChanged.removeListener(listener);
   };
 }
 

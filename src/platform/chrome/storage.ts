@@ -9,15 +9,27 @@ import {
   CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION,
   isCharacterPortraitCropMetadata,
 } from '../../features/character-art/art-types';
+import type {CharacterJournalEntry} from '../../features/character-journal/character-journal-types';
+import {
+  CHARACTER_JOURNAL_SCHEMA_VERSION,
+  isCharacterJournalEntry,
+} from '../../features/character-journal/character-journal-types';
 
 const CHARACTER_ART_SCHEMA_VERSION_KEY = 'bfa.characterArt.schemaVersion';
 const CHARACTER_ART_METADATA_KEY_PREFIX = 'bfa.characterArt.metadata.';
 const CHARACTER_PORTRAIT_CROP_METADATA_KEY_PREFIX = 'bfa.characterArt.cropMetadata.';
 const CHARACTER_PORTRAIT_CROP_SCHEMA_VERSION_KEY =
   'bfa.characterArt.cropSchemaVersion';
+const CHARACTER_JOURNAL_SCHEMA_VERSION_KEY =
+  'bfa.characterJournal.schemaVersion';
+const CHARACTER_JOURNAL_ENTRIES_KEY_PREFIX =
+  'bfa.characterJournal.entries.';
 export const CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY =
   'bfa.preferences.campaignCardPortraitUpgradeEnabled';
+export const CHARACTER_JOURNAL_ENABLED_KEY =
+  'bfa.preferences.characterJournalEnabled';
 const DEFAULT_CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED = true;
+const DEFAULT_CHARACTER_JOURNAL_ENABLED = true;
 
 type ChromeStorageLocal = Pick<
   chrome.storage.StorageArea,
@@ -107,6 +119,53 @@ export async function deleteStoredCharacterPortraitCropMetadata(
   );
 }
 
+export async function getCharacterJournalEntries(
+    characterId: CharacterId,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<CharacterJournalEntry[]> {
+  const entriesKey = getCharacterJournalEntriesKey(characterId);
+  const storedValues = await callStorageGet(entriesKey, storageArea);
+  const entriesValue = storedValues[entriesKey];
+  if (!Array.isArray(entriesValue)) {
+    return [];
+  }
+
+  return entriesValue
+      .filter(isCharacterJournalEntry)
+      .filter((entry) => entry.characterId === characterId)
+      .sort(compareCharacterJournalEntries);
+}
+
+export async function setCharacterJournalEntry(
+    entry: CharacterJournalEntry,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  const entries = await getCharacterJournalEntries(entry.characterId, storageArea);
+  const nextEntries = [
+    entry,
+    ...entries.filter((storedEntry) => storedEntry.id !== entry.id),
+  ].sort(compareCharacterJournalEntries);
+
+  await callStorageSet({
+    [CHARACTER_JOURNAL_SCHEMA_VERSION_KEY]: CHARACTER_JOURNAL_SCHEMA_VERSION,
+    [getCharacterJournalEntriesKey(entry.characterId)]: nextEntries,
+  }, storageArea);
+}
+
+export async function deleteCharacterJournalEntry(
+    characterId: CharacterId,
+    entryId: string,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  const entries = await getCharacterJournalEntries(characterId, storageArea);
+  const nextEntries = entries.filter((entry) => entry.id !== entryId);
+
+  await callStorageSet({
+    [CHARACTER_JOURNAL_SCHEMA_VERSION_KEY]: CHARACTER_JOURNAL_SCHEMA_VERSION,
+    [getCharacterJournalEntriesKey(characterId)]: nextEntries,
+  }, storageArea);
+}
+
 export async function getCampaignCardPortraitUpgradeEnabled(
     storageArea: ChromeStorageLocal = getStorageArea(),
 ): Promise<boolean> {
@@ -129,6 +188,28 @@ export async function setCampaignCardPortraitUpgradeEnabled(
   }, storageArea);
 }
 
+export async function getCharacterJournalEnabled(
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<boolean> {
+  const storedValues = await callStorageGet(
+      CHARACTER_JOURNAL_ENABLED_KEY,
+      storageArea,
+  );
+  const storedValue = storedValues[CHARACTER_JOURNAL_ENABLED_KEY];
+  return typeof storedValue === 'boolean'
+    ? storedValue
+    : DEFAULT_CHARACTER_JOURNAL_ENABLED;
+}
+
+export async function setCharacterJournalEnabled(
+    enabled: boolean,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  await callStorageSet({
+    [CHARACTER_JOURNAL_ENABLED_KEY]: enabled,
+  }, storageArea);
+}
+
 export function getCharacterArtMetadataKey(characterId: CharacterId): string {
   return `${CHARACTER_ART_METADATA_KEY_PREFIX}${characterId}`;
 }
@@ -137,6 +218,20 @@ export function getCharacterPortraitCropMetadataKey(
     characterId: CharacterId,
 ): string {
   return `${CHARACTER_PORTRAIT_CROP_METADATA_KEY_PREFIX}${characterId}`;
+}
+
+export function getCharacterJournalEntriesKey(characterId: CharacterId): string {
+  return `${CHARACTER_JOURNAL_ENTRIES_KEY_PREFIX}${characterId}`;
+}
+
+function compareCharacterJournalEntries(
+    left: CharacterJournalEntry,
+    right: CharacterJournalEntry,
+): number {
+  const updatedComparison = right.updatedAt.localeCompare(left.updatedAt);
+  return updatedComparison === 0
+    ? left.id.localeCompare(right.id)
+    : updatedComparison;
 }
 
 function callStorageGet(

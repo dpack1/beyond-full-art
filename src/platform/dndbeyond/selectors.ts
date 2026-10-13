@@ -17,8 +17,14 @@ export const ENHANCED_ATTRIBUTE_NAME = 'data-bfa-enhanced';
 export const PANEL_PORTRAIT_TRIGGER_CLASS_NAME = 'bfa-panel-portrait-trigger';
 export const CROP_DIALOG_STYLE_ATTRIBUTE_NAME = 'data-bfa-crop-dialog-styles';
 export const VIEWER_STYLE_ATTRIBUTE_NAME = 'data-bfa-viewer-styles';
+export const CHARACTER_JOURNAL_STYLE_ATTRIBUTE_NAME =
+  'data-bfa-character-journal-styles';
 export const CARD_PORTRAIT_UPGRADE_STYLE_ATTRIBUTE_NAME =
   'data-bfa-card-portrait-upgrade-styles';
+export const CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME =
+  'data-bfa-character-journal-tab';
+export const CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME =
+  'bfa-character-journal-tab';
 export const CAMPAIGN_CHARACTER_CARD_SELECTOR =
   '.ddb-campaigns-character-card-header-upper';
 export const CAMPAIGN_CHARACTER_CARD_LINK_SELECTOR =
