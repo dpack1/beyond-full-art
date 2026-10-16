@@ -1,6 +1,7 @@
 import {restoreFocus, trapTabKey} from '../fullscreen-viewer/focus';
 
 export interface JournalPhotoViewerOpenOptions {
+  fallbackFocus: HTMLElement | null;
   imageUrl: string;
   label: string;
   onRemove: () => Promise<void>;
@@ -58,6 +59,7 @@ export function createJournalPhotoViewer(doc: Document): JournalPhotoViewer {
   overlay.append(dialog);
   doc.body.append(overlay);
 
+  let fallbackFocus: HTMLElement | null = null;
   let onRemove: (() => Promise<void>) | null = null;
   let returnFocus: HTMLElement | null = null;
 
@@ -99,6 +101,7 @@ export function createJournalPhotoViewer(doc: Document): JournalPhotoViewer {
       return !overlay.hidden;
     },
     open(options) {
+      fallbackFocus = options.fallbackFocus;
       onRemove = options.onRemove;
       returnFocus = options.returnFocus;
       image.src = options.imageUrl;
@@ -120,7 +123,10 @@ export function createJournalPhotoViewer(doc: Document): JournalPhotoViewer {
     overlay.hidden = true;
     image.removeAttribute('src');
     onRemove = null;
-    const focusTarget = returnFocus;
+    const focusTarget = returnFocus?.isConnected === true
+      ? returnFocus
+      : fallbackFocus;
+    fallbackFocus = null;
     returnFocus = null;
     restoreFocus(focusTarget);
   }

@@ -190,6 +190,128 @@ describe('character journal section', () => {
 
     section.destroy();
   });
+
+  it('deletes the note the confirmation was opened for', async () => {
+    const entries = [
+      createEntry({
+        id: 'entry-door',
+        text: 'A locked door under the chapel.',
+        title: 'Locked door',
+        updatedAt: '2026-10-13T00:00:00.000Z',
+      }),
+      createEntry({
+        id: 'entry-market',
+        text: 'Bought rope and rations.',
+        title: 'Market day',
+        updatedAt: '2026-10-12T00:00:00.000Z',
+      }),
+    ];
+    const deletedIds: string[] = [];
+    const service = createFakeService(entries);
+    const deleteEntry = service.deleteEntry.bind(service);
+    service.deleteEntry = async (characterId, entryId) => {
+      deletedIds.push(entryId);
+      await deleteEntry(characterId, entryId);
+    };
+    const section = createCharacterJournalSection(service);
+
+    await showSection(section);
+    expect(getTitleInput().value).toBe('Locked door');
+
+    getDeleteButton().click();
+    expect(getConfirmText()).toContain('Locked door');
+
+    getEntryButton('Market day').click();
+    expect(getTitleInput().value).toBe('Market day');
+    expect(getConfirmText()).toContain('Locked door');
+
+    getConfirmButton('Delete note').click();
+    await flushPromises();
+
+    expect(deletedIds).toEqual(['entry-door']);
+    expect(entries.map((entry) => entry.id)).toEqual(['entry-market']);
+    expect(getTitleInput().value).toBe('Market day');
+
+    section.destroy();
+  });
+
+  it('releases a photo object URL when that photo is removed', async () => {
+    const objectUrls = installObjectUrlStub();
+    const entries = [createPhotoEntry()];
+    const section = createCharacterJournalSection(createFakeService(entries));
+
+    try {
+      await showSection(section);
+      await flushPromises();
+
+      getButton('Remove').click();
+      getConfirmButton('Remove photo').click();
+      await flushPromises();
+
+      expect(objectUrls.revoked).toEqual(['blob:journal-photo-1']);
+      expect(document.querySelector('[aria-label="View photo camp.png"]'))
+          .toBeNull();
+    } finally {
+      section.destroy();
+      expect(objectUrls.revoked).toEqual(['blob:journal-photo-1']);
+      objectUrls.restore();
+    }
+  });
+
+  it('releases photo object URLs when the note that owns them is deleted', async () => {
+    const objectUrls = installObjectUrlStub();
+    const entries = [createPhotoEntry()];
+    const section = createCharacterJournalSection(createFakeService(entries));
+
+    try {
+      await showSection(section);
+      await flushPromises();
+
+      getDeleteButton().click();
+      getConfirmButton('Delete note').click();
+      await flushPromises();
+
+      expect(entries).toEqual([]);
+      expect(objectUrls.revoked).toEqual(['blob:journal-photo-1']);
+    } finally {
+      section.destroy();
+      objectUrls.restore();
+    }
+  });
+
+  it('returns focus to Add photo after removing a photo from the viewer', async () => {
+    const objectUrls = installObjectUrlStub();
+    const section = createCharacterJournalSection(
+        createFakeService([createPhotoEntry()]),
+    );
+
+    try {
+      await showSection(section);
+      await flushPromises();
+
+      const viewButton = document.querySelector<HTMLButtonElement>(
+          '[aria-label="View photo camp.png"]',
+      );
+      if (viewButton === null) {
+        throw new Error('Missing photo view button');
+      }
+      viewButton.click();
+      expect(document.querySelector('.bfa-journal-photo-viewer')?.hasAttribute('hidden'))
+          .toBe(false);
+
+      document.querySelector<HTMLButtonElement>(
+          '.bfa-journal-photo-viewer__button--danger',
+      )?.click();
+      await flushPromises();
+
+      expect(document.querySelector('.bfa-journal-photo-viewer')?.hasAttribute('hidden'))
+          .toBe(true);
+      expect(document.activeElement).toBe(getButton('Add photo'));
+    } finally {
+      section.destroy();
+      objectUrls.restore();
+    }
+  });
 });
 
 async function showSection(
@@ -371,6 +493,107 @@ function getSaveButton(): HTMLButtonElement {
 
 function getDeleteButton(): HTMLButtonElement {
   return getButton('Delete');
+}
+
+function getConfirmButton(label: string): HTMLButtonElement {
+  const button = Array.from(
+      document.querySelectorAll<HTMLButtonElement>(
+          '.bfa-character-journal-confirm button',
+      ),
+  ).find((candidate) => candidate.textContent === label);
+  if (button === undefined) {
+    throw new Error(`Missing ${label} confirmation button`);
+  }
+
+  return button;
+}
+
+function getConfirmText(): string {
+  return document.querySelector('.bfa-character-journal-confirm-text')
+      ?.textContent ?? '';
+}
+
+function getEntryButton(title: string): HTMLButtonElement {
+  const button = Array.from(
+      document.querySelectorAll<HTMLButtonElement>(
+          '.bfa-character-journal-entry-button',
+      ),
+  ).find((candidate) => {
+    return candidate.querySelector('.bfa-character-journal-entry-title')
+        ?.textContent === title;
+  });
+  if (button === undefined) {
+    throw new Error(`Missing ${title} note button`);
+  }
+
+  return button;
+}
+
+function createPhotoEntry(): CharacterJournalEntry {
+  const entry = createEntry({
+    id: 'entry-camp',
+    text: 'Rain on the tent.',
+    title: 'Camp',
+  });
+  entry.blocks.push({
+    blobKey: 'bfa.journal.image.photo-1',
+    byteSize: 5,
+    fileName: 'camp.png',
+    height: null,
+    id: 'photo-1',
+    mimeType: 'image/png',
+    type: 'image',
+    width: null,
+  });
+  return entry;
+}
+
+function installObjectUrlStub(): {restore: () => void; revoked: string[]} {
+  const revoked: string[] = [];
+  const urlApi = URL as unknown as {
+    createObjectURL?: (object: Blob) => string;
+    revokeObjectURL?: (url: string) => void;
+  };
+  const previousCreate = urlApi.createObjectURL;
+  const previousRevoke = urlApi.revokeObjectURL;
+  let nextId = 0;
+
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    value: () => {
+      nextId += 1;
+      return `blob:journal-photo-${nextId}`;
+    },
+  });
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    value: (url: string) => {
+      revoked.push(url);
+    },
+  });
+
+  return {
+    restore() {
+      defineUrlMethod('createObjectURL', previousCreate);
+      defineUrlMethod('revokeObjectURL', previousRevoke);
+    },
+    revoked,
+  };
+}
+
+function defineUrlMethod(
+    name: 'createObjectURL' | 'revokeObjectURL',
+    value: ((...args: never[]) => unknown) | undefined,
+): void {
+  if (value === undefined) {
+    delete (URL as unknown as Record<string, unknown>)[name];
+    return;
+  }
+
+  Object.defineProperty(URL, name, {
+    configurable: true,
+    value,
+  });
 }
 
 function getButton(label: string): HTMLButtonElement {

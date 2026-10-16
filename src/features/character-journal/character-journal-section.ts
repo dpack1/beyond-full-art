@@ -27,7 +27,7 @@ type JournalStatusTone = 'error' | 'info' | 'success';
 type PendingConfirm =
   | {imageId: string; type: 'remove-photo'}
   | {action: () => void; type: 'discard'}
-  | {type: 'delete'};
+  | {entryId: string; type: 'delete'};
 
 export interface CharacterJournalSection {
   destroy(): void;
@@ -144,7 +144,7 @@ export function createCharacterJournalSection(
     if (pending?.type === 'discard') {
       pending.action();
     } else if (pending?.type === 'delete') {
-      void deleteSelectedEntry();
+      void deleteEntry(pending.entryId);
     } else if (pending?.type === 'remove-photo') {
       void removePhoto(pending.imageId).catch(() => undefined);
     }
@@ -433,6 +433,7 @@ export function createCharacterJournalSection(
     }
 
     photoViewer.open({
+      fallbackFocus: elements.addPhotoButton,
       imageUrl: photoUrl,
       label: block.fileName,
       onRemove: async () => {
@@ -557,7 +558,10 @@ export function createCharacterJournalSection(
       return;
     }
 
-    state.pendingConfirm = {type: 'delete'};
+    state.pendingConfirm = {
+      entryId: state.selectedEntryId,
+      type: 'delete',
+    };
     renderConfirm();
   }
 
@@ -612,10 +616,16 @@ export function createCharacterJournalSection(
       return;
     }
 
+    const removedBlock = (draft.imageBlocks ?? []).find(
+        (block) => block.id === imageId,
+    );
     setBusy(true);
     renderStatus('Removing photo...');
     try {
       const savedEntry = await service.removeImage(draft, imageId);
+      if (removedBlock !== undefined) {
+        releasePhotoUrl(removedBlock.blobKey);
+      }
       rememberEntry(savedEntry);
       setDraft(savedEntry.title, getTextFromJournalEntry(savedEntry));
       renderStatus('Photo removed.', 'success');
@@ -630,26 +640,32 @@ export function createCharacterJournalSection(
     }
   }
 
-  async function deleteSelectedEntry(): Promise<void> {
-    if (
-      state.characterId === null
-      || state.selectedEntryId === null
-      || state.isBusy
-    ) {
+  async function deleteEntry(entryId: string): Promise<void> {
+    if (state.characterId === null || state.isBusy) {
       return;
     }
 
-    const entryId = state.selectedEntryId;
+    const entry = state.entries.find((candidate) => candidate.id === entryId);
+    if (entry === undefined) {
+      return;
+    }
+
     setBusy(true);
     renderStatus('Deleting...');
     try {
       await service.deleteEntry(state.characterId, entryId);
-      state.entries = state.entries.filter((entry) => entry.id !== entryId);
-      const nextEntry = orderedEntries()[0];
-      if (nextEntry === undefined) {
-        startNewEntry({focus: false});
+      state.entries = state.entries.filter((candidate) => candidate.id !== entryId);
+      releaseEntryPhotoUrls(entry);
+      if (state.selectedEntryId === entryId) {
+        const nextEntry = orderedEntries()[0];
+        if (nextEntry === undefined) {
+          startNewEntry({focus: false});
+        } else {
+          selectEntry(nextEntry.id);
+        }
       } else {
-        selectEntry(nextEntry.id);
+        renderList();
+        renderPhotos();
       }
       renderStatus('Deleted.', 'success');
     } catch {
@@ -708,8 +724,12 @@ export function createCharacterJournalSection(
     }
 
     if (pending.type === 'delete') {
+      const entry = state.entries.find(
+          (candidate) => candidate.id === pending.entryId,
+      );
+      const title = entry?.title ?? 'this note';
       elements.confirmText.textContent =
-        'Delete this note and its photos? This removes only the local journal entry.';
+        `Delete “${title}” and its photos? This removes only the local journal entry.`;
       elements.confirmCancelButton.textContent = 'Keep note';
       elements.confirmAcceptButton.textContent = 'Delete note';
       return;
@@ -732,13 +752,24 @@ export function createCharacterJournalSection(
     renderConfirm();
   }
 
-  function revokePhotoUrls(): void {
-    for (const url of photoUrls.values()) {
-      if (url !== null) {
-        URL.revokeObjectURL(url);
-      }
+  function releaseEntryPhotoUrls(entry: CharacterJournalEntry): void {
+    for (const block of getImageBlocks(entry)) {
+      releasePhotoUrl(block.blobKey);
     }
-    photoUrls.clear();
+  }
+
+  function releasePhotoUrl(blobKey: string): void {
+    const url = photoUrls.get(blobKey);
+    photoUrls.delete(blobKey);
+    if (typeof url === 'string') {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function revokePhotoUrls(): void {
+    for (const blobKey of [...photoUrls.keys()]) {
+      releasePhotoUrl(blobKey);
+    }
   }
 }
 
