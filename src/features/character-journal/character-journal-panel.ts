@@ -1,6 +1,8 @@
 import {trapTabKey} from '../fullscreen-viewer/focus';
 import {applyJournalFormat, type JournalFormatKind} from './character-journal-format';
 import {renderJournalMarkdown} from './character-journal-markdown';
+import {journalTypeLabel} from './character-journal-query';
+import type {JournalEntryType} from './character-journal-types';
 
 export interface PanelImageModel {
   fileName: string;
@@ -43,6 +45,7 @@ export interface PanelModel {
   stale: boolean;
   status: 'error' | 'saved' | 'saving' | null;
   title: string;
+  type: JournalEntryType;
   typeLabel: string;
 }
 
@@ -59,6 +62,7 @@ export interface PanelHandlers {
   onPick: (entryId: string) => void;
   onReload: () => void;
   onRemoveImage: (imageId: string) => void;
+  onType: (type: JournalEntryType) => void;
   onViewImage: (imageId: string, returnFocus: HTMLElement) => void;
   onWiki: (name: string, resolution: string, anchor: HTMLElement) => void;
   resolveWiki: (name: string) => 'many' | 'missing' | 'one';
@@ -69,7 +73,6 @@ export interface JournalPanelView {
   readDraft(): {body: string; title: string};
   render(model: PanelModel): void;
   root: HTMLElement;
-  scrim: HTMLElement;
   textarea: HTMLTextAreaElement | null;
   titleField: HTMLInputElement | null;
 }
@@ -80,11 +83,6 @@ export function createJournalPanel(
     imageUrl: (imageId: string) => string | null,
     imagesFor: () => {id: string}[],
 ): JournalPanelView {
-  const scrim = doc.createElement('div');
-  scrim.className = 'bfa-journal-scrim';
-  scrim.dataset.bfaJournalScrim = 'true';
-  scrim.hidden = true;
-
   const root = doc.createElement('div');
   root.className = 'bfa-journal-panel';
   root.dataset.bfaJournalPanel = 'true';
@@ -106,13 +104,32 @@ export function createJournalPanel(
   const editButton = button(doc, 'Edit', 'bfa-journal-button');
   const tag = doc.createElement('span');
   tag.className = 'bfa-journal-tag';
+  const typeSelect = doc.createElement('select');
+  typeSelect.className = 'bfa-journal-type';
+  typeSelect.setAttribute('aria-label', 'Type');
+  for (const type of PANEL_TYPES) {
+    const option = doc.createElement('option');
+    option.value = type;
+    option.textContent = journalTypeLabel(type);
+    typeSelect.append(option);
+  }
+  const unsetOption = doc.createElement('option');
+  unsetOption.value = 'unset';
+  unsetOption.textContent = journalTypeLabel('unset');
+  typeSelect.append(unsetOption);
+  typeSelect.addEventListener('change', () => {
+    const value = typeSelect.value;
+    if (isPanelType(value)) {
+      handlers.onType(value);
+    }
+  });
   const needs = doc.createElement('span');
   needs.className = 'bfa-journal-tag bfa-journal-tag-needs';
   needs.textContent = 'Needs details';
   needs.hidden = true;
   const status = doc.createElement('p');
   status.className = 'bfa-journal-status';
-  header.append(closeButton, backButton, title, editButton, tag, needs, status);
+  header.append(closeButton, backButton, title, editButton, typeSelect, tag, needs, status);
 
   const body = doc.createElement('div');
   body.className = 'bfa-journal-panel-body';
@@ -134,13 +151,37 @@ export function createJournalPanel(
   let textarea: HTMLTextAreaElement | null = null;
   let titleField: HTMLInputElement | null = null;
   let renderedId = '';
+  let renderedBody = '';
   let renderedMode: PanelModel['mode'] | '' = '';
+
+  function bindWikiLinks(scope: ParentNode): void {
+    for (const link of scope.querySelectorAll<HTMLButtonElement>('.bfa-journal-wikilink')) {
+      link.addEventListener('click', () => {
+        handlers.onWiki(
+            link.dataset.bfaWikiName ?? '',
+            link.dataset.bfaWikiResolution ?? 'missing',
+            link,
+        );
+      });
+    }
+  }
+
+  function readMarkdown(model: PanelModel): HTMLElement {
+    const read = renderJournalMarkdown(model.body, {
+      document: doc,
+      imageUrl,
+      images: imagesFor(),
+      onCheckbox: handlers.onCheckbox,
+      resolveWiki: handlers.resolveWiki,
+    });
+    bindWikiLinks(read);
+    return read;
+  }
 
   closeButton.addEventListener('click', () => handlers.onClose());
   backButton.addEventListener('click', () => handlers.onBack());
   editButton.addEventListener('click', () => handlers.onEdit());
   deleteButton.addEventListener('click', () => handlers.onDelete());
-  scrim.addEventListener('click', () => handlers.onClose());
   fileInput.addEventListener('change', () => {
     const file = fileInput.files?.[0];
     fileInput.value = '';
@@ -190,10 +231,10 @@ export function createJournalPanel(
     },
     render(model) {
       root.hidden = false;
-      scrim.hidden = false;
       root.setAttribute('aria-label', model.title || 'Journal note');
       backButton.hidden = !model.back;
-      tag.textContent = model.typeLabel;
+      tag.hidden = true;
+      typeSelect.value = model.type;
       needs.hidden = !model.needsDetails;
       editButton.textContent = model.mode === 'edit' ? 'Done editing' : 'Edit';
       editButton.hidden = model.mismatch;
@@ -201,6 +242,7 @@ export function createJournalPanel(
       status.dataset.tone = model.status ?? '';
       if (renderedId !== model.entryId || renderedMode !== model.mode) {
         renderedId = model.entryId;
+        renderedBody = model.body;
         renderedMode = model.mode;
         title.replaceChildren();
         if (model.mode === 'edit') {
@@ -220,29 +262,20 @@ export function createJournalPanel(
           textarea = appendEditor(doc, body, model, handlers, fileInput);
         } else {
           textarea = null;
-          body.append(renderJournalMarkdown(model.body, {
-            document: doc,
-            imageUrl,
-            images: imagesFor(),
-            onCheckbox: handlers.onCheckbox,
-            resolveWiki: handlers.resolveWiki,
-          }));
-          for (const link of body.querySelectorAll<HTMLButtonElement>('.bfa-journal-wikilink')) {
-            link.addEventListener('click', () => {
-              handlers.onWiki(
-                  link.dataset.bfaWikiName ?? '',
-                  link.dataset.bfaWikiResolution ?? 'missing',
-                  link,
-              );
-            });
-          }
+          body.append(readMarkdown(model));
         }
         appendImages(doc, body, model, handlers);
         appendMentions(doc, body, model, handlers);
         appendPicker(doc, body, model, handlers);
       } else {
         appendBanners(doc, body, model, handlers);
+        if (renderedMode === 'read' && renderedBody !== model.body) {
+          renderedBody = model.body;
+          body.querySelector('.bfa-journal-read')?.replaceWith(readMarkdown(model));
+        }
         syncImages(body, model);
+        body.querySelector('.bfa-journal-picker')?.remove();
+        appendPicker(doc, body, model, handlers);
         const currentImages = [...body.querySelectorAll<HTMLElement>('[data-image-id]')]
             .map((element) => element.dataset.imageId)
             .join(',');
@@ -262,7 +295,6 @@ export function createJournalPanel(
       }
     },
     root,
-    scrim,
     get textarea() {
       return textarea;
     },
@@ -500,6 +532,12 @@ function statusLabel(status: PanelModel['status']): string {
   }
 
   return '';
+}
+
+const PANEL_TYPES = ['session', 'npc', 'place', 'item', 'quest', 'backstory'] as const;
+
+function isPanelType(value: string): value is JournalEntryType {
+  return (PANEL_TYPES as readonly string[]).includes(value);
 }
 
 function button(doc: Document, label: string, className: string): HTMLButtonElement {

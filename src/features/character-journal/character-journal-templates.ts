@@ -31,3 +31,12 @@ export function starterJournalBody(type: JournalEntryType): string {
       .map((heading) => `## ${heading}\n`)
       .join('\n');
 }
+
+export function journalBodyNeedsStarter(type: JournalEntryType, body: string): boolean {
+  const trimmed = body.trim();
+  if (trimmed === '') {
+    return true;
+  }
+
+  return trimmed === starterJournalBody(type).trim();
+}

@@ -268,6 +268,133 @@ describe('character journal section', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     section.destroy();
   });
+
+  it('loads the new character after Discard and files the next note there', async () => {
+    const filed: string[] = [];
+    const notes = [
+      note({id: 'gate', title: 'Old Gate'}),
+      note({body: 'Still here', id: 'chapel', title: 'Chapel'}),
+    ];
+    const service = createFakeService(notes);
+    const fileQuickNote = service.fileQuickNote.bind(service);
+    service.fileQuickNote = async (characterId, text) => {
+      filed.push(characterId);
+      return fileQuickNote(characterId, text);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
+    section.syncRoute('222');
+
+    expect(document.body.textContent).toContain('another character');
+    expect(titles()).toContain('Old Gate');
+    const fileField = document.querySelector<HTMLInputElement>('.bfa-journal-field');
+    if (fileField === null) {
+      throw new Error('Missing quick note');
+    }
+    fileField.value = 'Filed too soon';
+    buttonNamed('File note')?.click();
+    await flush();
+    expect(filed).toEqual([]);
+
+    bannerButton('Discard')?.click();
+    await flush();
+
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(titles()).toEqual([]);
+    fileField.value = 'Arrived';
+    buttonNamed('File note')?.click();
+    await flush();
+    expect(filed).toEqual(['222']);
+    section.destroy();
+  });
+
+  it('shows the duplicate picker without leaving the open note', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({body: 'Ask [[Marcus]]', id: 'errand', title: 'The errand'}),
+      note({body: 'First', id: 'marcus-1', title: 'Marcus'}),
+      note({
+        body: 'Second',
+        id: 'marcus-2',
+        title: 'Marcus',
+        updatedAt: '2026-10-13T00:00:00.000Z',
+      }),
+    ]));
+    await showSection(section);
+    rowNamed('The errand')?.click();
+    wikiLink('Marcus')?.click();
+
+    expect(document.querySelector('.bfa-journal-picker')).not.toBeNull();
+    expect(document.querySelector('.bfa-journal-panel-title')?.textContent).toBe('The errand');
+    section.destroy();
+  });
+
+  it('leaves an unresolved name unwritten when the link is clicked', async () => {
+    let created = 0;
+    const notes = [note({body: 'Find [[Ghost]]', id: 'errand', title: 'The errand'})];
+    const service = createFakeService(notes);
+    const createPlaceholder = service.createPlaceholder.bind(service);
+    service.createPlaceholder = async (characterId, title) => {
+      created += 1;
+      return createPlaceholder(characterId, title);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    rowNamed('The errand')?.click();
+    const link = document.querySelector<HTMLButtonElement>('.bfa-journal-wikilink--needs');
+
+    expect(link?.getAttribute('aria-label')).toBe('Ghost, needs details');
+    expect(link?.textContent).toBe('Ghost');
+    link?.click();
+    await flush();
+    expect(created).toBe(0);
+    expect(notes).toHaveLength(1);
+    expect(document.querySelector('.bfa-journal-panel-title')?.textContent).toBe('The errand');
+    section.destroy();
+  });
+
+  it('inserts starter headings only when the body is still the previous type', async () => {
+    const section = createCharacterJournalSection(createFakeService([]));
+    await showSection(section);
+    openNewSession();
+    const select = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
+    const editor = document.querySelector<HTMLTextAreaElement>('.bfa-journal-editor');
+    if (select === null || editor === null) {
+      throw new Error('Missing type control');
+    }
+
+    expect(select.value).toBe('session');
+    expect(editor.value).toContain('What happened');
+    select.value = 'npc';
+    select.dispatchEvent(new Event('change'));
+    expect(editor.value).toContain('Who they are to me');
+    expect(editor.value).not.toContain('What happened');
+
+    editor.value = 'Marcus waved.';
+    editor.dispatchEvent(new Event('input'));
+    select.value = 'place';
+    select.dispatchEvent(new Event('change'));
+    expect(editor.value).toBe('Marcus waved.');
+    expect(select.value).toBe('place');
+    section.destroy();
+  });
+
+  it('does not cover the sheet with a scrim', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+    ]));
+    await showSection(section);
+    document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
+    const panel = document.querySelector<HTMLElement>('.bfa-journal-panel');
+
+    expect(document.querySelector('.bfa-journal-scrim')).toBeNull();
+    expect(document.querySelector('[data-bfa-journal-scrim]')).toBeNull();
+    expect(panel?.style.getPropertyValue('--bfa-journal-background')).toBe('#fefefe');
+    expect(panel?.classList.contains('ct-character-sheet--dark-mode')).toBe(false);
+    expect(document.querySelector<HTMLElement>('.bfa-character-journal-section')
+        ?.style.getPropertyValue('--bfa-journal-chip')).toBe('#eceeef');
+    section.destroy();
+  });
 });
 
 async function showSection(
@@ -370,6 +497,21 @@ function titles(): string[] {
 function buttonNamed(label: string): HTMLButtonElement | undefined {
   return Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
       .find((button) => button.textContent === label);
+}
+
+function bannerButton(label: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('.bfa-journal-banner button'))
+      .find((button) => button.textContent === label);
+}
+
+function rowNamed(title: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('.bfa-journal-row'))
+      .find((button) => button.textContent?.includes(title));
+}
+
+function wikiLink(name: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('.bfa-journal-wikilink'))
+      .find((button) => button.dataset.bfaWikiName === name);
 }
 
 function getJournalTab(): HTMLElement {
