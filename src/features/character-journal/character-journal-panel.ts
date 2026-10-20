@@ -95,6 +95,10 @@ export function createJournalPanel(
   sheet.className = 'bfa-journal-panel-sheet';
   const header = doc.createElement('header');
   header.className = 'bfa-journal-panel-header';
+  const heading = doc.createElement('div');
+  heading.className = 'bfa-journal-panel-heading';
+  const actions = doc.createElement('div');
+  actions.className = 'bfa-journal-panel-actions';
   const closeButton = button(doc, '×', 'bfa-journal-close');
   closeButton.setAttribute('aria-label', 'Close');
   const backButton = button(doc, 'Back', 'bfa-journal-button bfa-journal-back');
@@ -121,6 +125,12 @@ export function createJournalPanel(
     const value = typeSelect.value;
     if (isPanelType(value)) {
       handlers.onType(value);
+      return;
+    }
+
+    const current = typeSelect.dataset.bfaJournalType;
+    if (current !== undefined) {
+      typeSelect.value = current;
     }
   });
   const needs = doc.createElement('span');
@@ -129,7 +139,9 @@ export function createJournalPanel(
   needs.hidden = true;
   const status = doc.createElement('p');
   status.className = 'bfa-journal-status';
-  header.append(closeButton, backButton, title, editButton, typeSelect, tag, needs, status);
+  heading.append(backButton, title, closeButton);
+  actions.append(editButton, typeSelect, tag, needs, status);
+  header.append(heading, actions);
 
   const body = doc.createElement('div');
   body.className = 'bfa-journal-panel-body';
@@ -234,6 +246,11 @@ export function createJournalPanel(
       root.setAttribute('aria-label', model.title || 'Journal note');
       backButton.hidden = !model.back;
       tag.hidden = true;
+      typeSelect.dataset.bfaJournalType = model.type;
+      const unsetOption = typeSelect.querySelector<HTMLOptionElement>('option[value="unset"]');
+      if (unsetOption !== null) {
+        unsetOption.disabled = model.type !== 'unset';
+      }
       typeSelect.value = model.type;
       needs.hidden = !model.needsDetails;
       editButton.textContent = model.mode === 'edit' ? 'Done editing' : 'Edit';

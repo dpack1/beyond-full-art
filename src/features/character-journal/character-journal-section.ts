@@ -44,6 +44,7 @@ export function createCharacterJournalSection(
   const photoViewer = createJournalPhotoViewer(doc);
   const photoUrls = new Map<string, string>();
   let showGeneration = 0;
+  let reloadSerial = 0;
   const flags = {
     hideCancel: null as (() => void) | null,
     pendingTeardown: null as (() => void) | null,
@@ -270,12 +271,9 @@ export function createCharacterJournalSection(
 
     const characterId = state.characterId;
     const generation = showGeneration;
+    const request = ++reloadSerial;
     const opened = await service.open(characterId);
-    if (
-      !isShown()
-      || generation !== showGeneration
-      || state.characterId !== characterId
-    ) {
+    if (!reloadIsCurrent(request, generation, characterId)) {
       return;
     }
 
@@ -286,7 +284,21 @@ export function createCharacterJournalSection(
     state.notes = opened.notes;
     state.migration = opened.migration === 'failed' ? 'failed' : 'current';
     await hydrateImages(opened.notes);
+    if (!reloadIsCurrent(request, generation, characterId)) {
+      return;
+    }
     renderList();
+  }
+
+  function reloadIsCurrent(
+      request: number,
+      generation: number,
+      characterId: CharacterId,
+  ): boolean {
+    return isShown()
+      && generation === showGeneration
+      && state.characterId === characterId
+      && request === reloadSerial;
   }
 
   function renderList(): void {

@@ -395,6 +395,79 @@ describe('character journal section', () => {
         ?.style.getPropertyValue('--bfa-journal-chip')).toBe('#eceeef');
     section.destroy();
   });
+
+  it('keeps Close in the heading row and ignores Unsorted on a typed note', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door', type: 'unset'}),
+    ]));
+    await showSection(section);
+    document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
+    const heading = document.querySelector('.bfa-journal-panel-heading');
+    const close = document.querySelector('.bfa-journal-close');
+    const actions = document.querySelector('.bfa-journal-panel-actions');
+    expect(heading?.contains(close)).toBe(true);
+    expect(heading?.querySelector('.bfa-journal-panel-title')).not.toBeNull();
+    expect(actions?.contains(close)).toBe(false);
+    expect(actions?.querySelector('.bfa-journal-type')).not.toBeNull();
+
+    const unsetSelect = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
+    expect(unsetSelect?.querySelector<HTMLOptionElement>('option[value="unset"]')?.disabled)
+        .toBe(false);
+    document.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click();
+
+    openNewSession();
+    const select = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
+    const unset = select?.querySelector<HTMLOptionElement>('option[value="unset"]');
+    if (select === null || unset === null || unset === undefined) {
+      throw new Error('Missing type control');
+    }
+    expect(select.value).toBe('session');
+    expect(unset.disabled).toBe(true);
+    select.value = 'unset';
+    select.dispatchEvent(new Event('change'));
+    expect(select.value).toBe('session');
+    section.destroy();
+  });
+
+  it('keeps the newer character list when an older reload finishes last', async () => {
+    const notes = [note({id: 'gate', title: 'Old Gate'})];
+    const service = createFakeService(notes);
+    const open = service.open.bind(service);
+    const release: Array<() => void> = [];
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    service.open = async (characterId) => {
+      const result = await open(characterId);
+      await new Promise<void>((resolve) => {
+        release.push(resolve);
+      });
+      return result;
+    };
+
+    section.syncRoute('222');
+    await flush();
+    const fileField = document.querySelector<HTMLInputElement>('.bfa-journal-field');
+    if (fileField === null) {
+      throw new Error('Missing quick note');
+    }
+    fileField.value = 'Arrived after discard';
+    buttonNamed('File note')?.click();
+    await flush();
+    expect(release).toHaveLength(2);
+
+    const newer = release[1];
+    const older = release[0];
+    if (newer === undefined || older === undefined) {
+      throw new Error('Missing reload gates');
+    }
+    newer();
+    await flush();
+    expect(titles()).toEqual(['Session']);
+    older();
+    await flush();
+    expect(titles()).toEqual(['Session']);
+    section.destroy();
+  });
 });
 
 async function showSection(

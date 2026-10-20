@@ -162,7 +162,6 @@
 .bfa-journal-search-row,
 .bfa-journal-chips,
 .bfa-journal-toolbar,
-.bfa-journal-panel-header,
 .bfa-journal-panel-footer,
 .bfa-journal-confirm {
   display: flex;
@@ -187,6 +186,7 @@
 
 .bfa-journal-search-row .bfa-journal-search,
 .bfa-journal-quick-note .bfa-journal-field {
+  border-color: var(--bfa-journal-line);
   flex: 1 1 180px;
 }
 
@@ -271,12 +271,12 @@
 
 .bfa-journal-panel-title {
   color: var(--bfa-journal-text);
-  flex: 1 1 auto;
   font-family: var(--bfa-journal-font, inherit);
   font-size: 22px;
   font-weight: 700;
   letter-spacing: normal;
   margin: 0;
+  min-width: 0;
   text-transform: none;
 }
 
@@ -396,7 +396,6 @@
   font-size: 12px;
   font-weight: 700;
   min-height: 36px;
-  order: 4;
 }
 
 .bfa-journal-panel[hidden],
@@ -408,6 +407,7 @@
   background: var(--bfa-journal-background);
   border-left: 2px solid var(--bfa-journal-accent, var(--bfa-journal-line));
   border-radius: 0;
+  box-sizing: border-box;
   color: var(--bfa-journal-text);
   display: flex;
   height: 100%;
@@ -436,28 +436,38 @@
 
 .bfa-journal-panel-header {
   border-bottom: 2px solid var(--bfa-journal-accent, var(--bfa-journal-line));
+  display: grid;
+  gap: 8px;
+}
+
+.bfa-journal-panel-heading {
+  align-items: start;
+  column-gap: 8px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.bfa-journal-panel-heading > .bfa-journal-back {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.bfa-journal-panel-heading > .bfa-journal-panel-title {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.bfa-journal-panel-heading > .bfa-journal-close {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.bfa-journal-panel-actions {
+  align-items: center;
+  display: flex;
   flex-wrap: wrap;
-}
-
-.bfa-journal-back {
-  order: 0;
-}
-
-.bfa-journal-panel-title {
-  order: 1;
-}
-
-.bfa-journal-panel-header > .bfa-journal-button:not(.bfa-journal-back) {
-  order: 2;
-}
-
-.bfa-journal-close {
-  order: 3;
-}
-
-.bfa-journal-panel-header > .bfa-journal-tag,
-.bfa-journal-panel-header > .bfa-journal-status {
-  order: 4;
+  gap: 8px;
 }
 
 .bfa-journal-panel-body {
@@ -556,6 +566,12 @@
   .bfa-journal-quick-note > .bfa-journal-button,
   .bfa-journal-search-row > .bfa-journal-button {
     width: 100%;
+  }
+
+  .bfa-journal-search-row .bfa-journal-search,
+  .bfa-journal-quick-note .bfa-journal-field {
+    flex: 1 1 auto;
+    min-height: 44px;
   }
 
   .bfa-journal-chips {
