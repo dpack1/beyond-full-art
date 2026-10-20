@@ -18,7 +18,7 @@ interface JournalImageEnvelope {
 
 export interface PutJournalImageRequest extends JournalImageEnvelope {
   blobKey: string;
-  byteBase64: string;
+  byteBase64?: string;
   byteBuffer?: ArrayBuffer;
   byteSize: number;
   mimeType: SupportedCharacterArtMimeType;
@@ -182,10 +182,11 @@ export async function putStoredJournalImage(input: {
   byteBuffer: ArrayBuffer;
   mimeType: SupportedCharacterArtMimeType;
 }): Promise<void> {
+  // Extension messages do not keep an ArrayBuffer intact. Chromium delivers
+  // that field as a plain object, so the base64 copy is the one the worker reads.
   const response = await sendJournalImageMessage({
     blobKey: input.blobKey,
     byteBase64: encodeArrayBufferToBase64(input.byteBuffer),
-    byteBuffer: input.byteBuffer,
     byteSize: input.byteBuffer.byteLength,
     mimeType: input.mimeType,
     source: JOURNAL_IMAGE_MESSAGE_SOURCE,

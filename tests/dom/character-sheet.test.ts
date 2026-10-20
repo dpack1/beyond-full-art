@@ -20,6 +20,7 @@ import {
 import {
   CHARACTER_SHEET_TABS_FIXTURE,
   CURRENT_CHARACTER_SHEET_TABS_FIXTURE,
+  LIVE_CHARACTER_SHEET_TABS_FIXTURE,
 } from '../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../fixtures/portrait-manager';
 
@@ -288,6 +289,75 @@ describe('character sheet enhancement', () => {
         document.querySelector<HTMLElement>('.bfa-character-journal-section')
             ?.hidden,
     ).toBe(true);
+
+    cleanup();
+  });
+
+  it('opens Journal from the tab padding before the sheet handles pointerdown', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
+    let sheetSawPointer = 0;
+    document.querySelector('.ddbc-tab-list__nav')?.addEventListener(
+        'pointerdown',
+        () => {
+          sheetSawPointer += 1;
+        },
+    );
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLElement>(
+        '[data-bfa-character-journal-tab-item]',
+    )?.dispatchEvent(new MouseEvent('pointerdown', {bubbles: true}));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sheetSawPointer).toBe(0);
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(false);
+    expect(document.querySelector('.ddbc-tab-list__nav-item--is-active')).toBeNull();
+    expect(document.querySelector(
+        '[data-testid="sheet-scroller"] .bfa-character-journal-section',
+    )).not.toBeNull();
+
+    cleanup();
+  });
+
+  it('drops a journal left behind by an extension reload', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = `
+      <button data-bfa-character-journal-tab="true" type="button">Journal</button>
+      <section class="bfa-character-journal-section"></section>
+      ${CHARACTER_SHEET_TABS_FIXTURE}
+    `;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelectorAll('[data-bfa-character-journal-tab="true"]'))
+        .toHaveLength(1);
+    expect(document.querySelectorAll('.bfa-character-journal-section')).toHaveLength(0);
+
+    cleanup();
+  });
+
+  it('hides the journal when the character URL changes', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>(
+        '[data-bfa-character-journal-tab="true"]',
+    )?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(false);
+
+    window.history.replaceState({}, '', '/characters/222');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(true);
 
     cleanup();
   });

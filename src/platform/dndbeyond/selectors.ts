@@ -35,6 +35,8 @@ export const CARD_PORTRAIT_UPGRADE_STYLE_ATTRIBUTE_NAME =
   'data-bfa-card-portrait-upgrade-styles';
 export const CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME =
   'data-bfa-character-journal-tab';
+export const CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME =
+  'data-bfa-character-journal-tab-item';
 export const CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME =
   'bfa-character-journal-tab';
 export const CAMPAIGN_CHARACTER_CARD_SELECTOR =

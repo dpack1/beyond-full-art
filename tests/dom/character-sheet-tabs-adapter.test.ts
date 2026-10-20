@@ -7,6 +7,7 @@ import {
 import {
   CHARACTER_SHEET_TABS_FIXTURE,
   CURRENT_CHARACTER_SHEET_TABS_FIXTURE,
+  LIVE_CHARACTER_SHEET_TABS_FIXTURE,
 } from '../fixtures/character-sheet-tabs';
 
 describe('character sheet tabs adapter', () => {
@@ -108,5 +109,20 @@ describe('character sheet tabs adapter', () => {
 
     stopObserving();
     expect(document.querySelector('[data-bfa-character-journal-tab]')).toBeNull();
+  });
+
+  it('mounts the journal in the scrolling pane and drops the active tab class', () => {
+    document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
+
+    const target = findOrCreateJournalTab(document);
+
+    expect(target?.contentHost).toBe(
+        document.querySelector('[data-testid="sheet-scroller"]'),
+    );
+    expect(target?.tab.parentElement?.className ?? '')
+        .not.toContain('is-active');
+    expect(target?.tab.querySelector('svg')).not.toBeNull();
+    expect(target?.nativeTabs.some((tab) => tab.textContent?.includes('Journal')))
+        .toBe(false);
   });
 });

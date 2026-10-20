@@ -13,29 +13,31 @@ export async function deleteStoredCharacterArtBlob(
     blobKey: string,
     factory: IDBFactory = getIndexedDbFactory(),
 ): Promise<void> {
-  const database = await openCharacterArtDatabase(factory);
-  const transaction = database.transaction(
-      CHARACTER_ART_OBJECT_STORE_NAME,
-      'readwrite',
-  );
-  transaction.objectStore(CHARACTER_ART_OBJECT_STORE_NAME).delete(blobKey);
-  await waitForTransaction(transaction);
+  await runWithDatabase(factory, async (database) => {
+    const transaction = database.transaction(
+        CHARACTER_ART_OBJECT_STORE_NAME,
+        'readwrite',
+    );
+    transaction.objectStore(CHARACTER_ART_OBJECT_STORE_NAME).delete(blobKey);
+    await waitForTransaction(transaction);
+  });
 }
 
 export async function getStoredCharacterArtBlob(
     blobKey: string,
     factory: IDBFactory = getIndexedDbFactory(),
 ): Promise<Blob | null> {
-  const database = await openCharacterArtDatabase(factory);
-  const transaction = database.transaction(
-      CHARACTER_ART_OBJECT_STORE_NAME,
-      'readonly',
-  );
-  const request = transaction.objectStore(CHARACTER_ART_OBJECT_STORE_NAME).get(blobKey);
-  const result = await waitForRequest<CharacterArtBlobRecord | undefined>(request);
-  await waitForTransaction(transaction);
+  return runWithDatabase(factory, async (database) => {
+    const transaction = database.transaction(
+        CHARACTER_ART_OBJECT_STORE_NAME,
+        'readonly',
+    );
+    const request = transaction.objectStore(CHARACTER_ART_OBJECT_STORE_NAME).get(blobKey);
+    const result = await waitForRequest<CharacterArtBlobRecord | undefined>(request);
+    await waitForTransaction(transaction);
 
-  return result?.blob ?? null;
+    return result?.blob ?? null;
+  });
 }
 
 export async function putStoredCharacterArtBlob(
@@ -43,16 +45,17 @@ export async function putStoredCharacterArtBlob(
     blob: Blob,
     factory: IDBFactory = getIndexedDbFactory(),
 ): Promise<void> {
-  const database = await openCharacterArtDatabase(factory);
-  const transaction = database.transaction(
-      CHARACTER_ART_OBJECT_STORE_NAME,
-      'readwrite',
-  );
-  transaction.objectStore(CHARACTER_ART_OBJECT_STORE_NAME).put({
-    blob,
-    blobKey,
-  } satisfies CharacterArtBlobRecord);
-  await waitForTransaction(transaction);
+  await runWithDatabase(factory, async (database) => {
+    const transaction = database.transaction(
+        CHARACTER_ART_OBJECT_STORE_NAME,
+        'readwrite',
+    );
+    transaction.objectStore(CHARACTER_ART_OBJECT_STORE_NAME).put({
+      blob,
+      blobKey,
+    } satisfies CharacterArtBlobRecord);
+    await waitForTransaction(transaction);
+  });
 }
 
 function getIndexedDbFactory(): IDBFactory {
@@ -88,8 +91,13 @@ function openCharacterArtDatabase(factory: IDBFactory): Promise<IDBDatabase> {
     };
     openRequest.onsuccess = () => {
       const database = openRequest.result;
-      database.onversionchange = () => {
+      const dropClosedDatabase = () => {
         database.close();
+        databasePromises.delete(factory);
+      };
+      database.onversionchange = dropClosedDatabase;
+      database.onclose = () => {
+        databasePromises.delete(factory);
       };
       resolve(database);
     };
@@ -97,6 +105,27 @@ function openCharacterArtDatabase(factory: IDBFactory): Promise<IDBDatabase> {
 
   databasePromises.set(factory, nextPromise);
   return nextPromise;
+}
+
+async function runWithDatabase<T>(
+    factory: IDBFactory,
+    action: (database: IDBDatabase) => Promise<T>,
+): Promise<T> {
+  try {
+    return await action(await openCharacterArtDatabase(factory));
+  } catch (error) {
+    if (!isClosedDatabaseError(error)) {
+      throw error;
+    }
+
+    databasePromises.delete(factory);
+    return action(await openCharacterArtDatabase(factory));
+  }
+}
+
+function isClosedDatabaseError(error: unknown): boolean {
+  return error instanceof DOMException
+    && (error.name === 'InvalidStateError' || error.name === 'AbortError');
 }
 
 function waitForRequest<T>(request: IDBRequest<T>): Promise<T> {

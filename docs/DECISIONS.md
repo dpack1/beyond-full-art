@@ -262,3 +262,20 @@ Why:
 - A dedicated key prefix keeps journal deletes from touching stored full art
   in the same object store.
 - Search can use the file name stored on the block without reading the bytes.
+
+## ADR-020: Journal follows the sheet pane
+
+Status: Accepted
+
+The journal samples the character sheet's appearance and mounts in the sheet's
+scroll pane.
+
+Why:
+
+- Hardcoded light colors are unreadable on the sheet's dark appearance.
+- The sheet's content region clips overflow. The scrolling element is an inner
+  pane, and the journal has to live in that pane and limit its own height.
+- Opening Journal has to claim the whole tab hit target on pointerdown. A
+  bubble-phase click on the inner button misses the first click.
+- Character journal writes merge by entry id and keep unrecognized records so
+  one window or one invalid block cannot delete another note.

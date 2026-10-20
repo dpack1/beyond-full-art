@@ -54,7 +54,7 @@ On campaign pages and `https://www.dndbeyond.com/characters`, enabled card portr
 
 ### Character journal
 
-On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. The section matches the sheet's tab row and content area. Each character has local notes, newest first, with search, an all-notes or with-photos filter, and oldest/newest sorting. A note can hold PNG, JPEG, or WebP photos up to 3 MB. Photos open in a viewer and can be removed. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. Nothing is written to D&D Beyond notes, backstory, or extras.
+On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. The section follows the sheet's light or dark appearance and scrolls inside the sheet pane. Each character has local notes, newest first, with search, an all-notes or with-photos filter, and oldest/newest sorting. A note can hold PNG, JPEG, or WebP photos up to 3 MB. Photos open in a viewer and can be removed. Unsaved text is kept until the user confirms leaving it. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. Nothing is written to D&D Beyond notes, backstory, or extras.
 
 ### Not built yet
 

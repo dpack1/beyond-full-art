@@ -182,6 +182,26 @@ the journal under the `Extras` tab container and left the native sheet panel
 visible. The refined adapter is covered by a live-shaped fixture with
 non-semantic tab text nodes and a sibling content panel.
 
+Owner testing on a dark character sheet on 2026-10-20 showed three further
+behaviors, modeled in `LIVE_CHARACTER_SHEET_TABS_FIXTURE`:
+
+- Tab items are plain `div.ddbc-tab-list__nav-item` elements. The active item
+  uses `ddbc-tab-list__nav-item--is-active`. A pointerdown on the tab row can
+  select a native tab before a click reaches an inserted button, and a click
+  on the item padding hits the wrapper rather than the inner button. The
+  content script claims that hit target in the capture phase and clears the
+  native active class.
+- Dark appearance is `ct-character-sheet--dark-mode` and `data-theme="dark"`.
+  The journal samples that appearance, and the computed background when no
+  explicit appearance is set, then sets color variables on the section.
+- The content region uses a fixed height and `overflow: hidden`. The scrolling
+  pane is the inner element with `overflow: auto` (observed as
+  `ddbc-tab-options__content`). The journal mounts there and also limits its
+  own height to that pane so Save and Delete remain reachable.
+
+A fresh capture of the live DOM is still the owner's check. The fixture records
+the structure those bugs require, not a full copy of the sheet.
+
 ### Phase 1 DOM hooks observed on 2026-10-10
 
 From live D&D Beyond character sheet inspection, the right-side sheet panel may no longer expose `[data-testid="character-manage-pane"]`, and the displayed portrait may be a `div.ddbc-character-avatar__portrait` with the image URL in CSS `background-image` rather than an `img`.
@@ -283,7 +303,11 @@ bfa.characterJournal.schemaVersion
 bfa.characterJournal.entries.<characterId>
 ```
 
-Each character key stores an array of entries sorted by most recent update. Each
+Each character key stores an array of entries sorted by most recent update. Writes
+re-read that array and merge by entry id, keeping the newer `updatedAt`, so a
+stale snapshot does not erase another window's note. Records that fail
+validation stay in the array and are omitted from the list, with a count shown
+in the journal. Each
 entry uses a block-based schema:
 
 ```ts

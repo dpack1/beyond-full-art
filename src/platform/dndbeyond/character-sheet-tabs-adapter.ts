@@ -2,9 +2,8 @@ import type {Cleanup} from '../../shared/types';
 import {
   CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME,
   CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME,
+  CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME,
 } from './selectors';
-
-const JOURNAL_TAB_ITEM_ATTRIBUTE_NAME = 'data-bfa-character-journal-tab-item';
 const TAB_CONTROL_SELECTOR = [
   'a',
   'button',
@@ -51,12 +50,29 @@ export function observeJournalTabTargets(
     doc: Document = document,
 ): Cleanup {
   let activeTarget: CharacterSheetJournalTabTarget | null = null;
+  let insertAttempts = 0;
+  let attemptWindowStartedAt = Date.now();
+  let scanScheduled = false;
+  const sheetSelector = '.ct-character-sheet, .ct-character-sheet-shell';
 
   const scan = () => {
-    if (activeTarget?.tab.isConnected === true) {
+    if (
+      activeTarget?.tab.isConnected === true
+      && activeTarget.contentHost.isConnected
+    ) {
       return;
     }
 
+    const now = Date.now();
+    if (now - attemptWindowStartedAt > 2000) {
+      insertAttempts = 0;
+      attemptWindowStartedAt = now;
+    }
+    if (insertAttempts >= 6) {
+      return;
+    }
+
+    insertAttempts += 1;
     activeTarget?.cleanup();
     activeTarget = findOrCreateJournalTab(doc);
     if (activeTarget !== null) {
@@ -64,9 +80,33 @@ export function observeJournalTabTargets(
     }
   };
 
-  scan();
+  const scheduleScan = () => {
+    if (scanScheduled) {
+      return;
+    }
 
-  const observer = new MutationObserver(scan);
+    scanScheduled = true;
+    queueMicrotask(() => {
+      scanScheduled = false;
+      scan();
+    });
+  };
+
+  scheduleScan();
+
+  const observer = new MutationObserver(() => {
+    const sheet = doc.querySelector(sheetSelector);
+    if (sheet !== null && observerRoot !== sheet) {
+      observer.disconnect();
+      observerRoot = sheet;
+      observer.observe(sheet, {
+        childList: true,
+        subtree: true,
+      });
+    }
+    scheduleScan();
+  });
+  let observerRoot: Node = doc.body;
   observer.observe(doc.body, {
     childList: true,
     subtree: true,
@@ -77,6 +117,14 @@ export function observeJournalTabTargets(
     activeTarget?.cleanup();
     activeTarget = null;
   };
+}
+
+export function removeStaleJournalUi(doc: Document): void {
+  for (const node of doc.querySelectorAll(
+      `[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}], [${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}], .bfa-character-journal-section`,
+  )) {
+    node.remove();
+  }
 }
 
 export function findOrCreateJournalTab(
@@ -95,7 +143,7 @@ export function findOrCreateJournalTab(
       cleanup: () => {
         removeJournalTab(existingTab);
       },
-      contentHost,
+      contentHost: findJournalMount(contentHost),
       nativeTabs: findNativeTabs(existingTab),
       tab: existingTab,
     };
@@ -107,8 +155,8 @@ export function findOrCreateJournalTab(
   }
 
   const insertionElement = getInsertionElement(extrasTab);
-  const contentHost = findContentHost(extrasTab);
-  if (contentHost === null) {
+  const contentRegion = findContentHost(extrasTab);
+  if (contentRegion === null) {
     return null;
   }
 
@@ -120,10 +168,33 @@ export function findOrCreateJournalTab(
     cleanup: () => {
       journalItem.remove();
     },
-    contentHost,
+    contentHost: findJournalMount(contentRegion),
     nativeTabs: findNativeTabs(extrasTab),
     tab: journalTab,
   };
+}
+
+export function getJournalTabHitTarget(tab: HTMLElement): HTMLElement {
+  return tab.closest<HTMLElement>(
+      `[${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}]`,
+  ) ?? tab;
+}
+
+export function clearNativeTabSelection(tabs: readonly HTMLElement[]): void {
+  for (const tab of tabs) {
+    if (tab.getAttribute('aria-checked') === 'true') {
+      tab.setAttribute('aria-checked', 'false');
+    }
+    if (tab.getAttribute('aria-selected') === 'true') {
+      tab.setAttribute('aria-selected', 'false');
+    }
+
+    for (const className of [...tab.classList]) {
+      if (isActiveTabClass(className)) {
+        tab.classList.remove(className);
+      }
+    }
+  }
 }
 
 function findExtrasTab(root: ParentNode): HTMLElement | null {
@@ -166,8 +237,7 @@ function findNativeTabs(extrasTab: HTMLElement): HTMLElement[] {
       .concat(Array.from(tabListRoot.children)
           .filter((element): element is HTMLElement => element instanceof HTMLElement))
       .filter((element, index, elements) =>
-        element.getAttribute(CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME) !== 'true'
-        && element.closest(`[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}]`) === null
+        !isJournalTabPiece(element)
         && elements.indexOf(element) === index,
       );
 }
@@ -204,13 +274,14 @@ function createInsertionItem(
     const item = referenceElement.ownerDocument.createElement(
         referenceElement.tagName,
     );
-    item.className = referenceElement.className;
-    item.setAttribute(JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
+    item.className = stripActiveTabClasses(referenceElement.className);
+    item.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
+    journalTab.className = CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME;
     item.append(journalTab);
     return item;
   }
 
-  journalTab.setAttribute(JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
+  journalTab.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
   return journalTab;
 }
 
@@ -219,11 +290,11 @@ function createJournalTab(referenceTab: HTMLElement): HTMLButtonElement {
   const tab = doc.createElement('button');
 
   tab.className = [
-    referenceTab.className,
+    stripActiveTabClasses(referenceTab.className),
     CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME,
   ].filter(Boolean).join(' ');
   tab.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME, 'true');
-  tab.textContent = 'Journal';
+  tab.replaceChildren(createJournalTabIcon(doc), createJournalTabLabel(doc));
   tab.type = 'button';
 
   if (referenceTab.getAttribute('role') === 'tab') {
@@ -232,6 +303,27 @@ function createJournalTab(referenceTab: HTMLElement): HTMLButtonElement {
   }
 
   return tab;
+}
+
+function createJournalTabIcon(doc: Document): SVGElement {
+  const icon = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.setAttribute('viewBox', '0 0 16 16');
+  icon.classList.add('bfa-character-journal-tab-icon');
+  const cover = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+  cover.setAttribute('fill', 'currentColor');
+  cover.setAttribute(
+      'd',
+      'M3 2.2h4.1c.6.5 1.4.8 2.2.8V13c-.8 0-1.6-.3-2.2-.8H3V2.2zm5.3.8c.8 0 1.6-.3 2.2-.8H13V13H8.9c-.6-.5-1.4-.8-2.2-.8V3z',
+  );
+  icon.append(cover);
+  return icon;
+}
+
+function createJournalTabLabel(doc: Document): HTMLSpanElement {
+  const label = doc.createElement('span');
+  label.textContent = 'Journal';
+  return label;
 }
 
 function findTabListRoot(tab: HTMLElement): HTMLElement | null {
@@ -267,9 +359,53 @@ function findNextElementSibling(element: HTMLElement): HTMLElement | null {
   return null;
 }
 
+function findJournalMount(contentRegion: HTMLElement): HTMLElement {
+  let mount = contentRegion;
+  for (const element of contentRegion.querySelectorAll<HTMLElement>('*')) {
+    if (elementScrolls(element)) {
+      mount = element;
+    }
+  }
+
+  return mount;
+}
+
+function elementScrolls(element: HTMLElement): boolean {
+  const computed = element.ownerDocument.defaultView?.getComputedStyle(element);
+  return isScrollOverflow(element.style.overflow)
+    || isScrollOverflow(element.style.overflowY)
+    || isScrollOverflow(computed?.overflow ?? '')
+    || isScrollOverflow(computed?.overflowY ?? '');
+}
+
+function isScrollOverflow(value: string): boolean {
+  return value.split(/\s+/).some((part) => part === 'auto' || part === 'scroll');
+}
+
+function isJournalTabPiece(element: HTMLElement): boolean {
+  return element.closest(
+      `[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}], [${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}]`,
+  ) !== null;
+}
+
+function stripActiveTabClasses(className: string): string {
+  return className
+      .split(/\s+/)
+      .filter((name) => name !== '' && !isActiveTabClass(name))
+      .join(' ');
+}
+
+function isActiveTabClass(className: string): boolean {
+  if (className.startsWith('bfa-')) {
+    return false;
+  }
+
+  return /(?:^|[-_])(?:is-)?active$/i.test(className);
+}
+
 function removeJournalTab(tab: HTMLButtonElement): void {
   const insertedItem = tab.closest<HTMLElement>(
-      `[${JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}="true"]`,
+      `[${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}="true"]`,
   );
   if (insertedItem !== null) {
     insertedItem.remove();

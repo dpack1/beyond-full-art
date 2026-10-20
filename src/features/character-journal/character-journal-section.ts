@@ -1,6 +1,13 @@
-import journalStyles from './character-journal.css?raw';
+import {applySheetTheme, observeSheetTheme} from './character-journal-theme';
 import type {CharacterId} from '../character-art/art-types';
 import type {CharacterJournalService} from './character-journal-service';
+import {
+  createJournalElements,
+  ensureJournalStyles,
+  removeJournalStyles,
+} from './character-journal-elements';
+import {journalActionErrorMessage, journalSaveErrorMessage} from './character-journal-errors';
+import {fitJournalToVisiblePane} from './character-journal-pane';
 import {createJournalPhotoViewer} from './character-journal-photo-viewer';
 import type {
   CharacterJournalEntry,
@@ -10,7 +17,6 @@ import type {
 import {
   getImageBlocks,
   getTextFromJournalEntry,
-  normalizeJournalEntryTitle,
 } from './character-journal-types';
 import {
   filterJournalEntries,
@@ -21,8 +27,6 @@ import {
   type JournalPhotoFilter,
   type JournalSortOrder,
 } from './character-journal-query';
-import {CHARACTER_JOURNAL_STYLE_ATTRIBUTE_NAME} from '../../platform/dndbeyond/selectors';
-
 type JournalStatusTone = 'error' | 'info' | 'success';
 type PendingConfirm =
   | {imageId: string; type: 'remove-photo'}
@@ -33,6 +37,7 @@ export interface CharacterJournalSection {
   destroy(): void;
   hide(): void;
   isShown(): boolean;
+  requestHide(onHidden?: () => void): void;
   show(options: CharacterJournalSectionShowOptions): Promise<void>;
 }
 
@@ -46,29 +51,6 @@ interface HiddenElementState {
   hidden: boolean;
 }
 
-interface JournalSectionElements {
-  addPhotoButton: HTMLButtonElement;
-  allFilterButton: HTMLButtonElement;
-  bodyInput: HTMLTextAreaElement;
-  confirmAcceptButton: HTMLButtonElement;
-  confirmCancelButton: HTMLButtonElement;
-  confirmRegion: HTMLDivElement;
-  confirmText: HTMLParagraphElement;
-  deleteButton: HTMLButtonElement;
-  entryList: HTMLDivElement;
-  imageStrip: HTMLDivElement;
-  newButton: HTMLButtonElement;
-  newestSortButton: HTMLButtonElement;
-  oldestSortButton: HTMLButtonElement;
-  photoInput: HTMLInputElement;
-  photosFilterButton: HTMLButtonElement;
-  root: HTMLElement;
-  saveButton: HTMLButtonElement;
-  searchInput: HTMLInputElement;
-  status: HTMLParagraphElement;
-  titleInput: HTMLInputElement;
-}
-
 export function createCharacterJournalSection(
     service: CharacterJournalService,
     doc: Document = document,
@@ -78,8 +60,12 @@ export function createCharacterJournalSection(
   const elements = createJournalElements(doc);
   const photoViewer = createJournalPhotoViewer(doc);
   const hiddenElements = new Map<HTMLElement, HiddenElementState>();
-  const photoUrls = new Map<string, string | null>();
+  const photoUrls = new Map<string, string>();
+  const photoFailures = new Set<string>();
   const photoLoads = new Set<string>();
+  let discardDraftOnNextShow = false;
+  let queuedAction: (() => Promise<void>) | null = null;
+  let showGeneration = 0;
   const state = {
     characterId: null as CharacterId | null,
     contentHost: null as HTMLElement | null,
@@ -90,9 +76,13 @@ export function createCharacterJournalSection(
     query: '',
     selectedEntryId: null as string | null,
     sortOrder: 'newest' as JournalSortOrder,
+    stopThemeObserver: null as (() => void) | null,
     tab: null as HTMLElement | null,
   };
 
+  elements.closeButton.addEventListener('click', () => {
+    requestHide();
+  });
   elements.newButton.addEventListener('click', () => {
     requestNavigation(() => {
       startNewEntry();
@@ -140,18 +130,28 @@ export function createCharacterJournalSection(
   });
   elements.confirmAcceptButton.addEventListener('click', () => {
     const pending = state.pendingConfirm;
-    clearConfirm();
-    if (pending?.type === 'discard') {
-      pending.action();
-    } else if (pending?.type === 'delete') {
-      void deleteEntry(pending.entryId);
-    } else if (pending?.type === 'remove-photo') {
-      void removePhoto(pending.imageId).catch(() => undefined);
+    if (pending === null) {
+      return;
     }
+
+    clearConfirm();
+    if (pending.type === 'discard') {
+      pending.action();
+      return;
+    }
+
+    if (pending.type === 'delete') {
+      enqueue(() => deleteEntry(pending.entryId));
+      return;
+    }
+
+    enqueue(() => removePhoto(pending.imageId).catch(() => undefined));
   });
+  doc.defaultView?.addEventListener('resize', fitOpenJournal);
 
   return {
     destroy() {
+      doc.defaultView?.removeEventListener('resize', fitOpenJournal);
       hide();
       photoViewer.destroy();
       revokePhotoUrls();
@@ -162,54 +162,159 @@ export function createCharacterJournalSection(
     isShown() {
       return !elements.root.hidden;
     },
+    requestHide,
     show,
   };
 
   async function show(
       options: CharacterJournalSectionShowOptions,
   ): Promise<void> {
-    state.characterId = options.characterId;
+    const sameCharacter = state.characterId === options.characterId;
+    if (
+      isShown()
+      && state.characterId !== null
+      && !sameCharacter
+      && isDraftDirty()
+      && !discardDraftOnNextShow
+    ) {
+      state.pendingConfirm = {
+        action: () => {
+          discardDraftOnNextShow = true;
+          void show(options);
+        },
+        type: 'discard',
+      };
+      renderConfirm();
+      return;
+    }
+
+    const keepDraft = !discardDraftOnNextShow && sameCharacter && isDraftDirty();
+    discardDraftOnNextShow = false;
+    const alreadyShowing = isShown()
+      && sameCharacter
+      && options.contentHost.isConnected
+      && options.contentHost.contains(elements.root);
     state.contentHost = options.contentHost;
     state.tab = options.tab;
-    state.query = '';
-    state.photoFilter = 'all';
-    state.sortOrder = 'newest';
-    elements.searchInput.value = '';
+    setTabActive(options.tab, true);
+    if (alreadyShowing) {
+      presentJournal(options.contentHost);
+      return;
+    }
+
+    const generation = ++showGeneration;
+    state.characterId = options.characterId;
     mountInContentHost(options.contentHost);
     hideNativeContent(options.contentHost);
-    setTabActive(options.tab, true);
+    presentJournal(options.contentHost);
     elements.root.hidden = false;
-    clearConfirm();
-    setDraft('', '');
-    state.entries = [];
-    state.selectedEntryId = null;
-    renderList();
-    renderPhotos();
-    setBusy(true);
-    renderStatus('Loading journal...');
-
-    try {
-      state.entries = await service.listEntries(options.characterId);
-      const firstEntry = orderedEntries()[0];
-      if (firstEntry !== undefined) {
-        selectEntry(firstEntry.id, {focus: false});
-      } else {
-        startNewEntry({focus: false});
-      }
-      renderStatus('');
-    } catch {
-      renderStatus('Journal entries could not be loaded.', 'error');
-    } finally {
-      setBusy(false);
+    photoFailures.clear();
+    if (!keepDraft) {
+      state.query = '';
+      state.photoFilter = 'all';
+      state.sortOrder = 'newest';
+      elements.searchInput.value = '';
+      clearConfirm();
+      setDraft('', '');
+      state.entries = [];
+      state.selectedEntryId = null;
       renderList();
       renderPhotos();
     }
+
+    setBusy(true);
+    if (!keepDraft) {
+      renderStatus('Loading journal...');
+    }
+
+    try {
+      const [entries, unreadableCount] = await Promise.all([
+        service.listEntries(options.characterId),
+        service.countUnreadableEntries(options.characterId),
+      ]);
+      if (generation !== showGeneration || !isShown()) {
+        return;
+      }
+
+      state.entries = entries;
+      if (keepDraft) {
+        renderList();
+        renderPhotos();
+      } else {
+        const firstEntry = orderedEntries()[0];
+        if (firstEntry !== undefined) {
+          selectEntry(firstEntry.id, {focus: false});
+        } else {
+          startNewEntry({focus: false});
+        }
+      }
+      renderStatus(
+          unreadableCount === 0
+            ? ''
+            : unreadableCount === 1
+              ? '1 saved note could not be shown.'
+              : `${unreadableCount} saved notes could not be shown.`,
+          unreadableCount === 0 ? 'info' : 'error',
+      );
+    } catch (error) {
+      if (generation !== showGeneration || !isShown()) {
+        return;
+      }
+
+      renderStatus(journalActionErrorMessage(
+          error,
+          'Journal entries could not be loaded.',
+      ), 'error');
+    } finally {
+      if (generation === showGeneration) {
+        setBusy(false);
+        renderList();
+        renderPhotos();
+      }
+    }
+  }
+
+  function isShown(): boolean {
+    return !elements.root.hidden;
+  }
+
+  function requestHide(onHidden?: () => void): void {
+    const finish = () => {
+      resetDraftToSaved();
+      hide();
+      onHidden?.();
+    };
+    if (!isShown()) {
+      onHidden?.();
+      return;
+    }
+
+    if (!isDraftDirty()) {
+      finish();
+      return;
+    }
+
+    state.pendingConfirm = {action: finish, type: 'discard'};
+    renderConfirm();
+  }
+
+  function resetDraftToSaved(): void {
+    const entry = selectedEntry();
+    if (entry === undefined) {
+      setDraft('', '');
+      return;
+    }
+
+    setDraft(entry.title, getTextFromJournalEntry(entry));
   }
 
   function hide(): void {
+    showGeneration += 1;
     photoViewer.close();
     restoreNativeContent();
+    stopWatchingSheetTheme();
     elements.root.hidden = true;
+    elements.root.style.removeProperty('max-height');
     if (state.tab !== null) {
       setTabActive(state.tab, false);
     }
@@ -217,6 +322,34 @@ export function createCharacterJournalSection(
     state.tab = null;
     clearConfirm();
     renderStatus('');
+    photoFailures.clear();
+    revokePhotoUrls();
+  }
+
+  function presentJournal(contentHost: HTMLElement): void {
+    watchSheetTheme(contentHost);
+    fitOpenJournal();
+  }
+
+  function fitOpenJournal(): void {
+    if (state.contentHost !== null) {
+      fitJournalToVisiblePane(elements.root, state.contentHost);
+    }
+  }
+
+  function watchSheetTheme(anchor: HTMLElement): void {
+    stopWatchingSheetTheme();
+    applySheetTheme(elements.root, anchor);
+    state.stopThemeObserver = observeSheetTheme(anchor, () => {
+      if (state.contentHost !== null) {
+        applySheetTheme(elements.root, state.contentHost);
+      }
+    });
+  }
+
+  function stopWatchingSheetTheme(): void {
+    state.stopThemeObserver?.();
+    state.stopThemeObserver = null;
   }
 
   function mountInContentHost(contentHost: HTMLElement): void {
@@ -307,12 +440,6 @@ export function createCharacterJournalSection(
       title.className = 'bfa-character-journal-empty-title';
       title.textContent = emptyMessage;
       emptyState.append(title);
-      if (emptyMessage === 'No notes yet.') {
-        const hint = doc.createElement('p');
-        hint.className = 'bfa-character-journal-empty-hint';
-        hint.textContent = 'Session notes and photos stay in this browser.';
-        emptyState.append(hint);
-      }
       const hiddenSelectionMessage = getHiddenSelectionMessage(visibleEntries);
       if (hiddenSelectionMessage !== null) {
         const hint = doc.createElement('p');
@@ -393,14 +520,16 @@ export function createCharacterJournalSection(
     });
 
     const photoUrl = photoUrls.get(block.blobKey);
-    if (typeof photoUrl === 'string') {
+    if (photoUrl !== undefined) {
       const image = doc.createElement('img');
       image.alt = '';
       image.src = photoUrl;
       viewButton.append(image);
     } else {
       const fallback = doc.createElement('span');
-      fallback.textContent = photoUrl === null ? 'Unavailable' : 'Loading';
+      fallback.textContent = photoFailures.has(block.blobKey)
+        ? 'Unavailable'
+        : 'Loading';
       viewButton.append(fallback);
     }
 
@@ -427,7 +556,7 @@ export function createCharacterJournalSection(
       returnFocus: HTMLElement,
   ): void {
     const photoUrl = photoUrls.get(block.blobKey);
-    if (typeof photoUrl !== 'string') {
+    if (photoUrl === undefined) {
       renderStatus('That photo could not be opened.', 'error');
       return;
     }
@@ -453,25 +582,31 @@ export function createCharacterJournalSection(
     const entryId = entry.id;
     let loadedNewPhoto = false;
     await Promise.all(getImageBlocks(entry).map(async (block) => {
-      if (photoUrls.has(block.blobKey) || photoLoads.has(block.blobKey)) {
+      if (
+        photoUrls.has(block.blobKey)
+        || photoFailures.has(block.blobKey)
+        || photoLoads.has(block.blobKey)
+      ) {
         return;
       }
 
       photoLoads.add(block.blobKey);
       try {
         const image = await service.getImage(block.blobKey);
-        photoUrls.set(
-            block.blobKey,
-            image === null
-              ? null
-              : createPhotoObjectUrl(new Blob(
-                  [image.byteBuffer],
-                  {type: image.mimeType},
-              )),
-        );
+        const photoUrl = image === null
+          ? null
+          : createPhotoObjectUrl(new Blob(
+              [image.byteBuffer],
+              {type: image.mimeType},
+          ));
+        if (photoUrl === null) {
+          photoFailures.add(block.blobKey);
+        } else {
+          photoUrls.set(block.blobKey, photoUrl);
+        }
         loadedNewPhoto = true;
       } catch {
-        photoUrls.set(block.blobKey, null);
+        photoFailures.add(block.blobKey);
         loadedNewPhoto = true;
       } finally {
         photoLoads.delete(block.blobKey);
@@ -578,8 +713,8 @@ export function createCharacterJournalSection(
       rememberEntry(savedEntry);
       setDraft(savedEntry.title, getTextFromJournalEntry(savedEntry));
       renderStatus('Saved.', 'success');
-    } catch {
-      renderStatus('Entry could not be saved. Your text is still here.', 'error');
+    } catch (error) {
+      renderStatus(journalSaveErrorMessage(error), 'error');
     } finally {
       setBusy(false);
     }
@@ -599,12 +734,10 @@ export function createCharacterJournalSection(
       setDraft(savedEntry.title, getTextFromJournalEntry(savedEntry));
       renderStatus('Photo added.', 'success');
     } catch (error) {
-      renderStatus(
-          error instanceof Error
-            ? error.message
-            : 'Photo could not be added. Your note is still here.',
-          'error',
-      );
+      renderStatus(journalActionErrorMessage(
+          error,
+          'Photo could not be added. Your note is still here.',
+      ), 'error');
     } finally {
       setBusy(false);
     }
@@ -613,7 +746,9 @@ export function createCharacterJournalSection(
   async function removePhoto(imageId: string): Promise<void> {
     const draft = currentDraft();
     if (draft === null || state.isBusy) {
-      return;
+      throw new Error(
+          'Photo could not be removed. Try again after the current save finishes.',
+      );
     }
 
     const removedBlock = (draft.imageBlocks ?? []).find(
@@ -630,10 +765,10 @@ export function createCharacterJournalSection(
       setDraft(savedEntry.title, getTextFromJournalEntry(savedEntry));
       renderStatus('Photo removed.', 'success');
     } catch (error) {
-      renderStatus(
-          error instanceof Error ? error.message : 'Photo could not be removed.',
-          'error',
-      );
+      renderStatus(journalActionErrorMessage(
+          error,
+          'Photo could not be removed.',
+      ), 'error');
       throw error;
     } finally {
       setBusy(false);
@@ -668,8 +803,11 @@ export function createCharacterJournalSection(
         renderPhotos();
       }
       renderStatus('Deleted.', 'success');
-    } catch {
-      renderStatus('Entry could not be deleted.', 'error');
+    } catch (error) {
+      renderStatus(journalActionErrorMessage(
+          error,
+          'Entry could not be deleted.',
+      ), 'error');
     } finally {
       setBusy(false);
       renderList();
@@ -700,6 +838,20 @@ export function createCharacterJournalSection(
   function setBusy(isBusy: boolean): void {
     state.isBusy = isBusy;
     renderButtons();
+    if (!isBusy && queuedAction !== null) {
+      const action = queuedAction;
+      queuedAction = null;
+      void action();
+    }
+  }
+
+  function enqueue(action: () => Promise<void>): void {
+    if (state.isBusy) {
+      queuedAction = action;
+      return;
+    }
+
+    void action();
   }
 
   function setDraft(title: string, text: string): void {
@@ -761,7 +913,8 @@ export function createCharacterJournalSection(
   function releasePhotoUrl(blobKey: string): void {
     const url = photoUrls.get(blobKey);
     photoUrls.delete(blobKey);
-    if (typeof url === 'string') {
+    photoFailures.delete(blobKey);
+    if (url !== undefined) {
       URL.revokeObjectURL(url);
     }
   }
@@ -773,201 +926,12 @@ export function createCharacterJournalSection(
   }
 }
 
-function createJournalElements(doc: Document): JournalSectionElements {
-  const root = doc.createElement('section');
-  root.className = 'bfa-character-journal-section';
-  root.hidden = true;
-  root.id = 'bfa-character-journal-section';
-  root.setAttribute('aria-label', 'Character journal');
-
-  const header = doc.createElement('header');
-  header.className = 'bfa-character-journal-header';
-  const kicker = doc.createElement('p');
-  kicker.className = 'bfa-character-journal-kicker';
-  kicker.textContent = 'Stored on this device';
-  const heading = doc.createElement('h2');
-  heading.className = 'bfa-character-journal-heading';
-  heading.textContent = 'Journal';
-  header.append(kicker, heading);
-
-  const toolbar = doc.createElement('div');
-  toolbar.className = 'bfa-character-journal-toolbar';
-  const searchInput = doc.createElement('input');
-  searchInput.className = 'bfa-character-journal-search';
-  searchInput.type = 'search';
-  searchInput.placeholder = 'Search notes';
-  searchInput.setAttribute('aria-label', 'Search notes');
-
-  const filters = doc.createElement('div');
-  filters.className = 'bfa-character-journal-filters';
-  const allFilterButton = createButton(doc, 'All notes', 'bfa-character-journal-chip');
-  const photosFilterButton = createButton(doc, 'With photos', 'bfa-character-journal-chip');
-  allFilterButton.setAttribute('aria-pressed', 'true');
-  photosFilterButton.setAttribute('aria-pressed', 'false');
-  filters.append(allFilterButton, photosFilterButton);
-
-  const sort = doc.createElement('div');
-  sort.className = 'bfa-character-journal-sort';
-  const newestSortButton = createButton(doc, 'Newest', 'bfa-character-journal-chip');
-  const oldestSortButton = createButton(doc, 'Oldest', 'bfa-character-journal-chip');
-  newestSortButton.setAttribute('aria-label', 'Sort notes by newest');
-  oldestSortButton.setAttribute('aria-label', 'Sort notes by oldest');
-  sort.append(newestSortButton, oldestSortButton);
-
-  const newButton = createButton(
-      doc,
-      'New entry',
-      'bfa-character-journal-button',
-  );
-  toolbar.append(searchInput, filters, sort, newButton);
-
-  const body = doc.createElement('div');
-  body.className = 'bfa-character-journal-body';
-  const entryList = doc.createElement('div');
-  entryList.className = 'bfa-character-journal-list';
-  entryList.setAttribute('aria-label', 'Journal notes');
-  const editor = doc.createElement('div');
-  editor.className = 'bfa-character-journal-editor';
-
-  const titleInput = doc.createElement('input');
-  titleInput.className = 'bfa-character-journal-title-input';
-  titleInput.placeholder = normalizeJournalEntryTitle('');
-  titleInput.type = 'text';
-  titleInput.setAttribute('aria-label', 'Journal entry title');
-
-  const bodyInput = doc.createElement('textarea');
-  bodyInput.className = 'bfa-character-journal-body-input';
-  bodyInput.placeholder = 'What happened this session?';
-  bodyInput.setAttribute('aria-label', 'Journal entry body');
-
-  const imagesPanel = doc.createElement('section');
-  imagesPanel.className = 'bfa-character-journal-images';
-  imagesPanel.setAttribute('aria-label', 'Note photos');
-  const imagesHeader = doc.createElement('div');
-  imagesHeader.className = 'bfa-character-journal-images-header';
-  const imagesTitle = doc.createElement('h3');
-  imagesTitle.className = 'bfa-character-journal-images-title';
-  imagesTitle.textContent = 'Photos';
-  const addPhotoButton = createButton(
-      doc,
-      'Add photo',
-      'bfa-character-journal-button',
-  );
-  const photoInput = doc.createElement('input');
-  photoInput.className = 'bfa-character-journal-photo-input';
-  photoInput.accept = 'image/png,image/jpeg,image/webp';
-  photoInput.setAttribute('aria-label', 'Add a journal photo');
-  photoInput.type = 'file';
-  imagesHeader.append(imagesTitle, addPhotoButton, photoInput);
-  const imageStrip = doc.createElement('div');
-  imageStrip.className = 'bfa-character-journal-image-strip';
-  imagesPanel.append(imagesHeader, imageStrip);
-
-  const status = doc.createElement('p');
-  status.className = 'bfa-character-journal-status';
-  status.setAttribute('aria-live', 'polite');
-
-  const confirmRegion = doc.createElement('div');
-  confirmRegion.className = 'bfa-character-journal-confirm';
-  confirmRegion.hidden = true;
-  const confirmText = doc.createElement('p');
-  confirmText.className = 'bfa-character-journal-confirm-text';
-  const confirmActions = doc.createElement('div');
-  confirmActions.className = 'bfa-character-journal-confirm-actions';
-  const confirmCancelButton = createButton(
-      doc,
-      'Keep editing',
-      'bfa-character-journal-button',
-  );
-  const confirmAcceptButton = createButton(
-      doc,
-      'Discard',
-      'bfa-character-journal-button bfa-character-journal-button--danger',
-  );
-  confirmActions.append(confirmCancelButton, confirmAcceptButton);
-  confirmRegion.append(confirmText, confirmActions);
-
-  const actions = doc.createElement('div');
-  actions.className = 'bfa-character-journal-actions';
-  const deleteButton = createButton(
-      doc,
-      'Delete',
-      'bfa-character-journal-button bfa-character-journal-button--danger',
-  );
-  const saveButton = createButton(
-      doc,
-      'Save',
-      'bfa-character-journal-button bfa-character-journal-button--primary',
-  );
-  actions.append(deleteButton, saveButton);
-
-  editor.append(
-      titleInput,
-      bodyInput,
-      imagesPanel,
-      status,
-      confirmRegion,
-      actions,
-  );
-  body.append(entryList, editor);
-  root.append(header, toolbar, body);
-
-  return {
-    addPhotoButton,
-    allFilterButton,
-    bodyInput,
-    confirmAcceptButton,
-    confirmCancelButton,
-    confirmRegion,
-    confirmText,
-    deleteButton,
-    entryList,
-    imageStrip,
-    newButton,
-    newestSortButton,
-    oldestSortButton,
-    photoInput,
-    photosFilterButton,
-    root,
-    saveButton,
-    searchInput,
-    status,
-    titleInput,
-  };
-}
-
-function createButton(
-    doc: Document,
-    label: string,
-    className: string,
-): HTMLButtonElement {
-  const button = doc.createElement('button');
-  button.className = className;
-  button.textContent = label;
-  button.type = 'button';
-  return button;
-}
-
-function ensureJournalStyles(doc: Document): void {
-  if (
-    doc.head.querySelector(`[${CHARACTER_JOURNAL_STYLE_ATTRIBUTE_NAME}]`) !==
-    null
-  ) {
-    return;
-  }
-
-  const styleElement = doc.createElement('style');
-  styleElement.setAttribute(CHARACTER_JOURNAL_STYLE_ATTRIBUTE_NAME, 'true');
-  styleElement.textContent = journalStyles;
-  doc.head.append(styleElement);
-}
-
-function removeJournalStyles(doc: Document): void {
-  doc.head.querySelector(`[${CHARACTER_JOURNAL_STYLE_ATTRIBUTE_NAME}]`)?.remove();
-}
-
 function setTabActive(tab: HTMLElement, isActive: boolean): void {
+  const hitTarget = tab.closest<HTMLElement>(
+      '[data-bfa-character-journal-tab-item]',
+  ) ?? tab;
   tab.classList.toggle('bfa-character-journal-tab--active', isActive);
+  hitTarget.classList.toggle('bfa-character-journal-tab--active', isActive);
   if (tab.getAttribute('role') === 'tab') {
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
   }

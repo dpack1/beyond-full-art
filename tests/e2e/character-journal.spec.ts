@@ -23,7 +23,7 @@ test('uses the journal for notes, photos, and search', async ({
 
   await page.getByRole('button', {name: 'Journal'}).click();
   await expect(page.getByText('No notes yet.')).toBeVisible();
-  await expect(page.getByText('Stored on this device')).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Journal'})).toBeVisible();
   await page.screenshot({
     fullPage: true,
     path: path.join(ARTIFACT_DIR, 'journal-empty.png'),

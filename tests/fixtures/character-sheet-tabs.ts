@@ -53,3 +53,63 @@ export const CURRENT_CHARACTER_SHEET_TABS_FIXTURE = `
     </section>
   </div>
 `;
+
+export const LIVE_CHARACTER_SHEET_TABS_FIXTURE = `
+  <button id="appearance-toggle" type="button">Appearance</button>
+  <div class="ct-character-sheet ct-character-sheet--dark-mode" data-theme="dark" id="sheet">
+    <div class="ddbc-tab-list">
+      <div class="ddbc-tab-list__nav" id="sheet-nav">
+        <div class="ddbc-tab-list__nav-item">Actions</div>
+        <div class="ddbc-tab-list__nav-item">Spells</div>
+        <div class="ddbc-tab-list__nav-item">Inventory</div>
+        <div class="ddbc-tab-list__nav-item">Features &amp; Traits</div>
+        <div class="ddbc-tab-list__nav-item">Background</div>
+        <div class="ddbc-tab-list__nav-item">Notes</div>
+        <div class="ddbc-tab-list__nav-item ddbc-tab-list__nav-item--is-active">Extras</div>
+      </div>
+      <div class="ddbc-tab-list__content" style="height: 320px; overflow: hidden;">
+        <div class="ddbc-tab-options__content" data-testid="sheet-scroller" style="height: 100%; overflow: auto;">
+          <div class="ct-character-sheet-panel" data-testid="native-character-panel">
+            Native character sheet content
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const nav = document.getElementById('sheet-nav');
+    nav.addEventListener('pointerdown', (event) => {
+      const item = event.target.closest('.ddbc-tab-list__nav-item');
+      if (!item) return;
+      nav.dataset.sheetPointerdowns = String(
+        Number(nav.dataset.sheetPointerdowns || '0') + 1,
+      );
+      const label = (item.textContent || '').trim().toLowerCase();
+      const known = [
+        'actions',
+        'spells',
+        'inventory',
+        'features & traits',
+        'background',
+        'notes',
+        'extras',
+      ];
+      if (!known.includes(label)) {
+        const scroller = document.querySelector('[data-testid="sheet-scroller"]');
+        if (scroller) {
+          scroller.innerHTML = '<div data-testid="native-character-panel">Reset by the sheet.</div>';
+        }
+        return;
+      }
+      for (const child of nav.children) {
+        child.classList.remove('ddbc-tab-list__nav-item--is-active');
+      }
+      item.classList.add('ddbc-tab-list__nav-item--is-active');
+    });
+    document.getElementById('appearance-toggle').addEventListener('click', () => {
+      const sheet = document.getElementById('sheet');
+      const dark = sheet.classList.toggle('ct-character-sheet--dark-mode');
+      sheet.dataset.theme = dark ? 'dark' : 'light';
+    });
+  </script>
+`;

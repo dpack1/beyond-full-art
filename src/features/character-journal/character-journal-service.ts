@@ -6,6 +6,7 @@ import {
   type StoredJournalImage,
 } from '../../platform/chrome/journal-messages';
 import {
+  countUnreadableCharacterJournalEntries,
   deleteCharacterJournalEntry,
   getCharacterJournalEntries,
   setCharacterJournalEntry,
@@ -39,6 +40,7 @@ export interface CharacterJournalService {
       draft: CharacterJournalTextEntryDraft,
       file: File,
   ): Promise<CharacterJournalEntry>;
+  countUnreadableEntries(characterId: CharacterId): Promise<number>;
   deleteEntry(characterId: CharacterId, entryId: string): Promise<void>;
   getImage(blobKey: string): Promise<StoredJournalImage | null>;
   listEntries(characterId: CharacterId): Promise<CharacterJournalEntry[]>;
@@ -104,6 +106,10 @@ export function createCharacterJournalService(
         await imageStore.deleteImage(blobKey).catch(() => undefined);
         throw error;
       }
+    },
+
+    countUnreadableEntries(characterId) {
+      return countUnreadableCharacterJournalEntries(characterId);
     },
 
     async deleteEntry(characterId, entryId) {
@@ -224,19 +230,26 @@ function readFileBytes(file: Blob): Promise<ArrayBuffer> {
   });
 }
 
+const MAX_JOURNAL_BITMAP_DIMENSION = 4096;
+const MAX_JOURNAL_BITMAP_FILE_BYTES = 1024 * 1024;
+
 async function readImageDimensions(
     file: File,
 ): Promise<{height: number | null; width: number | null}> {
-  if (typeof createImageBitmap !== 'function') {
+  if (
+    typeof createImageBitmap !== 'function'
+    || file.size > MAX_JOURNAL_BITMAP_FILE_BYTES
+  ) {
     return {height: null, width: null};
   }
 
   try {
     const bitmap = await createImageBitmap(file);
-    const dimensions = {
-      height: bitmap.height,
-      width: bitmap.width,
-    };
+    const tooLarge = bitmap.width > MAX_JOURNAL_BITMAP_DIMENSION
+      || bitmap.height > MAX_JOURNAL_BITMAP_DIMENSION;
+    const dimensions = tooLarge
+      ? {height: null, width: null}
+      : {height: bitmap.height, width: bitmap.width};
     bitmap.close();
     return dimensions;
   } catch {

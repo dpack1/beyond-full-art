@@ -308,9 +308,106 @@ describe('character journal section', () => {
           .toBe(true);
       expect(document.activeElement).toBe(getButton('Add photo'));
     } finally {
-      section.destroy();
-      objectUrls.restore();
+    section.destroy();
+    objectUrls.restore();
     }
+  });
+
+  it('keeps an unsaved draft when the journal is opened again', async () => {
+    const section = createCharacterJournalSection(createFakeService([]));
+
+    await showSection(section);
+    getTitleInput().value = 'Unsaved title';
+    getBodyInput().value = 'Unsaved body';
+    section.hide();
+    await showSection(section);
+
+    expect(getTitleInput().value).toBe('Unsaved title');
+    expect(getBodyInput().value).toBe('Unsaved body');
+    await showSection(section);
+    expect(getTitleInput().value).toBe('Unsaved title');
+
+    section.destroy();
+  });
+
+  it('asks before closing a dirty journal and keeps the saved note after discard', async () => {
+    const entries = [
+      createEntry({
+        id: 'entry-1',
+        text: 'Saved text.',
+        title: 'Saved title',
+      }),
+    ];
+    const section = createCharacterJournalSection(createFakeService(entries));
+
+    await showSection(section);
+    getTitleInput().value = 'Changed title';
+    section.requestHide();
+
+    expect(section.isShown()).toBe(true);
+    expect(getConfirmText()).toContain('unsaved changes');
+
+    getConfirmButton('Discard').click();
+
+    expect(section.isShown()).toBe(false);
+    await showSection(section);
+    expect(getTitleInput().value).toBe('Saved title');
+
+    section.destroy();
+  });
+
+  it('deletes a confirmed note after the in-flight save finishes', async () => {
+    let releaseSave = () => {};
+    const saveGate = new Promise<void>((resolve) => {
+      releaseSave = resolve;
+    });
+    const entries = [
+      createEntry({
+        id: 'entry-1',
+        text: 'Saved text.',
+        title: 'Saved title',
+      }),
+    ];
+    const service = createFakeService(entries);
+    const saveTextEntry = service.saveTextEntry.bind(service);
+    service.saveTextEntry = async (draft) => {
+      await saveGate;
+      return saveTextEntry(draft);
+    };
+    const section = createCharacterJournalSection(service);
+
+    await showSection(section);
+    getDeleteButton().click();
+    getTitleInput().value = 'Changed while deleting';
+    getSaveButton().click();
+    getConfirmButton('Delete note').click();
+    expect(entries).toHaveLength(1);
+
+    releaseSave();
+    await flushPromises();
+    await flushPromises();
+
+    expect(entries).toHaveLength(0);
+    expect(getEditorStatus().textContent).toBe('Deleted.');
+
+    section.destroy();
+  });
+
+  it('says storage is full when a save hits quota', async () => {
+    const section = createCharacterJournalSection(createFakeService([], {
+      saveError: new Error('QUOTA_BYTES quota exceeded'),
+    }));
+
+    await showSection(section);
+    getTitleInput().value = 'Kept';
+    getSaveButton().click();
+    await flushPromises();
+
+    expect(getEditorStatus().textContent)
+        .toBe('Storage is full. Your note is still in the editor.');
+    expect(getTitleInput().value).toBe('Kept');
+
+    section.destroy();
   });
 });
 
@@ -367,6 +464,9 @@ function createFakeService(
     },
     async listEntries(characterId) {
       return entries.filter((entry) => entry.characterId === characterId);
+    },
+    async countUnreadableEntries() {
+      return 0;
     },
     async removeImage(draft, imageId) {
       const entry = createEntry({

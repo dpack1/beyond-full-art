@@ -6,7 +6,10 @@ import {
   CURRENT_INFORMATION_SIDEBAR_FIXTURE,
 } from '../../fixtures/character-manage-pane';
 import {MY_CHARACTERS_CARD_FIXTURE} from '../../fixtures/campaign-character-cards';
-import {CHARACTER_SHEET_TABS_FIXTURE} from '../../fixtures/character-sheet-tabs';
+import {
+  CHARACTER_SHEET_TABS_FIXTURE,
+  LIVE_CHARACTER_SHEET_TABS_FIXTURE,
+} from '../../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../../fixtures/portrait-manager';
 
 export const CHARACTER_ID = '169418374';
@@ -40,6 +43,12 @@ export const characterSheetTabsFixture: RoutedFixture = {
   body: CHARACTER_SHEET_TABS_FIXTURE,
   name: 'character-sheet-tabs',
   url: `${BASE_CHARACTER_URL}?bfaFixture=character-sheet-tabs`,
+};
+
+export const liveCharacterSheetFixture: RoutedFixture = {
+  body: LIVE_CHARACTER_SHEET_TABS_FIXTURE,
+  name: 'live-character-sheet',
+  url: `${BASE_CHARACTER_URL}?bfaFixture=live-character-sheet`,
 };
 
 export const currentDecorationsWithoutUploadFixture: RoutedFixture = {
@@ -297,6 +306,33 @@ function wrapDocument(body: string): string {
             background-position: center;
             background-size: cover;
             display: block;
+          }
+
+          main[data-fixture-name="live-character-sheet"] .ct-character-sheet--dark-mode {
+            background: #1c1b1a;
+            color: #f3efe6;
+          }
+
+          main[data-fixture-name="live-character-sheet"] .ct-character-sheet:not(.ct-character-sheet--dark-mode) {
+            background: #f7f4ef;
+            color: #242527;
+          }
+
+          .ddbc-tab-list__nav {
+            display: flex;
+            flex-wrap: wrap;
+          }
+
+          .ddbc-tab-list__nav-item {
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 12px 14px;
+            text-transform: uppercase;
+          }
+
+          .ddbc-tab-list__nav-item--is-active {
+            box-shadow: inset 0 -3px 0 #c5312d;
           }
         </style>
       </head>

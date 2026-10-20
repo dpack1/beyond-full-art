@@ -250,12 +250,76 @@ describe('character art storage metadata', () => {
       }),
     ]);
   });
+
+  it('keeps an unreadable record when another note is saved', async () => {
+    const storageArea = createFakeStorageArea();
+    const unreadable = {id: 'entry-2', title: 'Missing blocks'};
+    storageArea.set({
+      'bfa.characterJournal.entries.169418374': [unreadable],
+    }, () => {});
+
+    await setCharacterJournalEntry(createJournalEntry({
+      id: 'entry-1',
+      title: 'Valid',
+      updatedAt: '2026-10-12T00:00:00.000Z',
+    }), storageArea as never);
+
+    const stored = storageArea.values['bfa.characterJournal.entries.169418374'];
+    expect(stored).toEqual([
+      unreadable,
+      createJournalEntry({
+        id: 'entry-1',
+        title: 'Valid',
+        updatedAt: '2026-10-12T00:00:00.000Z',
+      }),
+    ]);
+  });
+
+  it('retries a journal write that lost a concurrent note', async () => {
+    const storageArea = createFakeStorageArea();
+    const otherEntry = createJournalEntry({
+      id: 'entry-other',
+      title: 'Other window',
+      updatedAt: '2026-10-13T00:00:00.000Z',
+    });
+    let writes = 0;
+    const originalSet = storageArea.set.bind(storageArea);
+    storageArea.set = (nextValues, callback) => {
+      writes += 1;
+      if (writes === 1) {
+        storageArea.values['bfa.characterJournal.entries.169418374'] = [otherEntry];
+        callback();
+        return;
+      }
+      originalSet(nextValues, callback);
+    };
+
+    await setCharacterJournalEntry(createJournalEntry({
+      id: 'entry-1',
+      title: 'This window',
+      updatedAt: '2026-10-12T00:00:00.000Z',
+    }), storageArea as never);
+
+    expect(
+        await getCharacterJournalEntries('169418374', storageArea as never),
+    ).toEqual([
+      otherEntry,
+      createJournalEntry({
+        id: 'entry-1',
+        title: 'This window',
+        updatedAt: '2026-10-12T00:00:00.000Z',
+      }),
+    ]);
+  });
 });
 
 function createFakeStorageArea() {
   const values: Record<string, unknown> = {};
 
   return {
+    get values() {
+      return values;
+    },
     get(
         key: string | null,
         callback: (value: Record<string, unknown>) => void,
