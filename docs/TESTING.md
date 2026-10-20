@@ -129,7 +129,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 5. Save a second note and confirm search, **With photos**, and **Oldest** find the right note.
 6. Try an oversized or unsupported file and confirm the note text remains.
 7. Turn **Character Journal tab** off in the popup and confirm the tab disappears while the saved note remains after turning it back on.
-8. Confirm one click on Journal, including the padding around the label, opens the section and clears the previous tab underline.
+8. Confirm one click on Journal, including the padding around the label, opens the section and clears the previous tab underline. Journal should read as an uppercase label like Extras, with the same underline and hover and no box around the word.
 9. Switch the sheet between light and dark appearance and confirm journal text and inputs stay readable, including a change while Journal is open.
 10. On a long note, scroll inside the sheet pane until Save and Delete are visible.
 11. Type unsaved text, choose another tab, and confirm the journal asks before discarding it.

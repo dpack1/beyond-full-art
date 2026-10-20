@@ -1,23 +1,38 @@
 .bfa-character-journal-tab {
-  align-items: center;
   appearance: none;
   background: transparent;
-  box-sizing: border-box;
   color: inherit;
   cursor: pointer;
-  display: flex;
   font: inherit;
-  justify-content: center;
-  min-height: 100%;
-  min-width: 0;
-  width: 100%;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-transform: uppercase;
 }
 
-.bfa-character-journal-tab--active,
-[data-bfa-character-journal-tab-item].bfa-character-journal-tab--active {
-  border-bottom-color: #c5312d;
+.bfa-character-journal-tab:focus {
+  outline: none;
+}
+
+.bfa-character-journal-tab:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* The live sheet tab is a padded div. The inner button must not add its own
+   border, background, or icon box on top of that label. */
+[data-bfa-character-journal-tab-item] > .bfa-character-journal-tab {
+  border: 0;
+  box-shadow: none;
+  display: inline;
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  width: auto;
+}
+
+[data-bfa-character-journal-tab-item].bfa-character-journal-tab--active:not(.bfa-character-journal-tab) {
   box-shadow: inset 0 -3px 0 #c5312d;
-  color: #c5312d;
 }
 
 .bfa-character-journal-section,
@@ -59,13 +74,6 @@
 
 .bfa-character-journal-section[hidden] {
   display: none;
-}
-
-.bfa-character-journal-tab-icon {
-  flex: 0 0 auto;
-  height: 14px;
-  margin-right: 6px;
-  width: 14px;
 }
 
 .bfa-character-journal-header-row {

@@ -276,12 +276,14 @@ function createInsertionItem(
     );
     item.className = stripActiveTabClasses(referenceElement.className);
     item.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
+    rememberNativeActiveClass(referenceElement, item);
     journalTab.className = CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME;
     item.append(journalTab);
     return item;
   }
 
   journalTab.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
+  rememberNativeActiveClass(referenceElement, journalTab);
   return journalTab;
 }
 
@@ -294,7 +296,7 @@ function createJournalTab(referenceTab: HTMLElement): HTMLButtonElement {
     CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME,
   ].filter(Boolean).join(' ');
   tab.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME, 'true');
-  tab.replaceChildren(createJournalTabIcon(doc), createJournalTabLabel(doc));
+  tab.textContent = 'Journal';
   tab.type = 'button';
 
   if (referenceTab.getAttribute('role') === 'tab') {
@@ -305,25 +307,16 @@ function createJournalTab(referenceTab: HTMLElement): HTMLButtonElement {
   return tab;
 }
 
-function createJournalTabIcon(doc: Document): SVGElement {
-  const icon = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  icon.setAttribute('aria-hidden', 'true');
-  icon.setAttribute('viewBox', '0 0 16 16');
-  icon.classList.add('bfa-character-journal-tab-icon');
-  const cover = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
-  cover.setAttribute('fill', 'currentColor');
-  cover.setAttribute(
-      'd',
-      'M3 2.2h4.1c.6.5 1.4.8 2.2.8V13c-.8 0-1.6-.3-2.2-.8H3V2.2zm5.3.8c.8 0 1.6-.3 2.2-.8H13V13H8.9c-.6-.5-1.4-.8-2.2-.8V3z',
-  );
-  icon.append(cover);
-  return icon;
-}
-
-function createJournalTabLabel(doc: Document): HTMLSpanElement {
-  const label = doc.createElement('span');
-  label.textContent = 'Journal';
-  return label;
+function rememberNativeActiveClass(
+    reference: HTMLElement,
+    item: HTMLElement,
+): void {
+  const activeClassName = reference.className
+      .split(/\s+/)
+      .find((name) => isActiveTabClass(name));
+  if (activeClassName !== undefined) {
+    item.dataset.bfaNativeActiveClass = activeClassName;
+  }
 }
 
 function findTabListRoot(tab: HTMLElement): HTMLElement | null {

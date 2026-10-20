@@ -121,7 +121,10 @@ describe('character sheet tabs adapter', () => {
     );
     expect(target?.tab.parentElement?.className ?? '')
         .not.toContain('is-active');
-    expect(target?.tab.querySelector('svg')).not.toBeNull();
+    expect(target?.tab.querySelector('svg')).toBeNull();
+    expect(target?.tab.textContent).toBe('Journal');
+    expect(target?.tab.parentElement?.dataset.bfaNativeActiveClass)
+        .toBe('ddbc-tab-list__nav-item--is-active');
     expect(target?.nativeTabs.some((tab) => tab.textContent?.includes('Journal')))
         .toBe(false);
   });

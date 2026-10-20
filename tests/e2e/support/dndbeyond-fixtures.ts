@@ -258,7 +258,12 @@ function wrapDocument(body: string): string {
             text-transform: uppercase;
           }
 
-          .ct-character-sheet-tab.bfa-character-journal-tab--active {
+          .ct-character-sheet-tab:hover {
+            color: #121212;
+          }
+
+          .ct-character-sheet-tab.bfa-character-journal-tab--active,
+          .ct-character-sheet-tab.bfa-character-journal-tab--active:hover {
             border-bottom-color: #c5312d;
             color: #c5312d;
           }
@@ -327,12 +332,23 @@ function wrapDocument(body: string): string {
             cursor: pointer;
             font-size: 12px;
             font-weight: 700;
+            letter-spacing: 0.04em;
             padding: 12px 14px;
             text-transform: uppercase;
           }
 
-          .ddbc-tab-list__nav-item--is-active {
+          main[data-fixture-name="live-character-sheet"] .ct-character-sheet--dark-mode .ddbc-tab-list__nav-item:hover {
+            color: #ffffff;
+          }
+
+          main[data-fixture-name="live-character-sheet"] .ct-character-sheet:not(.ct-character-sheet--dark-mode) .ddbc-tab-list__nav-item:hover {
+            color: #121212;
+          }
+
+          .ddbc-tab-list__nav-item--is-active,
+          .ddbc-tab-list__nav-item--is-active:hover {
             box-shadow: inset 0 -3px 0 #c5312d;
+            color: #c5312d;
           }
         </style>
       </head>

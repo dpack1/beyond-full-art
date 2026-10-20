@@ -932,6 +932,10 @@ function setTabActive(tab: HTMLElement, isActive: boolean): void {
   ) ?? tab;
   tab.classList.toggle('bfa-character-journal-tab--active', isActive);
   hitTarget.classList.toggle('bfa-character-journal-tab--active', isActive);
+  const nativeActiveClass = hitTarget.dataset.bfaNativeActiveClass;
+  if (nativeActiveClass !== undefined && nativeActiveClass !== '') {
+    hitTarget.classList.toggle(nativeActiveClass, isActive);
+  }
   if (tab.getAttribute('role') === 'tab') {
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
   }

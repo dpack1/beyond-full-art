@@ -9,26 +9,33 @@ after D&D Beyond's `Extras` tab, create and manage local journal entries for
 the current character, refresh the page, and keep writing without syncing or
 modifying D&D Beyond's own notes, backstory, or character data.
 
-The first implementation should be useful on its own, while keeping a clear
-path for image blocks in a later slice.
+The journal includes notes and photos, and a way to find them. It stays out of
+`.agent/FEATURES.md` until the owner approves it and it ships.
 
 ## Scope
 
 Included:
 
 - Add a `Journal` tab immediately after D&D Beyond's `Extras` tab.
-- Use a book or journal icon for the tab.
+- Make that tab look and behave like a native sheet tab: an uppercase label,
+  no extra border or icon, the sheet's active underline, and the sheet's hover.
+  A focus ring shows only for keyboard `:focus-visible`.
 - Show an extension-owned journal section from that tab inside the sheet content
   area.
 - Store journal entries locally by D&D Beyond character ID.
-- List, create, edit, save, and delete text journal entries.
-- Use a block-based entry model so image blocks can be added later.
+- List, create, edit, save, and delete notes.
+- Add, view, and remove photos on a note. Supported files are PNG, JPEG, and
+  WebP up to 3 MB. Photo bytes live in extension-origin IndexedDB. Note text
+  and photo metadata live in `chrome.storage.local`.
+- Find notes with search (title, text, and photo file name), an all-notes or
+  with-photos filter, and newest or oldest ordering.
+- Use a block-based entry model for the text and image blocks.
 - Preserve unsaved editor text when local storage operations fail.
 - Make the journal surface keyboard accessible.
 - Add unit tests, DOM fixture tests, and local Playwright fixture tests.
 - Update product, architecture, implementation, and decision docs.
 
-Excluded from the original text-only slice:
+Excluded:
 
 - D&D Beyond backstory, notes, or extras-field sync.
 - Importing existing D&D Beyond notes or backstory.
@@ -40,11 +47,6 @@ Excluded from the original text-only slice:
 - Replacing or modifying D&D Beyond's native notes UI.
 - Import and export of journal notes.
 
-The branch currently also has photo blocks and note search. Those were built
-before this ExecPlan landed on `main`, and they conflict with the original
-exclusions of image upload and search. They stay in this pull request so the
-owner can confirm them. They are not listed in `.agent/FEATURES.md`.
-
 ## Current State
 
 The character journal is implemented on `cursor/character-journal-cade` and is
@@ -52,14 +54,15 @@ not shipped. `.agent/FEATURES.md` does not list it.
 
 What the branch does now:
 
-- Inserts a Journal tab, with a small book icon and a text label, immediately
-  after Extras.
+- Inserts a Journal tab immediately after Extras. The label is uppercase and
+  uses the sheet tab's active underline and hover.
 - Mounts an extension-owned section in the sheet content pane.
 - Stores text in `chrome.storage.local` and photo bytes in extension-origin
   IndexedDB.
 - Lists, creates, edits, saves, and deletes notes. Delete asks first.
 - Search, an all-notes or with-photos filter, and newest/oldest ordering are
-  present. See the scope note above.
+  part of the feature. The owner confirmed notes and photos, including finding
+  them, on 2026-10-20.
 - Photos can be added, viewed, and removed for PNG, JPEG, and WebP up to 3 MB.
 - A Close control and a native tab both leave the journal. Unsaved text asks
   for confirmation before it is discarded.
@@ -566,6 +569,10 @@ Rollback:
   covers first-click activation, dark and light appearance, and scrolling.
   Playwright screenshots: `journal-dark.png`, `journal-light.png`, and
   `journal-dark-scrolled.png`. Merged `.agent/` plan docs from `main`.
+- 2026-10-20: Owner confirmed photos and search are in scope. The Journal tab
+  is restyled to match native uppercase labels. The separate book icon and
+  button border are removed. Tab screenshots: `journal-tab-dark.png` and
+  `journal-tab-light.png`.
 
 ## Decision Log
 
@@ -582,9 +589,15 @@ Rollback:
   Journal tab. This keeps the feature in the expected tab content area while
   preserving reversible ownership over the DOM the extension hides and restores.
 - 2026-10-13: Photo bytes are image blocks in extension-origin IndexedDB
-  (ADR-019), and search, photo filter, and sort shipped with them. This
-  conflicts with the original exclusions in this plan. Left in place for the
-  owner to confirm. Not moved to `.agent/FEATURES.md`.
+  (ADR-019), with search, a photo filter, and newest/oldest sort.
+- 2026-10-20: The owner confirmed that adding, editing, and finding notes and
+  photos is in scope. Photos and search stay. The journal is still not listed
+  in `.agent/FEATURES.md`.
+- 2026-10-20: The Journal tab matches the native sheet tabs. It is an uppercase
+  text label with the sheet's active underline and hover. The earlier book
+  icon is removed because it rendered as a red square and the button's default
+  border drew a box around the label. A focus ring is limited to
+  `:focus-visible`.
 - 2026-10-20: Claim Journal on capture-phase pointerdown for the whole tab
   item, including padding, and clear the native active class. A bubble-phase
   click on the inner button was too late for the live tab row.

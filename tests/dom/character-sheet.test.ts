@@ -314,7 +314,8 @@ describe('character sheet enhancement', () => {
     expect(sheetSawPointer).toBe(0);
     expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
         .toBe(false);
-    expect(document.querySelector('.ddbc-tab-list__nav-item--is-active')).toBeNull();
+    expect(document.querySelector('.ddbc-tab-list__nav-item--is-active'))
+        .toBe(document.querySelector('[data-bfa-character-journal-tab-item]'));
     expect(document.querySelector(
         '[data-testid="sheet-scroller"] .bfa-character-journal-section',
     )).not.toBeNull();
