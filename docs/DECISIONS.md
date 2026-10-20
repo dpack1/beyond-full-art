@@ -265,16 +265,20 @@ Why:
 
 ## ADR-020: Journal follows the sheet pane
 
-Status: Accepted
+Status: Accepted. The version 1 mount sentence below is historical. Version 2
+mounts on the content region next to the tab strip, not in a nested scroller.
+See the version 2 section in `docs/ARCHITECTURE.md`.
 
-The journal samples the character sheet's appearance and mounts in the sheet's
-scroll pane.
+The journal samples the character sheet's appearance. Version 1 mounted in the
+sheet's inner scroll pane. Version 2 does not.
 
 Why:
 
 - Hardcoded light colors are unreadable on the sheet's dark appearance.
-- The sheet's content region clips overflow. The scrolling element is an inner
-  pane, and the journal has to live in that pane and limit its own height.
+- The sheet's content region clips overflow. Version 1 put the journal in
+  that inner pane and limited its height. Version 2 mounts on the content
+  region beside the tab strip instead, which is the fix for that nested
+  scroller.
 - Opening Journal has to claim the whole tab hit target on pointerdown. A
   bubble-phase click on the inner button misses the first click.
 - Character journal writes merge by entry id and keep unrecognized records so

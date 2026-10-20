@@ -201,11 +201,10 @@ behaviors, modeled in `LIVE_CHARACTER_SHEET_TABS_FIXTURE`:
 - Dark appearance is `ct-character-sheet--dark-mode` and `data-theme="dark"`.
   The journal samples that appearance, and the computed background when no
   explicit appearance is set, then sets color variables on the section.
-- The content region uses a fixed height and `overflow: hidden`. The scrolling
-  pane is the first element inside it with `overflow: auto` (observed as
-  `ddbc-tab-options__content`). The journal mounts in that pane, not in a
-  scroller nested later inside the native panel, and limits its own height so
-  Save and Delete remain reachable.
+- Version 1 mounted the list in the first `overflow: auto` pane inside the
+  content region. That nested search is the bug version 2 removed. The current
+  mount is the content region next to the tab strip, described under
+  Character journal version 2 below.
 
 A fresh capture of the live DOM is still the owner's check. The fixture records
 the structure those bugs require, not a full copy of the sheet.
