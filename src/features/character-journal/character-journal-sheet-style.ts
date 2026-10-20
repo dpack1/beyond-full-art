@@ -41,6 +41,7 @@ const TOKEN_NAMES = [
 export function paintJournalSurface(
     root: HTMLElement,
     anchor: HTMLElement,
+    target: 'panel' | 'section' = 'section',
 ): SheetControlPaint {
   const theme = readSheetTheme(anchor);
   const fallback = JOURNAL_FALLBACK_TOKENS[theme.mode];
@@ -66,14 +67,19 @@ export function paintJournalSurface(
     : fallback.surface;
 
   root.dataset.bfaTheme = theme.mode;
-  root.classList.toggle(CHARACTER_SHEET_DARK_MODE_CLASS, theme.mode === 'dark');
+  if (target === 'panel') {
+    root.classList.remove(CHARACTER_SHEET_DARK_MODE_CLASS);
+  } else {
+    root.classList.toggle(CHARACTER_SHEET_DARK_MODE_CLASS, theme.mode === 'dark');
+  }
   root.style.colorScheme = theme.mode;
+  const panelFill = theme.mode === 'dark' ? '#12181c' : '#fefefe';
   const tokens: Record<(typeof TOKEN_NAMES)[number][1], string> = {
     ...fallback,
     accent: themeColor,
     accentEdge: themeColor,
-    background,
-    border: themeColor,
+    background: target === 'panel' ? panelFill : background,
+    border: fallback.border,
     selected: themeColor,
     surface,
     text: textSample,
@@ -81,6 +87,10 @@ export function paintJournalSurface(
   for (const [cssName, key] of TOKEN_NAMES) {
     root.style.setProperty(cssName, tokens[key]);
   }
+  root.style.setProperty(
+      '--bfa-journal-chip',
+      theme.mode === 'dark' ? '#314049' : '#eceeef',
+  );
 
   root.style.setProperty(
       '--bfa-journal-font',
