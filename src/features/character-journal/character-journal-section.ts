@@ -163,11 +163,7 @@ export function createCharacterJournalSection(
       }
 
       if (kind === 'hide') {
-        const teardown = pendingTeardown;
-        pendingTeardown = null;
-        hideCancel = null;
-        hide();
-        teardown?.();
+        finishPendingHide();
       }
     },
     onDelete: () => {
@@ -633,16 +629,30 @@ export function createCharacterJournalSection(
 
   function closeNote(): void {
     if (state.panel === null) {
+      finishPendingHide();
       return;
     }
 
     if (state.panel.mismatch || !isDirty()) {
+      if (pendingTeardown !== null) {
+        finishPendingHide();
+        return;
+      }
+
       closePanel();
       return;
     }
 
-    state.panel.confirm = 'discard';
+    state.panel.confirm = pendingTeardown === null ? 'discard' : 'hide';
     renderPanel();
+  }
+
+  function finishPendingHide(): void {
+    const teardown = pendingTeardown;
+    pendingTeardown = null;
+    hideCancel = null;
+    hide();
+    teardown?.();
   }
 
   function confirmModel(kind: OpenPanel['confirm']): PanelConfirmModel | null {
