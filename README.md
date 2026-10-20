@@ -54,7 +54,7 @@ On campaign pages and `https://www.dndbeyond.com/characters`, enabled card portr
 
 ### Character journal
 
-On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. The section follows the sheet's light or dark appearance and scrolls inside the sheet pane. Each character has local notes, newest first, with search, an all-notes or with-photos filter, and oldest/newest sorting. A note can hold PNG, JPEG, or WebP photos up to 3 MB. Photos open in a viewer and can be removed. Unsaved text is kept until the user confirms leaving it. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. Nothing is written to D&D Beyond notes, backstory, or extras.
+On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. It is a local player wiki for that character: categories, search, `[[Name]]` links, and a right-hand note panel. The tab, the list, and the panel follow the sheet's light and Underdark appearance. A note can hold PNG, JPEG, or WebP photos up to 3 MB. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. Nothing is written to D&D Beyond notes, backstory, or extras. The journal is not shipped until Dylan approves it.
 
 ### Not built yet
 
@@ -171,10 +171,11 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 
 1. Leave **Character Journal tab** enabled in the popup.
 2. Open a character sheet and choose **Journal**, immediately after **Extras**.
-3. Write a title and note, then **Save**. **New entry** starts another note. **Delete** asks before removing the selected entry.
-4. Use **Search notes**, **All notes** / **With photos**, and **Newest** / **Oldest** to find an entry. Notes are newest first by default.
-5. Choose **Add photo** on the open note. Click the thumbnail to view it, then **Remove photo** or the tile's **Remove** control to take it off the note.
-6. Choose a native D&D Beyond tab to return to the normal sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
+3. File a line into today's session, or choose **New note** and pick a category.
+4. Read the note in the side panel. **Edit** changes it. The note saves on its own. **Close** returns to the list.
+5. Search titles, tags, and text. Category chips filter the list. `[[Name]]` links to another note, or creates a placeholder.
+6. Use **Image** while editing to add a PNG, JPEG, or WebP photo under 3 MB.
+7. Choose a native D&D Beyond tab to return to the sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
 
 ## Developer runbook
 
@@ -282,8 +283,11 @@ Available now:
 - Portrait crop workflow
 - Full-art download from the viewer and from the popup inventory
 - Optional character-card portrait enhancement
-- Local character journal tab
 - Manual removal of stored full art
+
+In review, not shipped until Dylan approves it:
+
+- Character journal, version 2
 
 Planned next:
 

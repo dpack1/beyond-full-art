@@ -23,7 +23,6 @@ import {
 import {
   CHARACTER_JOURNAL_ENABLED_KEY,
   getCharacterJournalEnabled,
-  setCharacterJournalEnabled,
 } from '../platform/chrome/storage';
 import {
   observePanelPortraits,
@@ -137,7 +136,7 @@ export function installCharacterSheetEnhancement(
         return;
       }
 
-      clearNativeTabSelection(target.nativeTabs);
+      clearNativeTabSelection(target.nativeTabs, target.tab);
       void journalSection.show({
         characterId: activeCharacterId,
         contentHost: target.contentHost,
@@ -232,10 +231,6 @@ export function installCharacterSheetEnhancement(
   const stopJournalFeature = () => {
     journalSection.requestHide(() => {
       tearDownJournalChrome();
-    }, () => {
-      // The popup already stored "off". Cancelling the discard keeps the tab,
-      // so the preference has to stay on with it.
-      void setCharacterJournalEnabled(true);
     });
   };
 
@@ -253,9 +248,7 @@ export function installCharacterSheetEnhancement(
       return;
     }
 
-    if (journalSection.isShown()) {
-      journalSection.requestHide();
-    }
+    journalSection.syncRoute(readCurrentCharacterId());
   };
 
   doc.defaultView?.addEventListener('popstate', syncCharacterRoute);

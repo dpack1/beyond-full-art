@@ -1,3 +1,8 @@
+import {
+  JOURNAL_SHEET_CLASS,
+  JOURNAL_TEXT_SAMPLE_SELECTOR,
+  JOURNAL_THEME_DARK_CLASS,
+} from '../../ddb/selectors';
 import type {Cleanup} from '../../shared/types';
 
 export interface SheetThemeColors {
@@ -72,7 +77,7 @@ export function observeSheetTheme(
     onChange: () => void,
 ): Cleanup {
   const observer = new MutationObserver(onChange);
-  const sheet = anchor.closest<HTMLElement>('.ct-character-sheet') ?? anchor;
+  const sheet = anchor.closest<HTMLElement>(`.${JOURNAL_SHEET_CLASS}`) ?? anchor;
   observer.observe(sheet, {
     attributeFilter: THEME_ATTRIBUTE_NAMES,
     attributes: true,
@@ -102,7 +107,7 @@ function explicitTheme(anchor: HTMLElement): 'dark' | 'light' | null {
     }
 
     for (const className of current.classList) {
-      if (/(?:^|[-_])dark-mode$/i.test(className)) {
+      if (className === JOURNAL_THEME_DARK_CLASS || /(?:^|[-_])dark-mode$/i.test(className)) {
         return 'dark';
       }
     }
@@ -131,7 +136,7 @@ function firstOpaqueBackground(anchor: HTMLElement): RgbColor | null {
 
 function sampledForeground(anchor: HTMLElement): RgbColor | null {
   const sample = anchor.querySelector<HTMLElement>(
-      'h1, h2, h3, p, .ddbc-tab-list__nav-item, .ct-character-sheet-tab',
+      JOURNAL_TEXT_SAMPLE_SELECTOR,
   ) ?? anchor;
   return parseColor(readStyle(sample).color);
 }
@@ -192,3 +197,58 @@ function readStyle(element: HTMLElement): CSSStyleDeclaration {
   return element.ownerDocument.defaultView?.getComputedStyle(element)
     ?? element.style;
 }
+
+export function colorsContrast(
+    foreground: string,
+    background: string,
+    minimum = 4.5,
+): boolean {
+  const text = parseColor(foreground);
+  const surface = parseColor(background);
+  if (text === null || surface === null) {
+    return false;
+  }
+
+  const lighter = Math.max(relativeLuminance(text), relativeLuminance(surface));
+  const darker = Math.min(relativeLuminance(text), relativeLuminance(surface));
+  return (lighter + 0.05) / (darker + 0.05) >= minimum;
+}
+
+export const JOURNAL_FALLBACK_TOKENS = {
+  dark: {
+    accent: '#c5312d',
+    accentEdge: '#ff8a84',
+    background: '#1b242b',
+    border: '#8b9aa6',
+    danger: '#ffb4ae',
+    focus: '#9ec9ff',
+    line: '#314049',
+    link: '#7ec8f0',
+    muted: '#a8b4be',
+    needs: '#f0d48a',
+    needsBackground: '#3a3424',
+    selected: '#ff8a84',
+    success: '#8fd0a8',
+    sunken: '#24303a',
+    surface: '#24303a',
+    text: '#f2f4f6',
+  },
+  light: {
+    accent: '#c5312d',
+    accentEdge: '#c5312d',
+    background: '#ffffff',
+    border: '#6f757a',
+    danger: '#9d2b28',
+    focus: '#0b5cab',
+    line: '#e0e3e3',
+    link: '#0c5f8c',
+    muted: '#5c6166',
+    needs: '#6e5414',
+    needsBackground: '#faf6ea',
+    selected: '#c5312d',
+    success: '#146c3a',
+    sunken: '#f2f2f2',
+    surface: '#ffffff',
+    text: '#242527',
+  },
+} as const;

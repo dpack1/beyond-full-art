@@ -43,7 +43,7 @@ scripts/build.mjs                       esbuild bundle into dist/
 
 Preserve these boundaries:
 
-- D&D Beyond selectors and endpoint details live under `src/platform/dndbeyond/`.
+- D&D Beyond selectors and endpoint details live under `src/platform/dndbeyond/`. Journal selectors are the Journal group in `src/ddb/selectors.ts`, with health checks in `tests/unit/ddb-journal-selectors.test.ts`. When the shared selector-map change lands, keep that group inside the shared module.
 - Chrome API access lives behind `src/platform/chrome/` where tests need a seam.
 - UI components own their markup, behavior, and styles.
 - Storage code stays separate from DOM integration.
@@ -92,7 +92,7 @@ Playwright needs Chromium: `npx playwright install chromium`. The e2e suite is h
 
 ### D&D Beyond integration
 
-- Never spread raw D&D Beyond CSS selectors through feature code. Add them to `src/platform/dndbeyond/selectors.ts` or the adapter that owns that surface.
+- Never spread raw D&D Beyond CSS selectors through feature code. Add them to `src/platform/dndbeyond/selectors.ts`, the Journal group in `src/ddb/selectors.ts`, or the adapter that owns that surface. Do not hardcode hashed `styles_` classes.
 - Treat D&D Beyond DOM structure and private endpoints as unstable external contracts.
 - Do not guess a selector or request payload when it can be verified on the live site.
 - When an assumption is verified, document the date and the observed behavior.

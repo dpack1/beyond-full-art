@@ -1,6 +1,7 @@
 import {restoreFocus, trapTabKey} from '../fullscreen-viewer/focus';
 
 export interface JournalPhotoViewerOpenOptions {
+  allowRemove?: boolean;
   fallbackFocus: HTMLElement | null;
   imageUrl: string;
   label: string;
@@ -110,6 +111,7 @@ export function createJournalPhotoViewer(doc: Document): JournalPhotoViewer {
       dialog.setAttribute('aria-label', options.label);
       status.textContent = '';
       removeButton.disabled = false;
+      removeButton.hidden = options.allowRemove === false;
       overlay.hidden = false;
       closeButton.focus();
     },

@@ -2,80 +2,44 @@ import {beforeEach, describe, expect, it} from 'vitest';
 
 import {createCharacterJournalService} from '../../src/features/character-journal/character-journal-service';
 import type {JournalImageStore} from '../../src/features/character-journal/character-journal-service';
-import {getImageBlocks} from '../../src/features/character-journal/character-journal-types';
+import type {JournalNote} from '../../src/features/character-journal/character-journal-types';
 import type {StoredJournalImage} from '../../src/platform/chrome/journal-messages';
 
 describe('character journal service', () => {
   beforeEach(() => {
-    const values: Record<string, unknown> = {};
-    (globalThis as {chrome?: unknown}).chrome = {
-      runtime: {lastError: undefined},
-      storage: {
-        local: {
-          get(
-              key: string | null,
-              callback: (value: Record<string, unknown>) => void,
-          ) {
-            if (key === null) {
-              callback({...values});
-              return;
-            }
-
-            callback({[key]: values[key]});
-          },
-          remove(key: string, callback: () => void) {
-            delete values[key];
-            callback();
-          },
-          set(nextValues: Record<string, unknown>, callback: () => void) {
-            Object.assign(values, nextValues);
-            callback();
-          },
-        },
-      },
-    };
+    installChrome();
   });
 
   it('saves text, keeps that text when a photo is attached, and removes the photo blob', async () => {
     const blobs = new Map<string, StoredJournalImage>();
-    const imageStore = createMemoryImageStore(blobs);
-    let nextId = 0;
     const service = createCharacterJournalService({
-      createId: () => `id-${nextId += 1}`,
-      imageStore,
+      createId: sequence(['note-1', 'image-1']),
+      imageStore: memoryStore(blobs),
       now: () => new Date('2026-10-13T12:00:00.000Z'),
     });
 
-    const saved = await service.saveTextEntry({
-      characterId: '169418374',
-      text: 'Rain on the tent.',
+    const saved = await service.save(note({
+      body: 'Rain on the tent.',
+      id: 'note-1',
       title: 'Camp',
-    });
-    const withPhoto = await service.attachImage({
-      characterId: '169418374',
-      entryId: saved.id,
-      imageBlocks: [],
-      text: 'Rain on the tent.',
-      title: 'Camp',
-    }, new File(['photo-bytes'], 'camp.png', {type: 'image/png'}));
+    }), null);
+    expect(saved.kind).toBe('saved');
+    if (saved.kind !== 'saved') {
+      return;
+    }
+
+    const withPhoto = await service.attachImage(
+        saved.note,
+        new File(['photo-bytes'], 'camp.png', {type: 'image/png'}),
+    );
 
     expect(withPhoto.title).toBe('Camp');
-    expect(withPhoto.blocks[0]).toMatchObject({
-      text: 'Rain on the tent.',
-      type: 'text',
-    });
-    expect(getImageBlocks(withPhoto)).toHaveLength(1);
+    expect(withPhoto.body).toContain('Rain on the tent.');
+    expect(withPhoto.images).toHaveLength(1);
     expect(blobs.size).toBe(1);
 
-    const withoutPhoto = await service.removeImage({
-      characterId: '169418374',
-      entryId: withPhoto.id,
-      imageBlocks: getImageBlocks(withPhoto),
-      text: 'Rain on the tent.',
-      title: 'Camp',
-    }, getImageBlocks(withPhoto)[0]?.id ?? '');
-
-    expect(getImageBlocks(withoutPhoto)).toEqual([]);
+    const withoutPhoto = await service.removeImage(withPhoto, withPhoto.images[0]?.id ?? '');
+    expect(withoutPhoto.images).toEqual([]);
     expect(blobs.size).toBe(0);
     expect(await service.getImage('missing')).toBeNull();
   });
@@ -83,16 +47,8 @@ describe('character journal service', () => {
   it('does not keep a photo blob when saving the note fails', async () => {
     const blobs = new Map<string, StoredJournalImage>();
     const service = createCharacterJournalService({
-      createId: () => 'id-1',
-      imageStore: {
-        ...createMemoryImageStore(blobs),
-        async putImage(input) {
-          blobs.set(input.blobKey, {
-            byteBuffer: input.byteBuffer,
-            mimeType: input.mimeType,
-          });
-        },
-      },
+      createId: () => 'image-1',
+      imageStore: memoryStore(blobs),
       now: () => new Date('2026-10-13T12:00:00.000Z'),
     });
     (globalThis as unknown as {
@@ -101,20 +57,90 @@ describe('character journal service', () => {
       throw new Error('storage failed');
     };
 
-    await expect(service.attachImage({
-      characterId: '169418374',
-      text: 'Still here.',
+    await expect(service.attachImage(note({
+      body: 'Still here.',
+      id: 'note-1',
       title: 'Camp',
-    }, new File(['photo-bytes'], 'camp.png', {type: 'image/png'}))).rejects.toThrow(
+    }), new File(['photo-bytes'], 'camp.png', {type: 'image/png'}))).rejects.toThrow(
         'storage failed',
     );
     expect(blobs.size).toBe(0);
   });
+
+  it('keeps two different notes when storage set is delayed', async () => {
+    const values: Record<string, unknown> = {};
+    (globalThis as {chrome?: unknown}).chrome = {
+      runtime: {lastError: undefined},
+      storage: {
+        local: {
+          get(key: string, callback: (value: Record<string, unknown>) => void) {
+            queueMicrotask(() => {
+              callback({[key]: values[key]});
+            });
+          },
+          remove(key: string, callback: () => void) {
+            delete values[key];
+            callback();
+          },
+          set(nextValues: Record<string, unknown>, callback: () => void) {
+            queueMicrotask(() => {
+              Object.assign(values, nextValues);
+              callback();
+            });
+          },
+        },
+      },
+    };
+    const service = createCharacterJournalService({
+      createId: sequence(['note-a', 'note-b']),
+      now: () => new Date('2026-10-13T12:00:00.000Z'),
+    });
+
+    const done = Promise.all([
+      service.save(note({id: 'note-a', title: 'Map'}), null),
+      service.save(note({id: 'note-b', title: 'Gate'}), null),
+    ]);
+    for (let turn = 0; turn < 40; turn += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    await done;
+
+    const opened = await service.open('169418374');
+    expect(opened.notes.map((entry) => entry.id).sort()).toEqual(['note-a', 'note-b']);
+  });
 });
 
-function createMemoryImageStore(
-    blobs: Map<string, StoredJournalImage>,
-): JournalImageStore {
+function installChrome(): void {
+  const values: Record<string, unknown> = {};
+  (globalThis as {chrome?: unknown}).chrome = {
+    runtime: {lastError: undefined},
+    storage: {
+      local: {
+        get(
+            key: string | null,
+            callback: (value: Record<string, unknown>) => void,
+        ) {
+          if (key === null) {
+            callback({...values});
+            return;
+          }
+
+          callback({[key]: values[key]});
+        },
+        remove(key: string, callback: () => void) {
+          delete values[key];
+          callback();
+        },
+        set(nextValues: Record<string, unknown>, callback: () => void) {
+          Object.assign(values, nextValues);
+          callback();
+        },
+      },
+    },
+  };
+}
+
+function memoryStore(blobs: Map<string, StoredJournalImage>): JournalImageStore {
   return {
     async deleteImage(blobKey) {
       blobs.delete(blobKey);
@@ -129,4 +155,27 @@ function createMemoryImageStore(
       });
     },
   };
+}
+
+function note(overrides: Partial<JournalNote> & Pick<JournalNote, 'id' | 'title'>): JournalNote {
+  return {
+    body: overrides.body ?? '',
+    characterId: '169418374',
+    createdAt: '2026-10-13T12:00:00.000Z',
+    featuredImageId: null,
+    id: overrides.id,
+    images: [],
+    needsDetails: false,
+    questStatus: null,
+    schemaVersion: 2,
+    sessionDate: null,
+    title: overrides.title,
+    type: 'session',
+    updatedAt: '2026-10-13T12:00:00.000Z',
+  };
+}
+
+function sequence(ids: readonly string[]): () => string {
+  let index = 0;
+  return () => ids[index++] ?? `id-${index}`;
 }

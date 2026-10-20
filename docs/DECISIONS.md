@@ -230,7 +230,7 @@ Why:
 
 ## ADR-018: Journal entries use text blocks from the first slice
 
-Status: Accepted
+Status: Superseded for new writes by ADR-021. Version 1 records still load and migrate.
 
 Store journal entries as block-based records even though the first shipped block
 type is text.
@@ -248,7 +248,7 @@ Future image bytes should use extension-origin IndexedDB rather than
 
 ## ADR-019: Journal photos are image blocks in IndexedDB
 
-Status: Accepted
+Status: Superseded for new writes by ADR-021. Photo bytes stay in IndexedDB.
 
 Store each journal photo as an image block on the note. Keep the note record,
 including the block metadata, in `chrome.storage.local`. Keep the photo bytes
@@ -279,3 +279,30 @@ Why:
   bubble-phase click on the inner button misses the first click.
 - Character journal writes merge by entry id and keep unrecognized records so
   one window or one invalid block cannot delete another note.
+
+## ADR-021: Journal notes are markdown with an image list
+
+Status: Accepted
+
+New journal writes use schema version 2: a markdown body plus an image list.
+Version 1 block entries migrate once, after a backup of the version 1 array.
+The note is rendered by walking `marked`'s lexer and creating DOM nodes. Note
+text is not assigned with `innerHTML`.
+
+Why:
+
+- The player wiki needs headings, lists, links, and checkboxes in one body.
+  A block array made that editing model harder without protecting the text.
+- Image bytes are still too large for `chrome.storage.local`. The image list
+  stores metadata and a blob key. The bytes stay in extension-origin IndexedDB
+  under `bfa.journal.image.`.
+- A backup written before the live key changes, and never overwritten, is the
+  way back to the version 1 notes. Edits made after migration exist only in
+  the version 2 records.
+- Rendering through DOM nodes avoids an HTML sanitizer for as long as no HTML
+  string is produced. Add one before any path assigns parsed markdown through
+  `innerHTML`.
+- ADR-017 still holds: the journal is extension-owned and local. ADR-020 still
+  holds: the journal follows the sheet. The look is sampled from the sheet
+  Dylan uses, Matilda Greywolf (`172153137`), including the Notes and Extras
+  tab strip and the right-hand pane. Mockup colors are not the source.

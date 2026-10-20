@@ -12,6 +12,7 @@ import {
 import type {CharacterJournalEntry} from '../../features/character-journal/character-journal-types';
 import {
   CHARACTER_JOURNAL_SCHEMA_VERSION,
+  JOURNAL_NOTE_SCHEMA_VERSION,
   isCharacterJournalEntry,
 } from '../../features/character-journal/character-journal-types';
 import {
@@ -30,6 +31,8 @@ const CHARACTER_JOURNAL_SCHEMA_VERSION_KEY =
   'bfa.characterJournal.schemaVersion';
 const CHARACTER_JOURNAL_ENTRIES_KEY_PREFIX =
   'bfa.characterJournal.entries.';
+const CHARACTER_JOURNAL_BACKUP_KEY_PREFIX =
+  'bfa.characterJournal.backup.v1.';
 export const CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY =
   'bfa.preferences.campaignCardPortraitUpgradeEnabled';
 export const CHARACTER_JOURNAL_ENABLED_KEY =
@@ -227,6 +230,65 @@ export function getCharacterJournalEntriesKey(characterId: CharacterId): string 
   return `${CHARACTER_JOURNAL_ENTRIES_KEY_PREFIX}${characterId}`;
 }
 
+export function getCharacterJournalBackupKey(characterId: CharacterId): string {
+  return `${CHARACTER_JOURNAL_BACKUP_KEY_PREFIX}${characterId}`;
+}
+
+export async function readRawCharacterJournalRecords(
+    characterId: CharacterId,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<unknown[]> {
+  return readCharacterJournalRecords(characterId, storageArea);
+}
+
+export async function updateJournalNoteRecords(
+    characterId: CharacterId,
+    update: (records: readonly unknown[]) => unknown[],
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  await updateCharacterJournalRecords(
+      characterId,
+      update,
+      storageArea,
+      JOURNAL_NOTE_SCHEMA_VERSION,
+  );
+}
+
+export async function ensureJournalV1Backup(
+    characterId: CharacterId,
+    records: readonly unknown[],
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<'failed' | 'ready'> {
+  const backupKey = getCharacterJournalBackupKey(characterId);
+  const stored = await callStorageGet(backupKey, storageArea);
+  if (stored[backupKey] !== undefined) {
+    return 'ready';
+  }
+
+  try {
+    await callStorageSet({[backupKey]: [...records]}, storageArea);
+    return 'ready';
+  } catch {
+    return 'failed';
+  }
+}
+
+export async function restoreJournalV1Backup(
+    characterId: CharacterId,
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  const backupKey = getCharacterJournalBackupKey(characterId);
+  const stored = await callStorageGet(backupKey, storageArea);
+  const backup = stored[backupKey];
+  if (backup === undefined) {
+    throw new Error('Journal backup is missing.');
+  }
+
+  await callStorageSet({
+    [getCharacterJournalEntriesKey(characterId)]: backup,
+  }, storageArea);
+}
+
 async function readCharacterJournalRecords(
     characterId: CharacterId,
     storageArea: ChromeStorageLocal,
@@ -240,13 +302,14 @@ async function updateCharacterJournalRecords(
     characterId: CharacterId,
     update: (records: readonly unknown[]) => unknown[],
     storageArea: ChromeStorageLocal,
+    schemaVersion: number = CHARACTER_JOURNAL_SCHEMA_VERSION,
 ): Promise<void> {
   const entriesKey = getCharacterJournalEntriesKey(characterId);
   for (let attempt = 0; attempt < JOURNAL_WRITE_ATTEMPTS; attempt += 1) {
     const before = await readCharacterJournalRecords(characterId, storageArea);
     const nextRecords = update(before);
     await callStorageSet({
-      [CHARACTER_JOURNAL_SCHEMA_VERSION_KEY]: CHARACTER_JOURNAL_SCHEMA_VERSION,
+      [CHARACTER_JOURNAL_SCHEMA_VERSION_KEY]: schemaVersion,
       [entriesKey]: nextRecords,
     }, storageArea);
     const after = await readCharacterJournalRecords(characterId, storageArea);

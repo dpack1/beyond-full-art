@@ -1,3 +1,4 @@
+import {JOURNAL_SHEET_ROOT_SELECTOR} from '../../ddb/selectors';
 import type {Cleanup} from '../../shared/types';
 import {
   CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME,
@@ -27,7 +28,15 @@ const TAB_LIST_SELECTOR = [
   'ul',
   'ol',
   'nav',
+  'menu',
 ].join(',');
+const CORE_SHEET_TAB_LABELS = [
+  'actions',
+  'spells',
+  'inventory',
+  'features & traits',
+  'extras',
+];
 const CHARACTER_SHEET_TAB_LABELS = [
   'actions',
   'spells',
@@ -53,7 +62,7 @@ export function observeJournalTabTargets(
   let insertAttempts = 0;
   let attemptWindowStartedAt = Date.now();
   let scanScheduled = false;
-  const sheetSelector = '.ct-character-sheet, .ct-character-sheet-shell';
+  const sheetSelector = JOURNAL_SHEET_ROOT_SELECTOR;
 
   const scan = () => {
     if (
@@ -121,7 +130,7 @@ export function observeJournalTabTargets(
 
 export function removeStaleJournalUi(doc: Document): void {
   for (const node of doc.querySelectorAll(
-      `[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}], [${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}], .bfa-character-journal-section`,
+      `[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}], [${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}], .bfa-character-journal-section, [data-bfa-journal-panel], [data-bfa-journal-scrim]`,
   )) {
     node.remove();
   }
@@ -143,7 +152,7 @@ export function findOrCreateJournalTab(
       cleanup: () => {
         removeJournalTab(existingTab);
       },
-      contentHost: findJournalMount(contentHost),
+      contentHost,
       nativeTabs: findNativeTabs(existingTab),
       tab: existingTab,
     };
@@ -168,7 +177,7 @@ export function findOrCreateJournalTab(
     cleanup: () => {
       journalItem.remove();
     },
-    contentHost: findJournalMount(contentRegion),
+    contentHost: contentRegion,
     nativeTabs: findNativeTabs(extrasTab),
     tab: journalTab,
   };
@@ -180,7 +189,14 @@ export function getJournalTabHitTarget(tab: HTMLElement): HTMLElement {
   ) ?? tab;
 }
 
-export function clearNativeTabSelection(tabs: readonly HTMLElement[]): void {
+export function clearNativeTabSelection(
+    tabs: readonly HTMLElement[],
+    journalTab?: HTMLElement,
+): void {
+  if (journalTab !== undefined) {
+    captureActiveTabChrome(journalTab);
+  }
+
   for (const tab of tabs) {
     if (tab.getAttribute('aria-checked') === 'true') {
       tab.setAttribute('aria-checked', 'false');
@@ -215,6 +231,35 @@ export function clearNextNativeTab(target: HTMLElement): void {
   delete nativeTabItem(target).dataset.bfaNextActive;
 }
 
+export function captureActiveTabChrome(journalTab: HTMLElement): void {
+  const hitTarget = getJournalTabHitTarget(journalTab);
+  const root = findTabListRoot(hitTarget);
+  if (root === null) {
+    return;
+  }
+
+  const active = findVisuallyActiveTab(root);
+  const view = active?.ownerDocument.defaultView;
+  if (active === null || active === undefined || view === null || view === undefined) {
+    return;
+  }
+
+  const style = view.getComputedStyle(active);
+  const borderBottom = style.borderBottomStyle !== 'none'
+    && style.borderBottomWidth !== '0px'
+    && style.borderBottomWidth !== ''
+      ? `${style.borderBottomWidth} ${style.borderBottomStyle} ${style.borderBottomColor}`
+      : '';
+  const boxShadow = style.boxShadow !== '' && style.boxShadow !== 'none'
+    ? style.boxShadow
+    : '';
+  if (style.color === '' && borderBottom === '' && boxShadow === '') {
+    return;
+  }
+
+  hitTarget.dataset.bfaTabChrome = [style.color, borderBottom, boxShadow].join('|');
+}
+
 export function restoreNativeTabAfterJournal(journalTab: HTMLElement): void {
   const hitTarget = getJournalTabHitTarget(journalTab);
   const activeClass = hitTarget.dataset.bfaNativeActiveClass;
@@ -234,6 +279,42 @@ export function restoreNativeTabAfterJournal(journalTab: HTMLElement): void {
     element.classList.remove(activeClass);
   }
   nextTab?.classList.add(activeClass);
+}
+
+function findVisuallyActiveTab(root: HTMLElement): HTMLElement | null {
+  const elements = [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))]
+      .filter((element) => !isJournalTabPiece(element));
+  const classed = elements.find((element) =>
+    [...element.classList].some((className) => isActiveTabClass(className)),
+  );
+  if (classed !== undefined) {
+    return classed;
+  }
+
+  const selected = elements.find((element) =>
+    element.getAttribute('aria-selected') === 'true'
+    || element.getAttribute('aria-checked') === 'true',
+  );
+  if (selected !== undefined) {
+    return selected;
+  }
+
+  const view = root.ownerDocument.defaultView;
+  if (view === null) {
+    return null;
+  }
+
+  return elements.find((element) => {
+    const style = view.getComputedStyle(element);
+    const border = Number.parseFloat(style.borderBottomWidth);
+    const underlined = Number.isFinite(border)
+      && border >= 2
+      && style.borderBottomStyle !== 'none';
+    const shadow = style.boxShadow !== ''
+      && style.boxShadow !== 'none'
+      && style.boxShadow.includes('inset');
+    return underlined || shadow;
+  }) ?? null;
 }
 
 function findExtrasTab(root: ParentNode): HTMLElement | null {
@@ -439,34 +520,6 @@ function findNextElementSibling(element: HTMLElement): HTMLElement | null {
   return null;
 }
 
-function findJournalMount(contentRegion: HTMLElement): HTMLElement {
-  if (elementScrolls(contentRegion)) {
-    return contentRegion;
-  }
-
-  // The first scrolling descendant is the sheet pane. A later nested scroller
-  // belongs to the native panel, such as a spell list, and is not the mount.
-  for (const element of contentRegion.querySelectorAll<HTMLElement>('*')) {
-    if (elementScrolls(element)) {
-      return element;
-    }
-  }
-
-  return contentRegion;
-}
-
-function elementScrolls(element: HTMLElement): boolean {
-  const computed = element.ownerDocument.defaultView?.getComputedStyle(element);
-  return isScrollOverflow(element.style.overflow)
-    || isScrollOverflow(element.style.overflowY)
-    || isScrollOverflow(computed?.overflow ?? '')
-    || isScrollOverflow(computed?.overflowY ?? '');
-}
-
-function isScrollOverflow(value: string): boolean {
-  return value.split(/\s+/).some((part) => part === 'auto' || part === 'scroll');
-}
-
 function isJournalTabPiece(element: HTMLElement): boolean {
   return element.closest(
       `[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}], [${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}]`,
@@ -544,10 +597,13 @@ function findTabListRootByLabels(tab: HTMLElement): HTMLElement | null {
   let current: HTMLElement | null = tab;
   while (current !== null && current !== current.ownerDocument.body) {
     const currentText = normalizeText(current.textContent ?? '');
-    if (
-      CHARACTER_SHEET_TAB_LABELS.every((label) => currentText.includes(label))
-      && findNextElementSibling(current) !== null
-    ) {
+    const hasClassicLabels = CHARACTER_SHEET_TAB_LABELS.every((label) =>
+      currentText.includes(label),
+    );
+    const hasCoreLabels = CORE_SHEET_TAB_LABELS.every((label) =>
+      currentText.includes(label),
+    );
+    if ((hasClassicLabels || hasCoreLabels) && findNextElementSibling(current) !== null) {
       return current;
     }
 

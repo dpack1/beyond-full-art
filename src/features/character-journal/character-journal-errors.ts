@@ -1,14 +1,18 @@
 export function journalSaveErrorMessage(error: unknown): string {
   if (isQuotaError(error)) {
-    return 'Storage is full. Your note is still in the editor.';
+    return quotaMessage();
   }
 
   const message = errorMessage(error);
-  if (message.includes('still here') || message.includes('Try again')) {
+  if (
+    message.includes('still here')
+    || message.includes('still on screen')
+    || message.includes('Try again')
+  ) {
     return message;
   }
 
-  return 'Entry could not be saved. Your text is still here.';
+  return 'This note could not be saved. Your text is still here.';
 }
 
 export function journalActionErrorMessage(
@@ -16,11 +20,28 @@ export function journalActionErrorMessage(
     fallback: string,
 ): string {
   if (isQuotaError(error)) {
-    return 'Storage is full. Your note is still in the editor.';
+    return quotaMessage();
   }
 
   const message = errorMessage(error);
   return message === '' ? fallback : message;
+}
+
+function quotaMessage(): string {
+  const quota = readQuotaBytes();
+  if (quota === null) {
+    return 'Storage is full. This note is still on screen.';
+  }
+
+  return `Storage is full (${quota} bytes). This note is still on screen.`;
+}
+
+function readQuotaBytes(): number | null {
+  const chromeGlobal = (globalThis as {
+    chrome?: {storage?: {local?: {QUOTA_BYTES?: number}}};
+  }).chrome;
+  const quota = chromeGlobal?.storage?.local?.QUOTA_BYTES;
+  return typeof quota === 'number' ? quota : null;
 }
 
 function errorMessage(error: unknown): string {

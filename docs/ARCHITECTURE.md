@@ -203,6 +203,37 @@ behaviors, modeled in `LIVE_CHARACTER_SHEET_TABS_FIXTURE`:
 A fresh capture of the live DOM is still the owner's check. The fixture records
 the structure those bugs require, not a full copy of the sheet.
 
+### Character journal version 2, checked 2026-10-20
+
+Version 2 keeps the Journal tab and moves the note into a right-hand panel.
+The list mounts on the content region next to the tab strip
+(`.ddbc-tab-list__content` on the classic sheet). It does not search scrolling
+descendants for a mount. The panel is appended to `document.body` so a sheet
+`overflow: hidden` cannot clip it. It uses `ct-sidebar`, `ct-sidebar__portal`,
+`ct-sidebar__inner`, `ct-sidebar__header`, and `ct-sidebar__heading`. Hashed
+module classes are copied from a live sidebar or input when one is on the page.
+Classes whose name contains `hidden` are not copied.
+
+The visual source is Matilda Greywolf,
+`https://www.dndbeyond.com/characters/172153137`, captured 2026-10-20 in light
+and Underdark: the sheet, Notes, Extras, the Longsword pane, and the
+Organizations pane. Those PNG files were not retained in this workspace. A
+public light sheet, `https://www.dndbeyond.com/characters/4741434` ("Book"),
+was loaded the same day. It is the 2024 five-tab sheet (Actions, Spells,
+Inventory, Features & Traits, Extras) and is saved at
+`.agent/design/journal-v2/reference/live-sheet-light.png`. The tab matcher
+accepts that shorter label set and the classic seven-tab set.
+
+Theme comes from the sheet: `ct-theme-dark`, a class ending in `dark-mode`,
+`data-theme` or `data-appearance`, then background luminance. The journal does
+not read `prefers-color-scheme`. Colors are sampled from the sheet. Fallback
+tokens are used when a sample is missing. A white input is not treated as an
+Underdark field.
+
+Journal D&D Beyond selectors live in the Journal group of `src/ddb/selectors.ts`.
+`tests/unit/ddb-journal-selectors.test.ts` names the selector and the feature
+that breaks when a fixture no longer matches.
+
 ### Phase 1 DOM hooks observed on 2026-10-10
 
 From live D&D Beyond character sheet inspection, the right-side sheet panel may no longer expose `[data-testid="character-manage-pane"]`, and the displayed portrait may be a `div.ddbc-character-avatar__portrait` with the image URL in CSS `background-image` rather than an `img`.
@@ -302,14 +333,39 @@ through a validated runtime message. The service worker is the only writer.
 bfa.preferences.characterJournalEnabled
 bfa.characterJournal.schemaVersion
 bfa.characterJournal.entries.<characterId>
+bfa.characterJournal.backup.v1.<characterId>
 ```
 
-Each character key stores an array of entries sorted by most recent update. Writes
-re-read that array and merge by entry id, keeping the newer `updatedAt`, so a
-stale snapshot does not erase another window's note. Records that fail
-validation stay in the array and are omitted from the list, with a count shown
-in the journal. Each
-entry uses a block-based schema:
+Each character key stores an array of notes. Writes re-read that array and
+merge by id, keeping the newer `updatedAt`, so a stale snapshot does not erase
+another window's note. A save whose loaded `updatedAt` is older than the stored
+copy is refused. Records that fail validation stay in the array and are omitted
+from the list, with a count shown in the journal.
+
+New notes are schema version 2:
+
+```ts
+interface JournalNote {
+  id: string;
+  characterId: string;
+  title: string;
+  body: string;
+  type: 'session' | 'npc' | 'place' | 'item' | 'quest' | 'backstory' | 'unset';
+  images: JournalImage[];
+  needsDetails: boolean;
+  questStatus: null;
+  sessionDate: string | null;
+  featuredImageId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  schemaVersion: 2;
+}
+```
+
+`body` is markdown the player typed. `images` store the blob key, file name,
+and type. They do not store bytes. Opening a character that still has version 1
+entries writes `bfa.characterJournal.backup.v1.<characterId>` first, and that
+backup is never overwritten. The version 1 shape is:
 
 ```ts
 interface CharacterJournalEntry {

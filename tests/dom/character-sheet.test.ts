@@ -317,7 +317,7 @@ describe('character sheet enhancement', () => {
     expect(document.querySelector('.ddbc-tab-list__nav-item--is-active'))
         .toBe(document.querySelector('[data-bfa-character-journal-tab-item]'));
     expect(document.querySelector(
-        '[data-testid="sheet-scroller"] .bfa-character-journal-section',
+        '.ddbc-tab-list__content .bfa-character-journal-section',
     )).not.toBeNull();
 
     cleanup();
@@ -341,7 +341,7 @@ describe('character sheet enhancement', () => {
     cleanup();
   });
 
-  it('hides the journal when the character URL changes', async () => {
+  it('reloads a clean journal when the character URL changes', async () => {
     window.history.replaceState({}, '', '/characters/169418374');
     document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
 
@@ -358,12 +358,12 @@ describe('character sheet enhancement', () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
-        .toBe(true);
+        .toBe(false);
 
     cleanup();
   });
 
-  it('restores the journal preference when disabling it is cancelled', async () => {
+  it('keeps an unsaved note open when the preference turns off, then removes the tab', async () => {
     window.history.replaceState({}, '', '/characters/169418374');
     document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
 
@@ -373,9 +373,9 @@ describe('character sheet enhancement', () => {
         '[data-bfa-character-journal-tab="true"]',
     )?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const title = document.querySelector<HTMLInputElement>(
-        '.bfa-character-journal-title-input',
-    );
+    buttonByText('New note')?.click();
+    buttonByText('Session')?.click();
+    const title = document.querySelector<HTMLInputElement>('.bfa-journal-title-field');
     if (title === null) {
       throw new Error('Missing journal title');
     }
@@ -385,21 +385,25 @@ describe('character sheet enhancement', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
         .not.toBeNull();
-    expect(document.querySelector<HTMLElement>('.bfa-character-journal-confirm')?.hidden)
-        .toBe(false);
+    expect(document.querySelector('.bfa-journal-confirm')?.textContent)
+        .toContain('Keep editing');
 
-    Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-        .find((button) => button.textContent === 'Keep editing')
-        ?.click();
+    buttonByText('Keep editing')?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const stored = await readStorage('bfa.preferences.characterJournalEnabled');
-    expect(stored).toBe(true);
+    expect(await readStorage('bfa.preferences.characterJournalEnabled')).toBe(false);
     expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
         .not.toBeNull();
     expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
         .toBe(false);
     expect(title.value).toBe('Unsaved title');
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click();
+    buttonByText('Discard')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
+        .toBeNull();
+    expect(await readStorage('bfa.preferences.characterJournalEnabled')).toBe(false);
 
     cleanup();
   });
@@ -414,9 +418,9 @@ describe('character sheet enhancement', () => {
         '[data-bfa-character-journal-tab="true"]',
     )?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const title = document.querySelector<HTMLInputElement>(
-        '.bfa-character-journal-title-input',
-    );
+    buttonByText('New note')?.click();
+    buttonByText('Session')?.click();
+    const title = document.querySelector<HTMLInputElement>('.bfa-journal-title-field');
     if (title === null) {
       throw new Error('Missing journal title');
     }
@@ -453,6 +457,11 @@ type StorageChangeListener = (
   changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void;
+
+function buttonByText(label: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent === label);
+}
 
 function setStorage(values: Record<string, unknown>): Promise<void> {
   return new Promise((resolve) => {

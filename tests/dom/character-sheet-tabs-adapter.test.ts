@@ -114,13 +114,13 @@ describe('character sheet tabs adapter', () => {
     expect(document.querySelector('[data-bfa-character-journal-tab]')).toBeNull();
   });
 
-  it('mounts the journal in the scrolling pane and drops the active tab class', () => {
+  it('mounts the journal on the content region and drops the active tab class', () => {
     document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
 
     const target = findOrCreateJournalTab(document);
 
     expect(target?.contentHost).toBe(
-        document.querySelector('[data-testid="sheet-scroller"]'),
+        document.querySelector('.ddbc-tab-list__content'),
     );
     expect(target?.tab.parentElement?.className ?? '')
         .not.toContain('is-active');
@@ -171,7 +171,7 @@ describe('character sheet tabs adapter', () => {
         .toBe(false);
   });
 
-  it('mounts in the sheet scroller when a nested pane also scrolls', () => {
+  it('mounts on the content region when a nested pane also scrolls', () => {
     document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
     const panel = document.querySelector('[data-testid="native-character-panel"]');
     const nested = document.createElement('div');
@@ -183,8 +183,30 @@ describe('character sheet tabs adapter', () => {
     const target = findOrCreateJournalTab(document);
 
     expect(target?.contentHost).toBe(
-        document.querySelector('[data-testid="sheet-scroller"]'),
+        document.querySelector('.ddbc-tab-list__content'),
     );
+  });
+
+  it('clears is-active on a nested tab span and learns the class from Actions', () => {
+    document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
+    const extras = tabItem('Extras');
+    extras?.classList.remove('ddbc-tab-list__nav-item--is-active');
+    const actions = tabItem('Actions');
+    const nested = document.createElement('span');
+    nested.className = 'ddbc-tab-list__nav-item--is-active';
+    nested.textContent = 'Actions label';
+    actions?.append(nested);
+
+    const target = findOrCreateJournalTab(document);
+    if (target === null) {
+      throw new Error('Missing tab target');
+    }
+
+    clearNativeTabSelection(target.nativeTabs, target.tab);
+    expect(nested.classList.contains('ddbc-tab-list__nav-item--is-active'))
+        .toBe(false);
+    expect(target.tab.parentElement?.dataset.bfaNativeActiveClass)
+        .toBe('ddbc-tab-list__nav-item--is-active');
   });
 });
 

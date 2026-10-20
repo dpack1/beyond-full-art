@@ -1,8 +1,9 @@
-import type {CharacterJournalEntry} from './character-journal-types';
+import type {CharacterJournalEntry, JournalEntryType, JournalNote} from './character-journal-types';
 import {
   getImageBlocks,
   getTextFromJournalEntry,
 } from './character-journal-types';
+import {journalPlainText} from './character-journal-markdown';
 
 export type JournalPhotoFilter = 'all' | 'with-photos';
 export type JournalSortOrder = 'newest' | 'oldest';
@@ -81,6 +82,153 @@ function getJournalSearchText(entry: CharacterJournalEntry): string {
     getTextFromJournalEntry(entry),
     ...getImageBlocks(entry).map((block) => block.fileName),
   ].join('\n').toLowerCase();
+}
+
+export type JournalCategory =
+  | 'all'
+  | 'backstory'
+  | 'item'
+  | 'npc'
+  | 'place'
+  | 'quest'
+  | 'session';
+
+export const JOURNAL_CATEGORIES: readonly JournalCategory[] = [
+  'all',
+  'session',
+  'npc',
+  'place',
+  'item',
+  'quest',
+  'backstory',
+];
+
+const CATEGORY_LABELS: Record<JournalCategory, string> = {
+  all: 'All',
+  backstory: 'Backstory',
+  item: 'Items',
+  npc: 'NPCs',
+  place: 'Places',
+  quest: 'Quests',
+  session: 'Sessions',
+};
+
+const TYPE_LABELS: Record<JournalEntryType, string> = {
+  backstory: 'Backstory',
+  item: 'Item',
+  npc: 'NPC',
+  place: 'Place',
+  quest: 'Quest',
+  session: 'Session',
+  unset: 'Unsorted',
+};
+
+const EMPTY_LABELS: Record<JournalCategory, string> = {
+  all: 'No notes',
+  backstory: 'No backstory',
+  item: 'No items',
+  npc: 'No NPCs',
+  place: 'No places',
+  quest: 'No quests',
+  session: 'No sessions',
+};
+
+export function journalCategoryLabel(category: JournalCategory): string {
+  return CATEGORY_LABELS[category];
+}
+
+export function journalTypeLabel(type: JournalEntryType): string {
+  return TYPE_LABELS[type];
+}
+
+export function journalCategoryCounts(
+    notes: readonly JournalNote[],
+): Record<JournalCategory, number> {
+  const counts: Record<JournalCategory, number> = {
+    all: notes.length,
+    backstory: 0,
+    item: 0,
+    npc: 0,
+    place: 0,
+    quest: 0,
+    session: 0,
+  };
+  for (const note of notes) {
+    if (note.type !== 'unset') {
+      counts[note.type] += 1;
+    }
+  }
+
+  return counts;
+}
+
+export function visibleJournalNotes(
+    notes: readonly JournalNote[],
+    category: JournalCategory,
+    query: string,
+): JournalNote[] {
+  const needle = query.trim().toLocaleLowerCase();
+  return notes
+      .filter((note) => category === 'all' || note.type === category)
+      .filter((note) => needle === '' || journalSearchText(note).includes(needle))
+      .sort((left, right) => compareJournalNotes(left, right, category));
+}
+
+export function journalEmptyLabel(
+    category: JournalCategory,
+    query: string,
+): string {
+  if (query.trim() !== '') {
+    return 'No matches';
+  }
+
+  return EMPTY_LABELS[category];
+}
+
+export function journalRowPreview(note: JournalNote): string {
+  return journalPlainText(note.body);
+}
+
+function journalSearchText(note: JournalNote): string {
+  return [
+    note.title,
+    note.body,
+    ...note.images.map((image) => image.fileName),
+  ].join('\n').toLocaleLowerCase();
+}
+
+function compareJournalNotes(
+    left: JournalNote,
+    right: JournalNote,
+    category: JournalCategory,
+): number {
+  if (category === 'session' || category === 'all') {
+    const dateComparison = compareSessionDate(left, right);
+    if (category === 'session' && dateComparison !== 0) {
+      return dateComparison;
+    }
+  }
+
+  const updatedComparison = right.updatedAt.localeCompare(left.updatedAt);
+  return updatedComparison === 0
+    ? left.id.localeCompare(right.id)
+    : updatedComparison;
+}
+
+function compareSessionDate(left: JournalNote, right: JournalNote): number {
+  if (left.sessionDate === right.sessionDate) {
+    return 0;
+  }
+
+  if (left.sessionDate === null) {
+    return 1;
+  }
+
+  if (right.sessionDate === null) {
+    return -1;
+  }
+
+  return right.sessionDate.localeCompare(left.sessionDate);
 }
 
 function compareJournalEntriesNewestFirst(

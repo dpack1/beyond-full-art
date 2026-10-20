@@ -122,19 +122,28 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 
 ## Character journal manual checklist
 
-1. Build the extension and reload it in `chrome://extensions`.
-2. Open a D&D Beyond character sheet and confirm **Journal** sits after **Extras** and uses the same tab treatment.
-3. Save a note, refresh, and confirm the note is still there.
-4. Add a PNG, JPEG, or WebP photo under 3 MB, open it, and remove it.
-5. Save a second note and confirm search, **With photos**, and **Oldest** find the right note.
-6. Try an oversized or unsupported file and confirm the note text remains.
-7. Turn **Character Journal tab** off in the popup and confirm the tab disappears while the saved note remains after turning it back on.
-8. Confirm one click on Journal, including the padding around the label, opens the section and clears the previous tab underline. Journal should read as an uppercase label like Extras, with the same underline and hover and no box around the word.
-9. Switch the sheet between light and dark appearance and confirm journal text and inputs stay readable, including a change while Journal is open.
-10. On a long note, scroll inside the sheet pane until Save and Delete are visible.
-11. Type unsaved text, choose another tab, and confirm the journal asks before discarding it.
+Build the extension, reload it in `chrome://extensions`, and check these on a
+live sheet. The visual source is Matilda Greywolf,
+`https://www.dndbeyond.com/characters/172153137`: the Journal tab and section
+sit with Notes and Extras, and the note panel matches that sheet's right pane.
+Switch Appearance under Manage, then Character Settings. Do not judge the
+journal by the operating system's theme.
 
-Automated coverage for the simple fixture is `tests/e2e/character-journal.spec.ts`. The live-shaped dark sheet, first click, and scroll coverage is `tests/e2e/character-journal-sheet.spec.ts`. Neither opens the live site.
+1. Journal is the uppercase tab after Extras. One pointerdown on the label and on the padding opens it. The previous tab is not underlined, including when the sheet loaded on Actions.
+2. The list replaces the main pane. It is not inside a nested scroller.
+3. Light and Underdark, including a toggle while Journal is open. Chip text stays readable. Fields stay dark in Underdark.
+4. File a quick note. Reload. It is on today's session.
+5. Open an entry, read it, edit it, reload. The markdown survived.
+6. Create `[[Someone new]]` from autocomplete. The placeholder shows Needs details and appears under Mentioned in on the note that named them.
+7. Add a PNG under 3 MB. The row thumbnail and the panel both show it. A file over 3 MB is rejected and the note text remains.
+8. Unsaved edit, switch to Spells, choose to keep editing. The confirm was on screen. The draft is still there.
+9. Turn the popup setting off, keep editing, then close. The Journal tab leaves.
+10. If the live sheet can change character without a reload, a note in progress does not appear on the next character.
+11. A narrow window: chips scroll sideways, the panel covers the screen, Close returns to the list.
+12. Keyboard only: open Journal, open a row, Edit, Close. Focus returns to the row. Tab never lands on an invisible file input.
+13. A version 1 note and photo created before the upgrade are present once, with the text intact.
+
+Automated coverage for the simple fixture is `tests/e2e/character-journal.spec.ts`. The live-shaped sheet, first click, theme, and scroll coverage is `tests/e2e/character-journal-sheet.spec.ts`. Build screenshots are `tests/e2e/character-journal-build-shots.spec.ts`. None of them open the live site.
 
 ## Delete cleanup manual checklist
 

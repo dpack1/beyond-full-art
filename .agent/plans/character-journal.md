@@ -1,5 +1,9 @@
 # Character Journal
 
+Version 2 is specified in `.agent/plans/character-journal-v2.md` and
+`.agent/plans/character-journal-v2-design.md`. This file remains the spec for
+the unmerged version 1 slice. New journal behavior follows the version 2 plan.
+
 ## Goal
 
 Add an extension-owned character journal to D&D Beyond character sheets.

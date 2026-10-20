@@ -2,15 +2,18 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {createCharacterJournalSection} from '../../src/features/character-journal/character-journal-section';
 import type {CharacterJournalService} from '../../src/features/character-journal/character-journal-service';
-import type {CharacterJournalEntry} from '../../src/features/character-journal/character-journal-types';
+import {colorsContrast} from '../../src/features/character-journal/character-journal-theme';
+import type {JournalNote} from '../../src/features/character-journal/character-journal-types';
 
 describe('character journal section', () => {
   beforeEach(() => {
     document.body.innerHTML = `
-      <button id="journal-tab" type="button">Journal</button>
-      <section id="content-host">
-        <div id="native-panel">Native sheet panel</div>
-      </section>
+      <div class="ct-character-sheet" data-theme="light">
+        <button id="journal-tab" type="button">Journal</button>
+        <section id="content-host">
+          <div id="native-panel">Native sheet panel</div>
+        </section>
+      </div>
     `;
     document.head.querySelector('[data-bfa-character-journal-styles]')?.remove();
   });
@@ -21,415 +24,228 @@ describe('character journal section', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows inline in the content host and preserves native content for restore', async () => {
+  it('shows the list in the content host and says there are no notes', async () => {
     const section = createCharacterJournalSection(createFakeService([]));
-    const host = getContentHost();
-    const nativePanel = getNativePanel();
+    await showSection(section);
 
-    await section.show({
-      characterId: '169418374',
-      contentHost: host,
-      tab: getJournalTab(),
-    });
-
-    expect(host.querySelector('.bfa-character-journal-section')).not.toBeNull();
-    expect(nativePanel.hidden).toBe(true);
-    expect(document.querySelector('.bfa-character-journal-images')).not.toBeNull();
-    expect(document.querySelector('.bfa-character-journal-list')?.textContent)
-        .toContain('No notes yet.');
+    expect(getContentHost().querySelector('.bfa-character-journal-section')).not.toBeNull();
+    expect(getNativePanel().hidden).toBe(true);
+    expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No notes');
+    expect(document.querySelector('.ct-sidebar[data-bfa-journal-panel]')).not.toBeNull();
 
     section.hide();
-
-    expect(nativePanel.hidden).toBe(false);
-    expect(section.isShown()).toBe(false);
-
+    expect(getNativePanel().hidden).toBe(false);
     section.destroy();
   });
 
-  it('saves a new note entry inside the section', async () => {
-    const entries: CharacterJournalEntry[] = [];
-    const section = createCharacterJournalSection(createFakeService(entries));
-
-    await showSection(section);
-    getTitleInput().value = 'First session';
-    getBodyInput().value = 'Matilda found the locked door.';
-    getSaveButton().click();
-    await flushPromises();
-
-    expect(entries).toHaveLength(1);
-    expect(entries[0]?.title).toBe('First session');
-    expect(entries[0]?.blocks[0]?.type === 'text'
-      ? entries[0].blocks[0].text
-      : '').toBe('Matilda found the locked door.');
-    expect(getEditorStatus().textContent).toBe('Saved.');
-
-    section.destroy();
-  });
-
-  it('loads, edits, and deletes an existing note entry', async () => {
-    const entries = [
-      createEntry({
-        id: 'entry-1',
-        text: 'Old text.',
-        title: 'Old title',
-      }),
-    ];
-    const section = createCharacterJournalSection(createFakeService(entries));
-
+  it('filters rows by the search query', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({body: 'A locked door under the chapel.', id: 'door', title: 'Locked door'}),
+      note({body: 'Bought rope.', id: 'market', title: 'Market day'}),
+    ]));
     await showSection(section);
 
-    expect(getTitleInput().value).toBe('Old title');
-    expect(getBodyInput().value).toBe('Old text.');
-
-    getTitleInput().value = 'Updated title';
-    getBodyInput().value = 'Updated text.';
-    getSaveButton().click();
-    await flushPromises();
-
-    expect(entries[0]?.title).toBe('Updated title');
-    expect(entries[0]?.blocks[0]?.type === 'text'
-      ? entries[0].blocks[0].text
-      : '').toBe('Updated text.');
-
-    getDeleteButton().click();
-    getButton('Delete note').click();
-    await flushPromises();
-
-    expect(entries).toEqual([]);
-    expect(getEditorStatus().textContent).toBe('Deleted.');
-
-    section.destroy();
-  });
-
-  it('preserves editor text after a failed save', async () => {
-    const section = createCharacterJournalSection(createFakeService([], {
-      saveError: new Error('No storage today'),
-    }));
-
-    await showSection(section);
-    getTitleInput().value = 'Unsaved title';
-    getBodyInput().value = 'Unsaved body';
-    getSaveButton().click();
-    await flushPromises();
-
-    expect(getTitleInput().value).toBe('Unsaved title');
-    expect(getBodyInput().value).toBe('Unsaved body');
-    expect(getEditorStatus().textContent)
-        .toBe('Entry could not be saved. Your text is still here.');
-
-    section.destroy();
-  });
-
-  it('filters notes by the search query', async () => {
-    const entries = [
-      createEntry({
-        id: 'entry-door',
-        text: 'A locked door under the chapel.',
-        title: 'Locked door',
-        updatedAt: '2026-10-13T00:00:00.000Z',
-      }),
-      createEntry({
-        id: 'entry-market',
-        text: 'Bought rope and rations.',
-        title: 'Market day',
-        updatedAt: '2026-10-12T00:00:00.000Z',
-      }),
-    ];
-    const section = createCharacterJournalSection(createFakeService(entries));
-
-    await showSection(section);
-    const search = document.querySelector<HTMLInputElement>(
-        '.bfa-character-journal-search',
-    );
+    const search = document.querySelector<HTMLInputElement>('.bfa-journal-search');
     if (search === null) {
-      throw new Error('Missing search input');
+      throw new Error('Missing search');
     }
-
     search.value = 'chapel';
     search.dispatchEvent(new Event('input'));
 
-    const titles = Array.from(
-        document.querySelectorAll('.bfa-character-journal-entry-title'),
-        (element) => element.textContent,
-    );
-    expect(titles).toEqual(['Locked door']);
-
+    expect(titles()).toEqual(['Locked door']);
     search.value = 'nope';
     search.dispatchEvent(new Event('input'));
-    expect(document.querySelector('.bfa-character-journal-list')?.textContent)
-        .toContain('The open note is hidden by this search.');
-
+    expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No matches');
     section.destroy();
   });
 
-  it('adds a photo to the open note', async () => {
-    const entries: CharacterJournalEntry[] = [];
-    const section = createCharacterJournalSection(createFakeService(entries));
-
-    await showSection(section);
-    getTitleInput().value = 'Camp';
-    getBodyInput().value = 'Rain on the tent.';
-    const input = document.querySelector<HTMLInputElement>(
-        '.bfa-character-journal-photo-input',
-    );
-    if (input === null) {
-      throw new Error('Missing photo input');
-    }
-
-    const file = new File(['photo'], 'camp.png', {type: 'image/png'});
-    Object.defineProperty(input, 'files', {
-      configurable: true,
-      value: {0: file, length: 1},
-    });
-    input.dispatchEvent(new Event('change'));
-    await flushPromises();
-
-    expect(document.querySelector('[aria-label="View photo camp.png"]'))
-        .not.toBeNull();
-    expect(entries[0]?.blocks.some((block) => block.type === 'image')).toBe(true);
-
-    section.destroy();
-  });
-
-  it('deletes the note the confirmation was opened for', async () => {
-    const entries = [
-      createEntry({
-        id: 'entry-door',
-        text: 'A locked door under the chapel.',
-        title: 'Locked door',
-        updatedAt: '2026-10-13T00:00:00.000Z',
-      }),
-      createEntry({
-        id: 'entry-market',
-        text: 'Bought rope and rations.',
-        title: 'Market day',
-        updatedAt: '2026-10-12T00:00:00.000Z',
-      }),
-    ];
-    const deletedIds: string[] = [];
-    const service = createFakeService(entries);
-    const deleteEntry = service.deleteEntry.bind(service);
-    service.deleteEntry = async (characterId, entryId) => {
-      deletedIds.push(entryId);
-      await deleteEntry(characterId, entryId);
-    };
-    const section = createCharacterJournalSection(service);
-
-    await showSection(section);
-    expect(getTitleInput().value).toBe('Locked door');
-
-    getDeleteButton().click();
-    expect(getConfirmText()).toContain('Locked door');
-
-    getEntryButton('Market day').click();
-    expect(getTitleInput().value).toBe('Market day');
-    expect(getConfirmText()).toContain('Locked door');
-
-    getConfirmButton('Delete note').click();
-    await flushPromises();
-
-    expect(deletedIds).toEqual(['entry-door']);
-    expect(entries.map((entry) => entry.id)).toEqual(['entry-market']);
-    expect(getTitleInput().value).toBe('Market day');
-
-    section.destroy();
-  });
-
-  it('releases a photo object URL when that photo is removed', async () => {
-    const objectUrls = installObjectUrlStub();
-    const entries = [createPhotoEntry()];
-    const section = createCharacterJournalSection(createFakeService(entries));
-
-    try {
-      await showSection(section);
-      await flushPromises();
-
-      getButton('Remove').click();
-      getConfirmButton('Remove photo').click();
-      await flushPromises();
-
-      expect(objectUrls.revoked).toEqual(['blob:journal-photo-1']);
-      expect(document.querySelector('[aria-label="View photo camp.png"]'))
-          .toBeNull();
-    } finally {
-      section.destroy();
-      expect(objectUrls.revoked).toEqual(['blob:journal-photo-1']);
-      objectUrls.restore();
-    }
-  });
-
-  it('releases photo object URLs when the note that owns them is deleted', async () => {
-    const objectUrls = installObjectUrlStub();
-    const entries = [createPhotoEntry()];
-    const section = createCharacterJournalSection(createFakeService(entries));
-
-    try {
-      await showSection(section);
-      await flushPromises();
-
-      getDeleteButton().click();
-      getConfirmButton('Delete note').click();
-      await flushPromises();
-
-      expect(entries).toEqual([]);
-      expect(objectUrls.revoked).toEqual(['blob:journal-photo-1']);
-    } finally {
-      section.destroy();
-      objectUrls.restore();
-    }
-  });
-
-  it('returns focus to Add photo after removing a photo from the viewer', async () => {
-    const objectUrls = installObjectUrlStub();
-    const section = createCharacterJournalSection(
-        createFakeService([createPhotoEntry()]),
-    );
-
-    try {
-      await showSection(section);
-      await flushPromises();
-
-      const viewButton = document.querySelector<HTMLButtonElement>(
-          '[aria-label="View photo camp.png"]',
-      );
-      if (viewButton === null) {
-        throw new Error('Missing photo view button');
-      }
-      viewButton.click();
-      expect(document.querySelector('.bfa-journal-photo-viewer')?.hasAttribute('hidden'))
-          .toBe(false);
-
-      document.querySelector<HTMLButtonElement>(
-          '.bfa-journal-photo-viewer__button--danger',
-      )?.click();
-      await flushPromises();
-
-      expect(document.querySelector('.bfa-journal-photo-viewer')?.hasAttribute('hidden'))
-          .toBe(true);
-      expect(document.activeElement).toBe(getButton('Add photo'));
-    } finally {
-    section.destroy();
-    objectUrls.restore();
-    }
-  });
-
-  it('keeps an unsaved draft when the journal is opened again', async () => {
-    const section = createCharacterJournalSection(createFakeService([]));
-
-    await showSection(section);
-    getTitleInput().value = 'Unsaved title';
-    getBodyInput().value = 'Unsaved body';
-    section.hide();
-    await showSection(section);
-
-    expect(getTitleInput().value).toBe('Unsaved title');
-    expect(getBodyInput().value).toBe('Unsaved body');
-    await showSection(section);
-    expect(getTitleInput().value).toBe('Unsaved title');
-
-    section.destroy();
-  });
-
-  it('asks before closing a dirty journal and keeps the saved note after discard', async () => {
-    const entries = [
-      createEntry({
-        id: 'entry-1',
-        text: 'Saved text.',
-        title: 'Saved title',
-      }),
-    ];
-    const section = createCharacterJournalSection(createFakeService(entries));
-
-    await showSection(section);
-    getTitleInput().value = 'Changed title';
-    section.requestHide();
-
-    expect(section.isShown()).toBe(true);
-    expect(getConfirmText()).toContain('unsaved changes');
-
-    getConfirmButton('Discard').click();
-
-    expect(section.isShown()).toBe(false);
-    await showSection(section);
-    expect(getTitleInput().value).toBe('Saved title');
-
-    section.destroy();
-  });
-
-  it('keeps the journal open when leaving is cancelled', async () => {
+  it('keeps a dirty note when leaving is cancelled, and discard closes it', async () => {
     let hidden = false;
     let cancelled = false;
     const section = createCharacterJournalSection(createFakeService([]));
-
     await showSection(section);
-    getTitleInput().value = 'Unsaved title';
+    openNewSession();
+    const title = titleField();
+    title.value = 'Unsaved title';
+    title.dispatchEvent(new Event('input'));
+
     section.requestHide(() => {
       hidden = true;
     }, () => {
       cancelled = true;
     });
 
-    getConfirmButton('Keep editing').click();
-
+    const confirm = document.querySelector('.bfa-journal-confirm');
+    expect(confirm?.textContent).toContain('This note is not saved yet.');
+    expect(document.activeElement).toBe(buttonNamed('Keep editing'));
+    buttonNamed('Keep editing')?.click();
     expect(section.isShown()).toBe(true);
-    expect(getTitleInput().value).toBe('Unsaved title');
     expect(hidden).toBe(false);
     expect(cancelled).toBe(true);
+    expect(titleField().value).toBe('Unsaved title');
 
+    section.requestHide();
+    buttonNamed('Discard')?.click();
+    expect(section.isShown()).toBe(false);
     section.destroy();
   });
 
-  it('deletes a confirmed note after the in-flight save finishes', async () => {
-    let releaseSave = () => {};
-    const saveGate = new Promise<void>((resolve) => {
-      releaseSave = resolve;
-    });
-    const entries = [
-      createEntry({
-        id: 'entry-1',
-        text: 'Saved text.',
-        title: 'Saved title',
-      }),
-    ];
-    const service = createFakeService(entries);
-    const saveTextEntry = service.saveTextEntry.bind(service);
-    service.saveTextEntry = async (draft) => {
-      await saveGate;
-      return saveTextEntry(draft);
-    };
-    const section = createCharacterJournalSection(service);
-
+  it('keeps the draft when Escape is pressed on the confirm', async () => {
+    const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);
-    getDeleteButton().click();
-    getTitleInput().value = 'Changed while deleting';
-    getSaveButton().click();
-    getConfirmButton('Delete note').click();
-    expect(entries).toHaveLength(1);
+    openNewSession();
+    titleField().value = 'Keep me';
+    titleField().dispatchEvent(new Event('input'));
+    section.requestHide();
 
-    releaseSave();
-    await flushPromises();
-    await flushPromises();
-
-    expect(entries).toHaveLength(0);
-    expect(getEditorStatus().textContent).toBe('Deleted.');
-
-    section.destroy();
-  });
-
-  it('says storage is full when a save hits quota', async () => {
-    const section = createCharacterJournalSection(createFakeService([], {
-      saveError: new Error('QUOTA_BYTES quota exceeded'),
+    document.querySelector('.bfa-journal-panel')?.dispatchEvent(new KeyboardEvent('keydown', {
+      bubbles: true,
+      key: 'Escape',
     }));
 
+    expect(section.isShown()).toBe(true);
+    expect(titleField().value).toBe('Keep me');
+    expect(document.querySelector('.bfa-journal-confirm')).toBeNull();
+    section.destroy();
+  });
+
+  it('closes a clean panel on Escape and returns focus to the row', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+    ]));
     await showSection(section);
-    getTitleInput().value = 'Kept';
-    getSaveButton().click();
-    await flushPromises();
+    const row = document.querySelector<HTMLButtonElement>('.bfa-journal-row');
+    row?.focus();
+    row?.click();
 
-    expect(getEditorStatus().textContent)
-        .toBe('Storage is full. Your note is still in the editor.');
-    expect(getTitleInput().value).toBe('Kept');
+    document.querySelector('.bfa-journal-panel')?.dispatchEvent(new KeyboardEvent('keydown', {
+      bubbles: true,
+      key: 'Escape',
+    }));
 
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(document.activeElement).toBe(row);
+    section.destroy();
+  });
+
+  it('keeps the image file input out of the tab order', async () => {
+    const section = createCharacterJournalSection(createFakeService([]));
+    await showSection(section);
+    openNewSession();
+    const fileInput = document.querySelector<HTMLInputElement>('.bfa-journal-file-input');
+    expect(fileInput?.tabIndex).toBe(-1);
+    expect(fileInput?.hidden).toBe(true);
+    section.destroy();
+  });
+
+  it('does not write a draft onto the character id in the new URL', async () => {
+    const savedIds: string[] = [];
+    const service = createFakeService([]);
+    const save = service.save.bind(service);
+    service.save = async (entry, loaded) => {
+      savedIds.push(entry.characterId);
+      return save(entry, loaded);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    openNewSession();
+    titleField().value = 'Belongs to the first sheet';
+    titleField().dispatchEvent(new Event('input'));
+
+    section.syncRoute('222');
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    expect(document.body.textContent).toContain('another character');
+    expect(savedIds.every((id) => id === '169418374')).toBe(true);
+    section.destroy();
+  });
+
+  it('does not paint an in-flight save onto the new character', async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const notes = [note({id: 'door', title: 'Locked door'})];
+    const service = createFakeService(notes);
+    const save = service.save.bind(service);
+    service.save = async (entry, loaded) => {
+      await gate;
+      return save(entry, loaded);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
+    buttonNamed('Edit')?.click();
+    titleField().value = 'Changed during navigation';
+    titleField().dispatchEvent(new Event('input'));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    section.syncRoute('222');
+    release();
+    await flush();
+
+    expect(notes[0]?.characterId).toBe('169418374');
+    expect(notes[0]?.title).toBe('Changed during navigation');
+    expect(document.body.textContent).toContain('another character');
+    expect(document.querySelector('.bfa-journal-status')?.textContent).not.toBe('Saved');
+    section.destroy();
+  });
+
+  it('keeps Underdark fields dark when another sheet input is white', async () => {
+    const sheet = document.querySelector<HTMLElement>('.ct-character-sheet');
+    if (sheet === null) {
+      throw new Error('Missing sheet');
+    }
+    sheet.classList.add('ct-character-sheet--dark-mode');
+    sheet.dataset.theme = 'dark';
+    sheet.style.backgroundColor = '#1b242b';
+    sheet.style.color = '#f2f4f6';
+    const decoy = document.createElement('input');
+    decoy.style.backgroundColor = 'rgb(255, 255, 255)';
+    sheet.prepend(decoy);
+
+    const section = createCharacterJournalSection(createFakeService([]));
+    await showSection(section);
+    const root = document.querySelector<HTMLElement>('.bfa-character-journal-section');
+    const surface = root?.style.getPropertyValue('--bfa-journal-surface').toLowerCase() ?? '';
+    expect(
+        surface,
+        `Underdark field fill ${surface} came from a white input. Matilda's fields stay dark.`,
+    ).not.toMatch(/#fff(?:fff)?|rgb\(255,\s*255,\s*255\)/);
+    section.destroy();
+  });
+
+  it('uses a pressed chip whose label contrasts with the pill', async () => {
+    const sheet = document.querySelector<HTMLElement>('.ct-character-sheet');
+    if (sheet === null) {
+      throw new Error('Missing sheet');
+    }
+    sheet.classList.add('ct-character-sheet--dark-mode');
+    sheet.dataset.theme = 'dark';
+    sheet.style.backgroundColor = '#1b242b';
+    sheet.style.color = '#f2f4f6';
+    const section = createCharacterJournalSection(createFakeService([]));
+    await showSection(section);
+
+    const chip = document.querySelector<HTMLElement>('.bfa-journal-chip[aria-checked="true"]');
+    const root = document.querySelector<HTMLElement>('.bfa-character-journal-section');
+    if (chip === null || root === null) {
+      throw new Error('Missing pressed chip');
+    }
+    const foreground = root.style.getPropertyValue('--bfa-journal-background');
+    const background = root.style.getPropertyValue('--bfa-journal-text');
+    expect(
+        colorsContrast(foreground, background),
+        `Pressed All chip label ${foreground} on fill ${background} is below 4.5:1. The Notes-tab pill is unreadable.`,
+    ).toBe(true);
+    expect(chip.textContent ?? '').toMatch(/All/);
+
+    sheet.classList.remove('ct-character-sheet--dark-mode');
+    sheet.dataset.theme = 'light';
+    sheet.style.backgroundColor = '#ffffff';
+    sheet.style.color = '#242527';
+    sheet.dispatchEvent(new Event('change'));
+    document.documentElement.setAttribute('data-theme', 'light');
+    await new Promise((resolve) => setTimeout(resolve, 0));
     section.destroy();
   });
 });
@@ -444,112 +260,96 @@ async function showSection(
   });
 }
 
-function createFakeService(
-    entries: CharacterJournalEntry[],
-    options: {saveError?: Error} = {},
-): CharacterJournalService {
+function createFakeService(notes: JournalNote[]): CharacterJournalService {
   return {
-    async attachImage(draft, file) {
-      const entry = createEntry({
-        id: draft.entryId ?? 'entry-photo',
-        text: draft.text,
-        title: draft.title.trim() === '' ? 'Untitled entry' : draft.title.trim(),
-      });
-      entry.blocks.push({
-        blobKey: 'bfa.journal.image.photo-1',
-        byteSize: file.size,
-        fileName: file.name,
-        height: null,
-        id: 'photo-1',
-        mimeType: 'image/png',
-        type: 'image',
-        width: null,
-      });
-      const existingIndex = entries.findIndex((candidate) => candidate.id === entry.id);
-      if (existingIndex >= 0) {
-        entries[existingIndex] = entry;
-      } else {
-        entries.unshift(entry);
-      }
+    async attachImage(entry) {
       return entry;
-    },
-    async deleteEntry(_characterId, entryId) {
-      const entryIndex = entries.findIndex((entry) => entry.id === entryId);
-      if (entryIndex >= 0) {
-        entries.splice(entryIndex, 1);
-      }
-    },
-    async getImage() {
-      return {
-        byteBuffer: new Uint8Array([1, 2, 3]).buffer,
-        mimeType: 'image/png' as const,
-      };
-    },
-    async listEntries(characterId) {
-      return entries.filter((entry) => entry.characterId === characterId);
     },
     async countUnreadableEntries() {
       return 0;
     },
-    async removeImage(draft, imageId) {
-      const entry = createEntry({
-        id: draft.entryId ?? 'entry-photo',
-        text: draft.text,
-        title: draft.title,
-      });
-      entry.blocks = entry.blocks.filter((block) => block.id !== imageId);
-      const existingIndex = entries.findIndex((candidate) => candidate.id === entry.id);
-      if (existingIndex >= 0) {
-        entries[existingIndex] = entry;
+    async createPlaceholder(characterId, title) {
+      const created = note({characterId, id: `placeholder-${title}`, needsDetails: true, title, type: 'unset'});
+      notes.push(created);
+      return created;
+    },
+    async deleteEntry(_characterId, entryId) {
+      const index = notes.findIndex((entry) => entry.id === entryId);
+      if (index >= 0) {
+        notes.splice(index, 1);
       }
+    },
+    async fileQuickNote(characterId, text) {
+      const created = note({body: text, characterId, id: 'quick', title: 'Session'});
+      notes.push(created);
+      return created;
+    },
+    async getImage() {
+      return null;
+    },
+    async open(characterId) {
+      return {
+        migration: 'current',
+        notes: notes.filter((entry) => entry.characterId === characterId),
+        unreadableCount: 0,
+      };
+    },
+    async removeImage(entry) {
       return entry;
     },
-    async saveTextEntry(draft) {
-      if (options.saveError !== undefined) {
-        throw options.saveError;
-      }
-
-      const existingEntry = draft.entryId === undefined
-        ? undefined
-        : entries.find((entry) => entry.id === draft.entryId);
-      const entry = createEntry({
-        id: existingEntry?.id ?? 'entry-1',
-        text: draft.text,
-        title: draft.title.trim() === '' ? 'Untitled entry' : draft.title.trim(),
-      });
-      const existingIndex = entries.findIndex((candidate) => candidate.id === entry.id);
-      if (existingIndex >= 0) {
-        entries[existingIndex] = entry;
+    async save(entry) {
+      const saved = {...entry, updatedAt: '2026-10-20T00:00:00.000Z'};
+      const index = notes.findIndex((candidate) => candidate.id === entry.id);
+      if (index >= 0) {
+        notes[index] = saved;
       } else {
-        entries.unshift(entry);
+        notes.push(saved);
       }
-
-      return entry;
+      return {kind: 'saved', note: saved};
     },
   };
 }
 
-function createEntry(overrides: {
-  id: string;
-  text: string;
-  title: string;
-  updatedAt?: string;
-}): CharacterJournalEntry {
+function note(overrides: Partial<JournalNote> & Pick<JournalNote, 'id' | 'title'>): JournalNote {
   return {
-    blocks: [
-      {
-        id: `${overrides.id}-block`,
-        text: overrides.text,
-        type: 'text',
-      },
-    ],
+    body: '',
     characterId: '169418374',
     createdAt: '2026-10-12T00:00:00.000Z',
-    id: overrides.id,
-    schemaVersion: 1,
-    title: overrides.title,
-    updatedAt: overrides.updatedAt ?? '2026-10-12T00:00:00.000Z',
+    featuredImageId: null,
+    images: [],
+    needsDetails: false,
+    questStatus: null,
+    schemaVersion: 2,
+    sessionDate: null,
+    type: 'session',
+    updatedAt: '2026-10-12T00:00:00.000Z',
+    ...overrides,
   };
+}
+
+function openNewSession(): void {
+  buttonNamed('New note')?.click();
+  buttonNamed('Session')?.click();
+}
+
+function titleField(): HTMLInputElement {
+  const field = document.querySelector<HTMLInputElement>('.bfa-journal-title-field');
+  if (field === null) {
+    throw new Error('Missing title field');
+  }
+  return field;
+}
+
+function titles(): string[] {
+  return Array.from(
+      document.querySelectorAll('.bfa-journal-row-title'),
+      (element) => element.textContent ?? '',
+  );
+}
+
+function buttonNamed(label: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent === label);
 }
 
 function getJournalTab(): HTMLElement {
@@ -557,7 +357,6 @@ function getJournalTab(): HTMLElement {
   if (tab === null) {
     throw new Error('Missing journal tab');
   }
-
   return tab;
 }
 
@@ -566,7 +365,6 @@ function getContentHost(): HTMLElement {
   if (host === null) {
     throw new Error('Missing content host');
   }
-
   return host;
 }
 
@@ -575,172 +373,10 @@ function getNativePanel(): HTMLElement {
   if (panel === null) {
     throw new Error('Missing native panel');
   }
-
   return panel;
 }
 
-function getTitleInput(): HTMLInputElement {
-  const input = document.querySelector<HTMLInputElement>(
-      '.bfa-character-journal-title-input',
-  );
-  if (input === null) {
-    throw new Error('Missing title input');
-  }
-
-  return input;
-}
-
-function getBodyInput(): HTMLTextAreaElement {
-  const input = document.querySelector<HTMLTextAreaElement>(
-      '.bfa-character-journal-body-input',
-  );
-  if (input === null) {
-    throw new Error('Missing body input');
-  }
-
-  return input;
-}
-
-function getSaveButton(): HTMLButtonElement {
-  const button = Array.from(
-      document.querySelectorAll<HTMLButtonElement>(
-          '.bfa-character-journal-button',
-      ),
-  ).find((candidate) => candidate.textContent === 'Save');
-  if (button === undefined) {
-    throw new Error('Missing save button');
-  }
-
-  return button;
-}
-
-function getDeleteButton(): HTMLButtonElement {
-  return getButton('Delete');
-}
-
-function getConfirmButton(label: string): HTMLButtonElement {
-  const button = Array.from(
-      document.querySelectorAll<HTMLButtonElement>(
-          '.bfa-character-journal-confirm button',
-      ),
-  ).find((candidate) => candidate.textContent === label);
-  if (button === undefined) {
-    throw new Error(`Missing ${label} confirmation button`);
-  }
-
-  return button;
-}
-
-function getConfirmText(): string {
-  return document.querySelector('.bfa-character-journal-confirm-text')
-      ?.textContent ?? '';
-}
-
-function getEntryButton(title: string): HTMLButtonElement {
-  const button = Array.from(
-      document.querySelectorAll<HTMLButtonElement>(
-          '.bfa-character-journal-entry-button',
-      ),
-  ).find((candidate) => {
-    return candidate.querySelector('.bfa-character-journal-entry-title')
-        ?.textContent === title;
-  });
-  if (button === undefined) {
-    throw new Error(`Missing ${title} note button`);
-  }
-
-  return button;
-}
-
-function createPhotoEntry(): CharacterJournalEntry {
-  const entry = createEntry({
-    id: 'entry-camp',
-    text: 'Rain on the tent.',
-    title: 'Camp',
-  });
-  entry.blocks.push({
-    blobKey: 'bfa.journal.image.photo-1',
-    byteSize: 5,
-    fileName: 'camp.png',
-    height: null,
-    id: 'photo-1',
-    mimeType: 'image/png',
-    type: 'image',
-    width: null,
-  });
-  return entry;
-}
-
-function installObjectUrlStub(): {restore: () => void; revoked: string[]} {
-  const revoked: string[] = [];
-  const urlApi = URL as unknown as {
-    createObjectURL?: (object: Blob) => string;
-    revokeObjectURL?: (url: string) => void;
-  };
-  const previousCreate = urlApi.createObjectURL;
-  const previousRevoke = urlApi.revokeObjectURL;
-  let nextId = 0;
-
-  Object.defineProperty(URL, 'createObjectURL', {
-    configurable: true,
-    value: () => {
-      nextId += 1;
-      return `blob:journal-photo-${nextId}`;
-    },
-  });
-  Object.defineProperty(URL, 'revokeObjectURL', {
-    configurable: true,
-    value: (url: string) => {
-      revoked.push(url);
-    },
-  });
-
-  return {
-    restore() {
-      defineUrlMethod('createObjectURL', previousCreate);
-      defineUrlMethod('revokeObjectURL', previousRevoke);
-    },
-    revoked,
-  };
-}
-
-function defineUrlMethod(
-    name: 'createObjectURL' | 'revokeObjectURL',
-    value: ((...args: never[]) => unknown) | undefined,
-): void {
-  if (value === undefined) {
-    delete (URL as unknown as Record<string, unknown>)[name];
-    return;
-  }
-
-  Object.defineProperty(URL, name, {
-    configurable: true,
-    value,
-  });
-}
-
-function getButton(label: string): HTMLButtonElement {
-  const button = Array.from(
-      document.querySelectorAll<HTMLButtonElement>('button'),
-  ).find((candidate) => candidate.textContent === label);
-  if (button === undefined) {
-    throw new Error(`Missing ${label} button`);
-  }
-
-  return button;
-}
-
-function getEditorStatus(): HTMLParagraphElement {
-  const status = document.querySelector<HTMLParagraphElement>(
-      '.bfa-character-journal-editor > .bfa-character-journal-status',
-  );
-  if (status === null) {
-    throw new Error('Missing editor status');
-  }
-
-  return status;
-}
-
-async function flushPromises(): Promise<void> {
+async function flush(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
   await new Promise((resolve) => setTimeout(resolve, 0));
 }

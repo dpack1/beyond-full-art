@@ -188,11 +188,17 @@ a single long native notes field.
   images up to 3 MB.
 - Store journal entries locally by D&D Beyond character ID.
 - Support creating, editing, listing, saving, and deleting text entries.
-- Let the user search notes and filter to notes that have photos.
-- List notes newest first, with an oldest-first option.
+- Let the user search titles, `#tags`, note text, and photo file names.
+- Filter the list with All, Sessions, NPCs, Places, Items, Quests, and
+  Backstory. Counts ignore the search text.
+- Keep one local journal per character. There is no character cap.
+- Link notes with `[[Name]]`. A unique title opens that note. A missing title
+  can become a placeholder. Duplicate titles ask which note to open.
 - Keep journal data separate from D&D Beyond notes, backstory, and extras.
 - Preserve unsaved editor text when a save fails.
 - Preserve entries when a delete fails.
+- Follow the character sheet's light and Underdark appearance, including a
+  change made while Journal is open.
 
 ### Current implementation defaults
 
@@ -200,16 +206,18 @@ a single long native notes field.
 - Journal photo bytes are stored in extension-origin IndexedDB.
 - The Character Journal tab is enabled by default and controlled by
   `bfa.preferences.characterJournalEnabled` in `chrome.storage.local`.
-- Entries use text blocks plus optional image blocks. Schema version stays 1
-  so existing text-only entries remain valid.
+- New notes are markdown plus an image list (schema version 2). Version 1
+  block entries migrate once per character, after a backup that is not
+  overwritten.
 - Photos are PNG, JPEG, or WebP, up to 3 MB, and belong to one note.
-- Search matches the title, note text, and photo file name.
-- There is no cloud sync and no D&D Beyond field sync.
+- The list sits in the same content box as Notes and Extras. The note panel
+  is the sheet's right-hand pane.
+- There is no cloud sync, no GM view, and no D&D Beyond field sync.
 
 ### Deferred product decisions
 
 - Importing or exporting journals.
-- Search, tags, categories, or timelines.
+- A quest-status control. The field is stored as null.
 - Optional future sync to D&D Beyond fields.
 
 ## Non-goals for early phases
