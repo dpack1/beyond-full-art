@@ -28,37 +28,49 @@ Included:
 - Add unit tests, DOM fixture tests, and local Playwright fixture tests.
 - Update product, architecture, implementation, and decision docs.
 
-Excluded:
+Excluded from the original text-only slice:
 
 - D&D Beyond backstory, notes, or extras-field sync.
 - Importing existing D&D Beyond notes or backstory.
 - Sharing journal entries with other users.
 - Cloud sync.
-- Image upload or insertion.
 - Rich text formatting.
-- Search, tags, categories, or timeline features.
+- Tags, categories, or a timeline.
 - A popup inventory view for journals.
 - Replacing or modifying D&D Beyond's native notes UI.
+- Import and export of journal notes.
+
+The branch currently also has photo blocks and note search. Those were built
+before this ExecPlan landed on `main`, and they conflict with the original
+exclusions of image upload and search. They stay in this pull request so the
+owner can confirm them. They are not listed in `.agent/FEATURES.md`.
 
 ## Current State
 
-The extension already has:
+The character journal is implemented on `cursor/character-journal-cade` and is
+not shipped. `.agent/FEATURES.md` does not list it.
 
-- `src/content/character-sheet-entry.ts` as the D&D Beyond character-sheet
-  content-script entrypoint.
-- `src/content/character-sheet.ts` as the character-sheet composition layer for
-  portrait enhancement, full-art controls, crop workflow, and viewer wiring.
-- D&D Beyond adapters under `src/platform/dndbeyond/`.
-- URL parsing for character pages in `src/platform/dndbeyond/urls.ts`.
-- Chrome storage helpers in `src/platform/chrome/storage.ts`.
-- Runtime message contracts in `src/platform/chrome/messages.ts`.
-- Extension-owned UI patterns in `src/features/fullscreen-viewer/` and
-  `src/features/crop-workflow/`.
-- Existing DOM tests under `tests/dom/`.
-- Existing Playwright fixture tests under `tests/e2e/`.
+What the branch does now:
 
-There is no journal tab adapter, journal storage, journal UI, or journal test
-fixture yet.
+- Inserts a Journal tab, with a small book icon and a text label, immediately
+  after Extras.
+- Mounts an extension-owned section in the sheet content pane.
+- Stores text in `chrome.storage.local` and photo bytes in extension-origin
+  IndexedDB.
+- Lists, creates, edits, saves, and deletes notes. Delete asks first.
+- Search, an all-notes or with-photos filter, and newest/oldest ordering are
+  present. See the scope note above.
+- Photos can be added, viewed, and removed for PNG, JPEG, and WebP up to 3 MB.
+- A Close control and a native tab both leave the journal. Unsaved text asks
+  for confirmation before it is discarded.
+- The section samples the sheet's light or dark appearance and scrolls inside
+  the sheet pane.
+- Popup setting `bfa.preferences.characterJournalEnabled` hides the tab without
+  deleting notes.
+
+The first text slice from this plan is in place. Live DOM capture is still
+incomplete; the 2026-10-20 owner session is modeled in
+`LIVE_CHARACTER_SHEET_TABS_FIXTURE`.
 
 ## External Assumptions
 
@@ -86,6 +98,21 @@ Verification approach:
 - Record the observed hooks and verification date in `docs/ARCHITECTURE.md`.
 - Centralize all selectors and tab-insertion behavior under
   `src/platform/dndbeyond/`.
+
+Observed on the owner's live sheet on 2026-10-20, and modeled in
+`tests/fixtures/character-sheet-tabs.ts` as `LIVE_CHARACTER_SHEET_TABS_FIXTURE`:
+
+- Tab items are plain `div.ddbc-tab-list__nav-item` elements. The active item
+  uses `ddbc-tab-list__nav-item--is-active`. The sheet can act on pointerdown
+  for the whole item, including padding, before a click reaches an inserted
+  button. Unknown labels can replace the pane contents.
+- Dark appearance is `ct-character-sheet--dark-mode` with `data-theme="dark"`.
+- The content region is height-constrained with `overflow: hidden`. The
+  scrolling element is the inner pane (`ddbc-tab-options__content`,
+  `overflow: auto`).
+
+A saved copy of the live DOM is still outstanding. The fixture records the
+structure those three bugs require.
 
 ## Approach
 
@@ -416,7 +443,8 @@ Update docs in the same implementation PR:
 
 ## Milestones
 
-- [ ] Inspect live D&D Beyond character-sheet tab DOM around `Extras`.
+- [ ] Save a copy of the live character-sheet tab DOM around `Extras`. The
+      2026-10-20 owner session is modeled, but the raw DOM is not in the repo.
 - [x] Capture a minimal character-sheet tab fixture.
 - [x] Document current journal-tab hooks and manual-verification gap in
       `docs/ARCHITECTURE.md`.
@@ -433,6 +461,14 @@ Update docs in the same implementation PR:
 - [x] Add selector-health reporting for the journal tab hook.
 - [x] Update product, architecture, implementation, and decision docs.
 - [x] Run full validation and record manual verification notes.
+- [x] Open Journal on the first pointerdown of the tab label and its padding,
+      and clear the native active underline.
+- [x] Follow the sheet light and dark appearance, including a change while the
+      journal is open.
+- [x] Scroll the journal inside the sheet pane so Save and Delete stay reachable.
+- [x] Keep unsaved text until the user confirms discarding it.
+- [x] Run a confirmed delete after an in-flight save instead of dropping it.
+- [x] Merge journal writes by entry id and keep unreadable records in storage.
 
 ## Validation
 
@@ -518,6 +554,18 @@ Rollback:
   section with an images area and note editor/list. Implementation updated to
   mount inside the tab content area and restore native content on native tab
   activation.
+- 2026-10-13: Notes, photo blocks, and search landed on the journal branch.
+  Codex review notes for delete confirmation, photo URL revocation, and viewer
+  focus were fixed.
+- 2026-10-20: Owner testing on the live dark sheet found three bugs: the first
+  Journal click did nothing while Extras stayed active, journal text and inputs
+  stayed light-on-dark, and the section was clipped with no scroll. The same
+  review pass reported unsaved text being wiped on reopen and a confirmed
+  delete being ignored while a save was in flight.
+- 2026-10-20: Those failures are fixed on the branch. The live-shaped fixture
+  covers first-click activation, dark and light appearance, and scrolling.
+  Playwright screenshots: `journal-dark.png`, `journal-light.png`, and
+  `journal-dark-scrolled.png`. Merged `.agent/` plan docs from `main`.
 
 ## Decision Log
 
@@ -533,3 +581,30 @@ Rollback:
 - 2026-10-12: Prefer an extension-owned inline section opened from the inserted
   Journal tab. This keeps the feature in the expected tab content area while
   preserving reversible ownership over the DOM the extension hides and restores.
+- 2026-10-13: Photo bytes are image blocks in extension-origin IndexedDB
+  (ADR-019), and search, photo filter, and sort shipped with them. This
+  conflicts with the original exclusions in this plan. Left in place for the
+  owner to confirm. Not moved to `.agent/FEATURES.md`.
+- 2026-10-20: Claim Journal on capture-phase pointerdown for the whole tab
+  item, including padding, and clear the native active class. A bubble-phase
+  click on the inner button was too late for the live tab row.
+- 2026-10-20: Sample the sheet appearance (`ct-character-sheet--dark-mode`,
+  `data-theme`, or computed background) instead of `prefers-color-scheme`.
+  Mount in the inner scroll pane and limit the section to that pane's height.
+- 2026-10-20: Do not reload an open journal, and ask before discarding unsaved
+  text when the user leaves. Queue a confirmed delete until the current save
+  finishes.
+- 2026-10-20: Journal writes re-read and merge by entry id. Unreadable records
+  stay in storage and are omitted from the list, with a count in the section.
+  The plan's "ignore corrupt entries" rule still applies to display. It no
+  longer deletes them on the next save.
+- 2026-10-20: Keep the base64 photo payload. In current Chromium,
+  `chrome.runtime.sendMessage` delivers an `ArrayBuffer` as a plain object, so
+  a buffer-only put is rejected. Deferred: export, session dates, clipboard
+  paste, a session template, and undo-delete. Also deferred: splitting the
+  journal controller further than the elements, theme, pane, and record
+  modules. The section still owns render and save because they share one
+  editor state. A character change re-reads the URL; an unsaved note stays
+  bound to the previous character until the user discards it. The body-wide
+  tab observer narrows to the sheet shell after the shell exists, and stops
+  reinserting the tab after repeated strip/insert cycles.

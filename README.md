@@ -4,7 +4,7 @@
 
 Beyond Full Art is a Chrome Manifest V3 extension for D&D Beyond character art. It keeps D&D Beyond's portrait flow and adds local full-art storage, a portrait crop tool, a fullscreen viewer, sharper character-card portraits, and a local character journal.
 
-This file is the runbook: what the extension does, how to install it, and how to build, run, and test it. Product and architecture detail lives in `docs/`. Agent-facing conventions live in `AGENTS.md`.
+This file is the runbook: what the extension does, how to install it, and how to build, run, and test it. Product and architecture detail lives in `docs/`. Shipped features are listed in `.agent/FEATURES.md`. Work that has not shipped, including the character journal, lives in `.agent/plans/` and follows `.agent/PLANS.md`. Agent-facing conventions live in `AGENTS.md`.
 
 ## The problems it solves
 

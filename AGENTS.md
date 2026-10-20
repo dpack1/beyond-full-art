@@ -8,8 +8,10 @@ Before changing behavior, read:
 - `docs/ARCHITECTURE.md`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/DECISIONS.md`
+- `.agent/FEATURES.md` for features that have already shipped
+- `.agent/PLANS.md` and the matching ExecPlan under `.agent/plans/` for work that has not shipped
 
-For deletion-related work, also read `docs/NETWORK_DELETE_RESEARCH.md`. The observed request screenshots are in `docs/reference/`. Deletion cleanup is specified and still unbuilt. Add modules for it when that phase has real behavior.
+For deletion-related work, also read `docs/NETWORK_DELETE_RESEARCH.md` and `.agent/plans/future-feature-character-deletion-cleanup.md`. The observed request screenshots are in `docs/reference/`. Deletion cleanup is specified and still unbuilt. Add modules for it when that phase has real behavior.
 
 ## Layout
 
@@ -33,6 +35,7 @@ tests/
   e2e/                                  Playwright extension fixtures
   fixtures/                             minimal DOM used by the tests
 docs/                                   spec, architecture, decisions, research
+.agent/                                 shipped features and living ExecPlans
 assets/icons/                           extension icons; icon-source.png is the master
 assets/readme/                          README images only
 scripts/build.mjs                       esbuild bundle into dist/
@@ -133,7 +136,7 @@ Playwright needs Chromium: `npx playwright install chromium`. The e2e suite is h
 - Playwright journal screenshots are written to `/opt/cursor/artifacts/journal/` by `tests/e2e/character-journal.spec.ts` and `tests/e2e/character-journal-sheet.spec.ts`. The suite loads the unpacked `dist/` extension against local character-sheet fixtures, not the live site.
 - `assets/icons/icon-source.png` is the icon master. The build copies only `icon-16.png`, `icon-32.png`, `icon-48.png`, and `icon-128.png`.
 - README diagrams under `assets/readme/svg/` are the labeled screenshots. Do not commit generated `dist/` or `test-results/`.
-- `.agent/` is gitignored local scratch. Shared design changes go in `docs/DECISIONS.md`. Phase status goes in `docs/IMPLEMENTATION_PLAN.md`.
+- Living plans are in `.agent/plans/` and follow `.agent/PLANS.md`. Shipped features are listed in `.agent/FEATURES.md`. The character journal stays in `.agent/plans/character-journal.md` until the owner approves it. Shared design changes also go in `docs/DECISIONS.md`.
 
 ## Validation
 
