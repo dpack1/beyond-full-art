@@ -594,6 +594,11 @@ Rollback:
   character's notes and photos, plus a versioned journal file format so that
   file can be imported later. Recorded as a deferred follow-up. No popup
   journal UI, export, format doc, or import is in this pull request.
+- 2026-10-20: The active tab class is learned from whichever native tab is
+  selected, not only from Extras. Closing Journal restores that tab, unless
+  the user chose a different one. The journal mounts in the sheet's first
+  scrolling pane, not a nested scroller. Cancelling the popup disable prompt
+  turns the preference back on so the tab stays with the setting.
 
 ## Decision Log
 

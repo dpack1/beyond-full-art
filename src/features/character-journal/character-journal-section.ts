@@ -1,3 +1,4 @@
+import {restoreNativeTabAfterJournal} from '../../platform/dndbeyond/character-sheet-tabs-adapter';
 import {applySheetTheme, observeSheetTheme} from './character-journal-theme';
 import type {CharacterId} from '../character-art/art-types';
 import type {CharacterJournalService} from './character-journal-service';
@@ -30,14 +31,14 @@ import {
 type JournalStatusTone = 'error' | 'info' | 'success';
 type PendingConfirm =
   | {imageId: string; type: 'remove-photo'}
-  | {action: () => void; type: 'discard'}
+  | {action: () => void; onCancel?: () => void; type: 'discard'}
   | {entryId: string; type: 'delete'};
 
 export interface CharacterJournalSection {
   destroy(): void;
   hide(): void;
   isShown(): boolean;
-  requestHide(onHidden?: () => void): void;
+  requestHide(onHidden?: () => void, onCancel?: () => void): void;
   show(options: CharacterJournalSectionShowOptions): Promise<void>;
 }
 
@@ -126,7 +127,11 @@ export function createCharacterJournalSection(
     }
   });
   elements.confirmCancelButton.addEventListener('click', () => {
+    const pending = state.pendingConfirm;
     clearConfirm();
+    if (pending?.type === 'discard') {
+      pending.onCancel?.();
+    }
   });
   elements.confirmAcceptButton.addEventListener('click', () => {
     const pending = state.pendingConfirm;
@@ -278,7 +283,7 @@ export function createCharacterJournalSection(
     return !elements.root.hidden;
   }
 
-  function requestHide(onHidden?: () => void): void {
+  function requestHide(onHidden?: () => void, onCancel?: () => void): void {
     const finish = () => {
       resetDraftToSaved();
       hide();
@@ -294,7 +299,11 @@ export function createCharacterJournalSection(
       return;
     }
 
-    state.pendingConfirm = {action: finish, type: 'discard'};
+    state.pendingConfirm = {
+      action: finish,
+      ...(onCancel === undefined ? {} : {onCancel}),
+      type: 'discard',
+    };
     renderConfirm();
   }
 
@@ -935,6 +944,9 @@ function setTabActive(tab: HTMLElement, isActive: boolean): void {
   const nativeActiveClass = hitTarget.dataset.bfaNativeActiveClass;
   if (nativeActiveClass !== undefined && nativeActiveClass !== '') {
     hitTarget.classList.toggle(nativeActiveClass, isActive);
+  }
+  if (!isActive) {
+    restoreNativeTabAfterJournal(tab);
   }
   if (tab.getAttribute('role') === 'tab') {
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');

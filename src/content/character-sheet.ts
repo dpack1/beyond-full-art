@@ -23,6 +23,7 @@ import {
 import {
   CHARACTER_JOURNAL_ENABLED_KEY,
   getCharacterJournalEnabled,
+  setCharacterJournalEnabled,
 } from '../platform/chrome/storage';
 import {
   observePanelPortraits,
@@ -34,7 +35,9 @@ import {
 } from '../platform/dndbeyond/urls';
 import {
   clearNativeTabSelection,
+  clearNextNativeTab,
   getJournalTabHitTarget,
+  markNextNativeTab,
   observeJournalTabTargets,
   removeStaleJournalUi,
   type CharacterSheetJournalTabTarget,
@@ -171,8 +174,16 @@ export function installCharacterSheetEnhancement(
 
       openJournal();
     };
-    const onNativeTabClick = () => {
-      journalSection.requestHide();
+    const onNativeTabClick = (event: Event) => {
+      if (event.currentTarget instanceof HTMLElement) {
+        markNextNativeTab(event.currentTarget);
+      }
+
+      journalSection.requestHide(undefined, () => {
+        if (event.currentTarget instanceof HTMLElement) {
+          clearNextNativeTab(event.currentTarget);
+        }
+      });
     };
 
     // The sheet listens on the tab row, often on pointerdown, before the
@@ -221,6 +232,10 @@ export function installCharacterSheetEnhancement(
   const stopJournalFeature = () => {
     journalSection.requestHide(() => {
       tearDownJournalChrome();
+    }, () => {
+      // The popup already stored "off". Cancelling the discard keeps the tab,
+      // so the preference has to stay on with it.
+      void setCharacterJournalEnabled(true);
     });
   };
 

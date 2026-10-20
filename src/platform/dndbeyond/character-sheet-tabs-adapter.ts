@@ -188,13 +188,52 @@ export function clearNativeTabSelection(tabs: readonly HTMLElement[]): void {
     if (tab.getAttribute('aria-selected') === 'true') {
       tab.setAttribute('aria-selected', 'false');
     }
+  }
 
-    for (const className of [...tab.classList]) {
-      if (isActiveTabClass(className)) {
-        tab.classList.remove(className);
+  for (const element of listNativeTabElements(tabs)) {
+    for (const className of [...element.classList]) {
+      if (!isActiveTabClass(className)) {
+        continue;
       }
+
+      element.dataset.bfaRestoreActive = className;
+      element.classList.remove(className);
     }
   }
+}
+
+export function markNextNativeTab(target: HTMLElement): void {
+  const item = nativeTabItem(target);
+  if (isJournalTabPiece(item)) {
+    return;
+  }
+
+  item.dataset.bfaNextActive = 'true';
+}
+
+export function clearNextNativeTab(target: HTMLElement): void {
+  delete nativeTabItem(target).dataset.bfaNextActive;
+}
+
+export function restoreNativeTabAfterJournal(journalTab: HTMLElement): void {
+  const hitTarget = getJournalTabHitTarget(journalTab);
+  const activeClass = hitTarget.dataset.bfaNativeActiveClass;
+  const root = findTabListRoot(hitTarget) ?? hitTarget.parentElement;
+  if (root === null || activeClass === undefined || activeClass === '') {
+    return;
+  }
+
+  hitTarget.classList.remove(activeClass);
+  const candidates = Array.from(root.querySelectorAll<HTMLElement>('*'))
+      .filter((element) => !isJournalTabPiece(element));
+  const nextTab = candidates.find((element) => element.dataset.bfaNextActive === 'true')
+    ?? candidates.find((element) => element.dataset.bfaRestoreActive === activeClass);
+  for (const element of candidates) {
+    delete element.dataset.bfaNextActive;
+    delete element.dataset.bfaRestoreActive;
+    element.classList.remove(activeClass);
+  }
+  nextTab?.classList.add(activeClass);
 }
 
 function findExtrasTab(root: ParentNode): HTMLElement | null {
@@ -311,12 +350,60 @@ function rememberNativeActiveClass(
     reference: HTMLElement,
     item: HTMLElement,
 ): void {
-  const activeClassName = reference.className
-      .split(/\s+/)
-      .find((name) => isActiveTabClass(name));
-  if (activeClassName !== undefined) {
+  const activeClassName = findActiveClassInRow(reference);
+  if (activeClassName !== null) {
     item.dataset.bfaNativeActiveClass = activeClassName;
   }
+}
+
+function findActiveClassInRow(tab: HTMLElement): string | null {
+  const root = findTabListRoot(tab) ?? tab.parentElement;
+  const elements = root === null
+    ? [tab]
+    : [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))];
+  for (const element of elements) {
+    if (isJournalTabPiece(element)) {
+      continue;
+    }
+
+    for (const className of element.classList) {
+      if (isActiveTabClass(className)) {
+        return className;
+      }
+    }
+  }
+
+  return null;
+}
+
+function listNativeTabElements(tabs: readonly HTMLElement[]): HTMLElement[] {
+  const seen = new Set<HTMLElement>();
+  const elements: HTMLElement[] = [];
+  for (const tab of tabs) {
+    const root = findTabListRoot(tab);
+    const group = root === null
+      ? [tab]
+      : [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))];
+    for (const element of group) {
+      if (seen.has(element) || isJournalTabPiece(element)) {
+        continue;
+      }
+
+      seen.add(element);
+      elements.push(element);
+    }
+  }
+
+  return elements;
+}
+
+function nativeTabItem(target: HTMLElement): HTMLElement {
+  const root = findTabListRoot(target);
+  if (root === null) {
+    return target;
+  }
+
+  return findDirectChildContaining(root, target) ?? target;
 }
 
 function findTabListRoot(tab: HTMLElement): HTMLElement | null {
@@ -353,14 +440,19 @@ function findNextElementSibling(element: HTMLElement): HTMLElement | null {
 }
 
 function findJournalMount(contentRegion: HTMLElement): HTMLElement {
-  let mount = contentRegion;
+  if (elementScrolls(contentRegion)) {
+    return contentRegion;
+  }
+
+  // The first scrolling descendant is the sheet pane. A later nested scroller
+  // belongs to the native panel, such as a spell list, and is not the mount.
   for (const element of contentRegion.querySelectorAll<HTMLElement>('*')) {
     if (elementScrolls(element)) {
-      mount = element;
+      return element;
     }
   }
 
-  return mount;
+  return contentRegion;
 }
 
 function elementScrolls(element: HTMLElement): boolean {

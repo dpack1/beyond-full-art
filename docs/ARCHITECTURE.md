@@ -195,9 +195,10 @@ behaviors, modeled in `LIVE_CHARACTER_SHEET_TABS_FIXTURE`:
   The journal samples that appearance, and the computed background when no
   explicit appearance is set, then sets color variables on the section.
 - The content region uses a fixed height and `overflow: hidden`. The scrolling
-  pane is the inner element with `overflow: auto` (observed as
-  `ddbc-tab-options__content`). The journal mounts there and also limits its
-  own height to that pane so Save and Delete remain reachable.
+  pane is the first element inside it with `overflow: auto` (observed as
+  `ddbc-tab-options__content`). The journal mounts in that pane, not in a
+  scroller nested later inside the native panel, and limits its own height so
+  Save and Delete remain reachable.
 
 A fresh capture of the live DOM is still the owner's check. The fixture records
 the structure those bugs require, not a full copy of the sheet.

@@ -1,8 +1,11 @@
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 
 import {
+  clearNativeTabSelection,
   findOrCreateJournalTab,
+  markNextNativeTab,
   observeJournalTabTargets,
+  restoreNativeTabAfterJournal,
 } from '../../src/platform/dndbeyond/character-sheet-tabs-adapter';
 import {
   CHARACTER_SHEET_TABS_FIXTURE,
@@ -128,4 +131,64 @@ describe('character sheet tabs adapter', () => {
     expect(target?.nativeTabs.some((tab) => tab.textContent?.includes('Journal')))
         .toBe(false);
   });
+
+  it('uses the active class from whichever native tab is selected', () => {
+    document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
+    const spells = tabItem('Spells');
+    const extras = tabItem('Extras');
+    const actions = tabItem('Actions');
+    extras?.classList.remove('ddbc-tab-list__nav-item--is-active');
+    spells?.classList.add('ddbc-tab-list__nav-item--is-active');
+
+    const target = findOrCreateJournalTab(document);
+    const journalItem = target?.tab.parentElement;
+    if (target === null || spells === undefined || actions === undefined || journalItem === null || journalItem === undefined) {
+      throw new Error('Missing tab target');
+    }
+
+    expect(journalItem.dataset.bfaNativeActiveClass)
+        .toBe('ddbc-tab-list__nav-item--is-active');
+
+    clearNativeTabSelection(target.nativeTabs);
+    expect(spells.classList.contains('ddbc-tab-list__nav-item--is-active'))
+        .toBe(false);
+
+    journalItem.classList.add('ddbc-tab-list__nav-item--is-active');
+    restoreNativeTabAfterJournal(target.tab);
+    expect(spells.classList.contains('ddbc-tab-list__nav-item--is-active'))
+        .toBe(true);
+    expect(journalItem.classList.contains('ddbc-tab-list__nav-item--is-active'))
+        .toBe(false);
+
+    spells.classList.add('ddbc-tab-list__nav-item--is-active');
+    clearNativeTabSelection(target.nativeTabs);
+    journalItem.classList.add('ddbc-tab-list__nav-item--is-active');
+    markNextNativeTab(actions);
+    restoreNativeTabAfterJournal(target.tab);
+    expect(actions.classList.contains('ddbc-tab-list__nav-item--is-active'))
+        .toBe(true);
+    expect(spells.classList.contains('ddbc-tab-list__nav-item--is-active'))
+        .toBe(false);
+  });
+
+  it('mounts in the sheet scroller when a nested pane also scrolls', () => {
+    document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
+    const panel = document.querySelector('[data-testid="native-character-panel"]');
+    const nested = document.createElement('div');
+    nested.dataset.testid = 'nested-scroller';
+    nested.style.overflow = 'auto';
+    nested.style.height = '80px';
+    panel?.append(nested);
+
+    const target = findOrCreateJournalTab(document);
+
+    expect(target?.contentHost).toBe(
+        document.querySelector('[data-testid="sheet-scroller"]'),
+    );
+  });
 });
+
+function tabItem(label: string): HTMLElement | undefined {
+  return Array.from(document.querySelectorAll<HTMLElement>('.ddbc-tab-list__nav-item'))
+      .find((element) => element.textContent?.trim() === label);
+}

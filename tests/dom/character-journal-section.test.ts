@@ -356,6 +356,29 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('keeps the journal open when leaving is cancelled', async () => {
+    let hidden = false;
+    let cancelled = false;
+    const section = createCharacterJournalSection(createFakeService([]));
+
+    await showSection(section);
+    getTitleInput().value = 'Unsaved title';
+    section.requestHide(() => {
+      hidden = true;
+    }, () => {
+      cancelled = true;
+    });
+
+    getConfirmButton('Keep editing').click();
+
+    expect(section.isShown()).toBe(true);
+    expect(getTitleInput().value).toBe('Unsaved title');
+    expect(hidden).toBe(false);
+    expect(cancelled).toBe(true);
+
+    section.destroy();
+  });
+
   it('deletes a confirmed note after the in-flight save finishes', async () => {
     let releaseSave = () => {};
     const saveGate = new Promise<void>((resolve) => {

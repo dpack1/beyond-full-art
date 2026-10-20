@@ -10,6 +10,7 @@ import {
 } from '../platform/chrome/messages';
 import {buildCharacterPageUrl} from '../platform/dndbeyond/urls';
 import {
+  CHARACTER_JOURNAL_ENABLED_KEY,
   getCampaignCardPortraitUpgradeEnabled,
   getCharacterJournalEnabled,
   setCampaignCardPortraitUpgradeEnabled,
@@ -66,6 +67,7 @@ export async function initializePopup(doc: Document): Promise<void> {
         status: journalStatus,
       });
     });
+    installJournalPreferenceSync(journalCheckbox, journalStatus);
   }
 
   const inventory = findInventoryElements(doc);
@@ -107,6 +109,38 @@ async function handleCheckboxChange(options: {
   } finally {
     checkbox.disabled = false;
   }
+}
+
+function installJournalPreferenceSync(
+    checkbox: HTMLInputElement,
+    status: HTMLParagraphElement,
+): void {
+  if (typeof chrome === 'undefined' || chrome.storage?.onChanged === undefined) {
+    return;
+  }
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (
+      areaName !== 'local'
+      || !Object.hasOwn(changes, CHARACTER_JOURNAL_ENABLED_KEY)
+    ) {
+      return;
+    }
+
+    const nextValue = changes[CHARACTER_JOURNAL_ENABLED_KEY]?.newValue;
+    if (typeof nextValue !== 'boolean' || checkbox.checked === nextValue) {
+      return;
+    }
+
+    checkbox.checked = nextValue;
+    renderStatus(
+        status,
+        nextValue
+          ? 'Character Journal tab enabled.'
+          : 'Character Journal tab disabled.',
+        false,
+    );
+  });
 }
 
 function asErrorMessage(error: unknown): string {
