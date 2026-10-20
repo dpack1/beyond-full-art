@@ -43,9 +43,26 @@ Excluded:
 - Cloud sync.
 - Rich text formatting.
 - Tags, categories, or a timeline.
-- A popup inventory view for journals.
 - Replacing or modifying D&D Beyond's native notes UI.
-- Import and export of journal notes.
+
+Popup access, export, a versioned journal file format, and import are later
+work. They are not part of this pull request. See Deferred follow-up.
+
+## Deferred follow-up
+
+Later work, not part of this pull request:
+
+The journal should also be reachable from the extension popup, with export and
+download of one character's journal entries and photos. Players need a way to
+get their notes even if a D&D Beyond UI change breaks the in-sheet Journal tab.
+
+Once export exists, define a documented, versioned journal file format in a
+format doc. The same file must be importable later so a player can restore a
+journal, move it to another browser, or bring notes in. Import is future work
+too, and it is not in this pull request.
+
+This slice does not add popup journal UI, an export or download action, the
+format doc, or import.
 
 ## Current State
 
@@ -573,6 +590,10 @@ Rollback:
   is restyled to match native uppercase labels. The separate book icon and
   button border are removed. Tab screenshots: `journal-tab-dark.png` and
   `journal-tab-light.png`.
+- 2026-10-20: Owner asked for a later popup path that can export and download a
+  character's notes and photos, plus a versioned journal file format so that
+  file can be imported later. Recorded as a deferred follow-up. No popup
+  journal UI, export, format doc, or import is in this pull request.
 
 ## Decision Log
 
@@ -598,6 +619,12 @@ Rollback:
   icon is removed because it rendered as a red square and the button's default
   border drew a box around the label. A focus ring is limited to
   `:focus-visible`.
+- 2026-10-20: Defer a popup path for the journal. The owner wants players to
+  open, export, and download a character's entries and photos from the
+  extension popup so the notes survive a D&D Beyond tab-markup change. Once
+  export exists, write a format doc for a versioned journal file that a later
+  import can read back to restore, move to another browser, or bring notes in.
+  Import is future work. None of this is in the current pull request.
 - 2026-10-20: Claim Journal on capture-phase pointerdown for the whole tab
   item, including padding, and clear the native active class. A bubble-phase
   click on the inner button was too late for the live tab row.
