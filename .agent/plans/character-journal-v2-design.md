@@ -23,11 +23,11 @@ The journal has to look like the character sheet it is sitting in:
   stylesheet paints it, and so light and dark follow the sheet. The tab
   copies the live tab control (`ddbc-tab-list__nav-item` on the classic
   sheet, or the button class on the current sheet). The list sits in the
-  sheet content region, using the primary-box section pattern
-  (`ct-primary-box`, `section` panes such as `ct-actions`). The panel
-  reuses the sheet sidebar (`ct-sidebar`, `ct-sidebar__portal`,
-  `ct-sidebar__inner`, `ct-sidebar__heading`) and is still our dialog on
-  `document.body`, so a sheet `overflow: hidden` cannot clip it.
+  sheet content region. The panel is our dialog on `document.body`, about
+  340px, with the theme-color edge taken from a sheet frame or the active
+  tab. No class was captured for the action and notes slide-in.
+  `ct-sidebar__portal` is the portrait sidebar, so the notes panel does
+  not copy it. A sheet `overflow: hidden` cannot clip the dialog.
 - Hashed module classes (`styles_tabButton__…`, `styles_sidebar__…`) are
   copied from the live elements at runtime. They are not hardcoded,
   because a deploy changes the hash. Classes whose name contains
@@ -76,8 +76,9 @@ small red links such as Manage Custom.
 What to match:
 
 - Journal is another tab in the same strip as Notes and Extras:
-  uppercase, condensed, 3px red underline on the active tab, muted gray
-  when inactive.
+  uppercase, condensed, active underline in the character theme color,
+  muted gray when inactive. The theme color is sampled from a frame or
+  the active tab. It is not a fixed red.
 - The list sits in the same content box as Notes and Extras. The heading
   is the small uppercase label used by Organizations and Familiar. The
   search field matches Extras ("Search Names, Types, or Tags"): a full
@@ -85,13 +86,12 @@ What to match:
   Extras filters: a filled pill, dark on light and light on Underdark.
 - The note panel is the right-hand pane used for Longsword and
   Organizations. Title on the left of the header, Close on the right,
-  hairline under the header and along the left edge. It does not dim
-  the sheet. Width follows a live `.ct-sidebar` when one is open, and
-  otherwise the column width in these frames (about 340px). Full width
+  theme-color rule under the header and along the left edge. It does not
+  dim the sheet. Width is the measured column, about 340px. Full width
   at 760px and below. Body type is the sheet's text. Fields take the
-  sampled input border and radius, the same shape as "Enter any notes
-  here!". Hashed sidebar classes are copied at runtime and `hidden` is
-  still dropped.
+  sampled input radius, the same shape as "Enter any notes here!".
+  Hashed classes are copied from a live input or neutral button, and
+  `hidden` is still dropped. The panel does not copy sidebar classes.
 
 Build screenshots sit beside the public light reference and the
 fixture's dark sheet under `.agent/design/journal-v2/build/`.

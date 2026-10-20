@@ -85,11 +85,31 @@ test('saves light and dark journal screens beside the sheet reference', async ({
   await page.screenshot({
     path: path.join(BUILD_DIR, 'panel-read-light-desktop.png'),
   });
+  await page.getByRole('button', {name: 'Edit'}).click();
+  await page.screenshot({
+    path: path.join(BUILD_DIR, 'panel-edit-light-desktop.png'),
+  });
+  await page.getByRole('button', {name: 'Done editing'}).click();
   await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+
+  await page.getByRole('button', {name: 'New note'}).click();
+  await page.getByRole('menuitem', {name: 'Quest'}).click();
+  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
+  await expect(page.getByText('This note is not saved yet.')).toBeVisible();
+  await page.screenshot({
+    path: path.join(BUILD_DIR, 'panel-discard-light-desktop.png'),
+  });
+  await page.getByRole('button', {name: 'Discard'}).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
 
   await page.setViewportSize({width: 375, height: 812});
   await page.screenshot({
     path: path.join(BUILD_DIR, 'list-light-375.png'),
+  });
+  await page.getByRole('button', {name: /Warden of the chapel/}).click();
+  await page.screenshot({
+    path: path.join(BUILD_DIR, 'panel-read-light-375.png'),
   });
 });
 

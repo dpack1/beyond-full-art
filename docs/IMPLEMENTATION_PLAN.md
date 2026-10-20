@@ -146,7 +146,7 @@ Current implementation slice (version 2, not shipped until Dylan approves it):
 - extension-owned `Journal` tab inserted after D&D Beyond's `Extras` tab,
 - popup preference to enable or disable the inserted Journal tab,
 - journal list in the sheet content region, beside the tab strip,
-- right-hand note panel on `document.body`, using the sheet sidebar classes,
+- right-hand note panel on `document.body`, about 340px, theme color sampled from the sheet,
 - local markdown notes keyed by D&D Beyond character ID, schema version 2,
 - one-way migration from version 1 with a backup that is not overwritten,
 - image bytes in extension-origin IndexedDB,
@@ -157,8 +157,6 @@ Remaining work:
 
 - Dylan's live pass on Matilda Greywolf, using the checklist in
   `docs/TESTING.md`,
-- fold the Journal selector group into the shared `src/ddb/selectors.ts` map
-  when that change lands on main,
 - decide whether import/export belongs in the journal feature.
 
 ### Exit criteria

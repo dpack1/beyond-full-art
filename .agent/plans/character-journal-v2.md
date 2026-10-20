@@ -856,6 +856,10 @@ Rollback:
   Visuals follow Matilda Greywolf (`172153137`), not the mockup PNGs. The
   pressed-chip check is the pill label against the pill fill. `#ff8a84` is a
   fallback token only.
+- 2026-10-20: Merged `main` at `193b2c9`. Journal selectors moved into the
+  Character journal group of `src/platform/dndbeyond/selectors.ts`. The notes
+  panel does not reuse `ct-sidebar`. Accent, border, and the active-tab
+  underline are sampled from the sheet. Closing a note returns to the list.
 
 ## Decision log
 
@@ -914,10 +918,11 @@ Rollback:
   (`https://www.dndbeyond.com/characters/172153137`) is the visual source:
   the Journal tab sits in the Notes and Extras strip, the list sits in that
   content box, and the panel is the right-hand Longsword / Organizations
-  pane. Category chips are filled pills. The panel reuses `ct-sidebar`
-  classes, does not dim the sheet, and is about 340px unless a live sidebar
-  is wider. Hashed classes are copied at runtime. The earlier "do not reuse
-  the sidebar markup" decision is overridden by this one.
+  pane. Category chips are filled pills. The panel is about 340px, does not
+  dim the sheet, and does not copy `ct-sidebar`: the reference did not capture
+  a class for that slide-in, and `ct-sidebar__portal` is the portrait sidebar.
+  Accent, border, and the active-tab underline are the character theme color,
+  sampled from a frame or the active tab. Hashed classes are copied at runtime.
 
 ## Lessons from pull request #6
 

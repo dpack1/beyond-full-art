@@ -1,7 +1,9 @@
+import {DND_BEYOND_AVATAR_PATH_PREFIX} from '../../platform/dndbeyond/selectors';
+
 const DND_BEYOND_AVATAR_HOST = 'www.dndbeyond.com';
-const DND_BEYOND_AVATAR_PATH_PREFIX = '/avatars/';
-const DND_BEYOND_AVATAR_THUMBNAIL_PATH_PATTERN =
-  /^\/avatars\/thumbnails\/([^/]+)\/([^/]+)\/\d+\/\d+\/(.+)$/;
+const DND_BEYOND_AVATAR_THUMBNAIL_PATH_PATTERN = new RegExp(
+  `^${DND_BEYOND_AVATAR_PATH_PREFIX}thumbnails/([^/]+)/([^/]+)/\\d+/\\d+/(.+)$`,
+);
 const TARGET_HEIGHT = '600';
 const TARGET_WIDTH = '600';
 const TARGET_FIT = 'bounds';
@@ -65,5 +67,5 @@ function normalizeAvatarPath(pathname: string): string {
   }
 
   const [, firstPathId, secondPathId, fileName] = thumbnailMatch;
-  return `/avatars/${firstPathId}/${secondPathId}/${fileName}`;
+  return `${DND_BEYOND_AVATAR_PATH_PREFIX}${firstPathId}/${secondPathId}/${fileName}`;
 }

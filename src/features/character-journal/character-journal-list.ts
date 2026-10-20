@@ -1,8 +1,4 @@
 import {
-  JOURNAL_PRIMARY_LABEL_CLASS,
-  JOURNAL_PRIMARY_TAB_CLASS,
-} from '../../ddb/selectors';
-import {
   JOURNAL_CATEGORIES,
   journalCategoryLabel,
   type JournalCategory,
@@ -54,12 +50,12 @@ export function createJournalList(
     handlers: JournalListHandlers,
 ): JournalListView {
   const root = doc.createElement('section');
-  root.className = `bfa-character-journal-section ${JOURNAL_PRIMARY_TAB_CLASS}`;
+  root.className = 'bfa-character-journal-section';
   root.hidden = true;
   root.setAttribute('aria-label', 'Journal');
 
   const heading = doc.createElement('h2');
-  heading.className = `${JOURNAL_PRIMARY_LABEL_CLASS} bfa-journal-section-label`;
+  heading.className = 'bfa-journal-section-label';
   heading.textContent = 'Journal';
 
   const quickRow = doc.createElement('div');

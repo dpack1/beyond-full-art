@@ -3,6 +3,19 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {
+  CHANGE_PORTRAIT_BUTTON_TEXT,
+  CHARACTER_LIST_CARD_PORTRAIT_SELECTOR,
+  CHARACTER_MANAGE_PANE_SELECTOR,
+  CHARACTER_PORTRAIT_SURFACE_SELECTOR,
+  CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME,
+  ENHANCED_ATTRIBUTE_NAME,
+  INFORMATION_SIDEBAR_SELECTOR,
+  PORTRAIT_MANAGER_SELECTOR,
+  PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
+  PORTRAIT_MANAGER_UPLOAD_SELECTOR,
+  VIEWER_STYLE_ATTRIBUTE_NAME,
+} from '../../src/platform/dndbeyond/selectors';
+import {
   characterSheetTabsFixture,
   currentDecorationsWithoutUploadFixture,
   currentInformationSidebarFixture,
@@ -129,19 +142,27 @@ test('writes selector health report for local D&D Beyond fixtures', async (
     await page.goto(fixture.url);
     await waitForContentScript(page);
     if (expected.sharperCardPortraitFound === true) {
-      await page.waitForFunction(() =>
-        [...document.querySelectorAll<HTMLElement>('.image.user-selected-avatar')]
+      await page.waitForFunction((selector) =>
+        [...document.querySelectorAll<HTMLElement>(selector)]
             .some((element) => element.style.backgroundImage.includes('width=600')),
+        CHARACTER_LIST_CARD_PORTRAIT_SELECTOR,
       );
     }
     if (expected.journalTabFound === true) {
-      await page.waitForFunction(() =>
-        document.querySelector('[data-bfa-character-journal-tab="true"]') !==
-        null,
+      await page.waitForFunction((attributeName) =>
+        document.querySelector(`[${attributeName}="true"]`) !== null,
+        CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME,
       );
     }
 
-    const health = await page.evaluate((fixtureName): SelectorHealth => {
+    const health = await page.evaluate(({
+      changePortraitButtonText,
+      enhancedAttributeName,
+      fixtureName,
+      journalTabAttributeName,
+      selectors,
+      viewerStyleAttributeName,
+    }): SelectorHealth => {
       const buttonTexts = [...document.querySelectorAll('button')].map(
         (button) => button.textContent?.trim().replace(/\s+/g, ' ') ?? '',
       );
@@ -149,37 +170,48 @@ test('writes selector health report for local D&D Beyond fixtures', async (
       return {
         bfaArtControlsFound: document.querySelector('.bfa-art-sync') !== null,
         bfaViewerStylesInjected:
-          document.querySelector('[data-bfa-viewer-styles]') !== null,
-        changePortraitButtonFound: buttonTexts.includes('Change Portrait'),
+          document.querySelector(`[${viewerStyleAttributeName}]`) !== null,
+        changePortraitButtonFound: buttonTexts.includes(changePortraitButtonText),
         enhancedPortraitCount:
-          document.querySelectorAll('[data-bfa-enhanced="true"]').length,
+          document.querySelectorAll(`[${enhancedAttributeName}="true"]`).length,
         fixtureName,
         informationSidebarFound:
-          document.querySelector('[aria-label="Information Sidebar"]') !== null,
+          document.querySelector(selectors.informationSidebar) !== null,
         journalTabFound:
-          document.querySelector('[data-bfa-character-journal-tab="true"]') !==
-          null,
+          document.querySelector(`[${journalTabAttributeName}="true"]`) !== null,
         journalSectionFound:
           document.querySelector('.bfa-character-journal-section') !== null,
         legacyPanelFound:
-          document.querySelector('[data-testid="character-manage-pane"]') !==
-          null,
+          document.querySelector(selectors.legacyPanel) !== null,
         portraitManagerFound:
-          document.querySelector('.ct-decoration-manager') !== null,
+          document.querySelector(selectors.portraitManager) !== null,
         portraitSurfaceFound:
-          document.querySelector('.ddbc-character-avatar__portrait') !== null,
+          document.querySelector(selectors.portraitSurface) !== null,
         sharperCardPortraitFound:
-          [...document.querySelectorAll<HTMLElement>('.image.user-selected-avatar')]
+          [...document.querySelectorAll<HTMLElement>(selectors.cardPortrait)]
               .some((element) => element.style.backgroundImage.includes('width=600')),
         uploadInputFound:
-          document.querySelector(
-            '.ct-decoration-manager__upload-file-input[type="file"]',
-          ) !== null,
+          document.querySelector(selectors.uploadInput) !== null,
         uploadSectionFound:
-          document.querySelector('.ct-decoration-manager__upload') !== null,
+          document.querySelector(selectors.uploadSection) !== null,
         url: location.href,
       };
-    }, fixture.name);
+    }, {
+      changePortraitButtonText: CHANGE_PORTRAIT_BUTTON_TEXT,
+      enhancedAttributeName: ENHANCED_ATTRIBUTE_NAME,
+      fixtureName: fixture.name,
+      journalTabAttributeName: CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME,
+      selectors: {
+        cardPortrait: CHARACTER_LIST_CARD_PORTRAIT_SELECTOR,
+        informationSidebar: INFORMATION_SIDEBAR_SELECTOR,
+        legacyPanel: CHARACTER_MANAGE_PANE_SELECTOR,
+        portraitManager: PORTRAIT_MANAGER_SELECTOR,
+        portraitSurface: CHARACTER_PORTRAIT_SURFACE_SELECTOR,
+        uploadInput: PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
+        uploadSection: PORTRAIT_MANAGER_UPLOAD_SELECTOR,
+      },
+      viewerStyleAttributeName: VIEWER_STYLE_ATTRIBUTE_NAME,
+    });
 
     report.push(health);
     expectHealth(health, expected);

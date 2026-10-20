@@ -81,7 +81,9 @@ sequenceDiagram
 
 ## D&D Beyond DOM adapter
 
-D&D Beyond is an external application with client-rendered UI. Keep these details isolated:
+D&D Beyond is an external application with client-rendered UI. The living description of the sheet, including Matilda Greywolf as the reference and live-QA character, is [docs/ddb-reference/README.md](ddb-reference/README.md). Read that instead of opening the live site. Every D&D Beyond selector the extension depends on is in `src/platform/dndbeyond/selectors.ts`. A renamed class is a one-line change there. `tests/dom/selector-health.test.ts` checks the code selectors against fixtures, and `tests/e2e/selector-health-live.spec.ts` checks the sheet selectors when a logged-in sheet is available.
+
+Keep these details isolated:
 
 - character-page URL recognition,
 - character ID extraction,
@@ -173,6 +175,11 @@ that contains `Extras`, finds the sheet content host as the sibling panel next
 to that tab strip, and marks the inserted tab with
 `data-bfa-character-journal-tab="true"` for idempotency.
 
+On the 2026-10-20 wide desktop capture of Matilda Greywolf, that tab row sits
+at the top of the right-hand content box, not along the bottom of the page.
+The content host is the body under the row. See
+[docs/ddb-reference/README.md](ddb-reference/README.md).
+
 When the journal tab is active, the extension hides the native sheet content
 children in that host, appends `bfa-character-journal-section`, and restores the
 native content when a native D&D Beyond tab is clicked.
@@ -209,30 +216,32 @@ Version 2 keeps the Journal tab and moves the note into a right-hand panel.
 The list mounts on the content region next to the tab strip
 (`.ddbc-tab-list__content` on the classic sheet). It does not search scrolling
 descendants for a mount. The panel is appended to `document.body` so a sheet
-`overflow: hidden` cannot clip it. It uses `ct-sidebar`, `ct-sidebar__portal`,
-`ct-sidebar__inner`, `ct-sidebar__header`, and `ct-sidebar__heading`. Hashed
-module classes are copied from a live sidebar or input when one is on the page.
-Classes whose name contains `hidden` are not copied.
+`overflow: hidden` cannot clip it. It is the extension's own dialog, about
+340px wide, with a theme-color left edge and header rule. The action and notes
+slide-in class was not captured, and `ct-sidebar__portal` is the portrait
+sidebar, so the notes panel does not copy those classes. Hashed module classes
+are copied from a live input or neutral button when one is on the page. Classes
+whose name contains `hidden` are not copied.
 
 The visual source is Matilda Greywolf,
 `https://www.dndbeyond.com/characters/172153137`, captured 2026-10-20 in light
-and Underdark: the sheet, Notes, Extras, the Longsword pane, and the
-Organizations pane. Those PNG files were not retained in this workspace. A
-public light sheet, `https://www.dndbeyond.com/characters/4741434` ("Book"),
-was loaded the same day. It is the 2024 five-tab sheet (Actions, Spells,
-Inventory, Features & Traits, Extras) and is saved at
+and Underdark. The screenshots are in `docs/ddb-reference/`. A public light
+sheet, `https://www.dndbeyond.com/characters/4741434` ("Book"), was loaded the
+same day. It is the 2024 five-tab sheet (Actions, Spells, Inventory, Features
+& Traits, Extras) and is saved at
 `.agent/design/journal-v2/reference/live-sheet-light.png`. The tab matcher
 accepts that shorter label set and the classic seven-tab set.
 
 Theme comes from the sheet: `ct-theme-dark`, a class ending in `dark-mode`,
 `data-theme` or `data-appearance`, then background luminance. The journal does
-not read `prefers-color-scheme`. Colors are sampled from the sheet. Fallback
+not read `prefers-color-scheme`. Accent, border, and the active-tab underline
+come from the computed style of an existing frame or the active tab. Fallback
 tokens are used when a sample is missing. A white input is not treated as an
 Underdark field.
 
-Journal D&D Beyond selectors live in the Journal group of `src/ddb/selectors.ts`.
-`tests/unit/ddb-journal-selectors.test.ts` names the selector and the feature
-that breaks when a fixture no longer matches.
+Journal D&D Beyond selectors live in the Character journal group of
+`src/platform/dndbeyond/selectors.ts`. `tests/dom/selector-health.test.ts`
+names the selector and the feature that breaks when a fixture no longer matches.
 
 ### Phase 1 DOM hooks observed on 2026-10-10
 

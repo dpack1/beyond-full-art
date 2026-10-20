@@ -1,10 +1,3 @@
-import {
-  JOURNAL_SIDEBAR_CLASS,
-  JOURNAL_SIDEBAR_HEADER_CLASS,
-  JOURNAL_SIDEBAR_HEADING_CLASS,
-  JOURNAL_SIDEBAR_INNER_CLASS,
-  JOURNAL_SIDEBAR_PORTAL_CLASS,
-} from '../../ddb/selectors';
 import {trapTabKey} from '../fullscreen-viewer/focus';
 import {applyJournalFormat, type JournalFormatKind} from './character-journal-format';
 import {renderJournalMarkdown} from './character-journal-markdown';
@@ -93,7 +86,7 @@ export function createJournalPanel(
   scrim.hidden = true;
 
   const root = doc.createElement('div');
-  root.className = `bfa-journal-panel ${JOURNAL_SIDEBAR_CLASS} ${JOURNAL_SIDEBAR_PORTAL_CLASS}`;
+  root.className = 'bfa-journal-panel';
   root.dataset.bfaJournalPanel = 'true';
   root.hidden = true;
   root.setAttribute('role', 'dialog');
@@ -101,15 +94,15 @@ export function createJournalPanel(
   root.tabIndex = -1;
 
   const sheet = doc.createElement('div');
-  sheet.className = `${JOURNAL_SIDEBAR_INNER_CLASS} bfa-journal-panel-sheet`;
+  sheet.className = 'bfa-journal-panel-sheet';
   const header = doc.createElement('header');
-  header.className = `${JOURNAL_SIDEBAR_HEADER_CLASS} bfa-journal-panel-header`;
+  header.className = 'bfa-journal-panel-header';
   const closeButton = button(doc, '×', 'bfa-journal-close');
   closeButton.setAttribute('aria-label', 'Close');
   const backButton = button(doc, 'Back', 'bfa-journal-button bfa-journal-back');
   backButton.hidden = true;
   const title = doc.createElement('h2');
-  title.className = `${JOURNAL_SIDEBAR_HEADING_CLASS} bfa-journal-panel-title`;
+  title.className = 'bfa-journal-panel-title';
   const editButton = button(doc, 'Edit', 'bfa-journal-button');
   const tag = doc.createElement('span');
   tag.className = 'bfa-journal-tag';

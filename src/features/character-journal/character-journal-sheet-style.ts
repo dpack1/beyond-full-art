@@ -1,13 +1,11 @@
 import {
-  JOURNAL_CLASSIC_TAB_ACTIVE_CLASS,
-  JOURNAL_DARK_MODE_CLASS,
-  JOURNAL_FIELD_SAMPLE_SELECTOR,
-  JOURNAL_NATIVE_BUTTON_CLASS_FRAGMENTS,
-  JOURNAL_SHEET_CLASS,
-  JOURNAL_SIDEBAR_CLASS,
-  JOURNAL_SIDEBAR_SELECTOR,
-  JOURNAL_TEXT_SAMPLE_SELECTOR,
-} from '../../ddb/selectors';
+  CHARACTER_SHEET_DARK_MODE_CLASS,
+  CHARACTER_SHEET_SELECTOR,
+  NATIVE_BUTTON_CLASS_PATTERN,
+  PRIMARY_BOX_SELECTOR,
+  SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR,
+  SHEET_TAB_NAV_ITEM_SELECTOR,
+} from '../../platform/dndbeyond/selectors';
 import {
   JOURNAL_FALLBACK_TOKENS,
   colorsContrast,
@@ -19,7 +17,6 @@ export interface SheetControlPaint {
   fontFamily: string;
   inputClass: string;
   mode: 'dark' | 'light';
-  sidebarClass: string;
 }
 
 const TOKEN_NAMES = [
@@ -47,25 +44,21 @@ export function paintJournalSurface(
 ): SheetControlPaint {
   const theme = readSheetTheme(anchor);
   const fallback = JOURNAL_FALLBACK_TOKENS[theme.mode];
-  const sheet = anchor.closest<HTMLElement>(`.${JOURNAL_SHEET_CLASS}`) ?? anchor;
+  const sheet = anchor.closest<HTMLElement>(CHARACTER_SHEET_SELECTOR) ?? anchor;
   const style = readStyle(sheet);
   const background = opaque(style.backgroundColor) ?? fallback.background;
   const textSample = firstContrasting(
       [
         readStyle(sheet).color,
-        sampledColor(sheet, JOURNAL_TEXT_SAMPLE_SELECTOR),
+        sampledColor(sheet, `${SHEET_TAB_NAV_ITEM_SELECTOR}, h1, h2, p`),
       ],
       background,
       fallback.text,
   );
   const active = activeTab(sheet);
   const activeStyle = active === null ? null : readStyle(active);
-  const sampledUnderline = activeStyle === null ? null : underlineColor(activeStyle);
-  const selected = sampledUnderline
-    ?? (activeStyle === null
-      ? fallback.selected
-      : firstContrasting([activeStyle.color], background, fallback.selected));
-  const field = fieldSample(sheet.ownerDocument);
+  const themeColor = sampleThemeColor(sheet) ?? fallback.accent;
+  const field = fieldSample(sheet);
   const fieldStyle = field === null ? null : readStyle(field);
   const sampledSurface = fieldStyle === null ? null : opaque(fieldStyle.backgroundColor);
   const surface = sampledSurface !== null && surfaceMatchesTheme(sampledSurface, theme.mode)
@@ -73,23 +66,18 @@ export function paintJournalSurface(
     : fallback.surface;
 
   root.dataset.bfaTheme = theme.mode;
-  root.classList.toggle(JOURNAL_DARK_MODE_CLASS, theme.mode === 'dark');
+  root.classList.toggle(CHARACTER_SHEET_DARK_MODE_CLASS, theme.mode === 'dark');
   root.style.colorScheme = theme.mode;
   const tokens: Record<(typeof TOKEN_NAMES)[number][1], string> = {
     ...fallback,
+    accent: themeColor,
+    accentEdge: themeColor,
     background,
-    selected,
+    border: themeColor,
+    selected: themeColor,
     surface,
     text: textSample,
   };
-  if (
-    fieldStyle !== null
-    && surface === sampledSurface
-    && opaque(fieldStyle.borderTopColor) !== null
-  ) {
-    tokens.border = fieldStyle.borderTopColor;
-  }
-
   for (const [cssName, key] of TOKEN_NAMES) {
     root.style.setProperty(cssName, tokens[key]);
   }
@@ -101,7 +89,7 @@ export function paintJournalSurface(
   if (activeStyle !== null) {
     root.style.setProperty('--bfa-journal-label-font', activeStyle.fontFamily);
   }
-  root.style.setProperty('--bfa-journal-panel-width', sidebarWidth(sheet.ownerDocument));
+  root.style.setProperty('--bfa-journal-panel-width', '340px');
   root.style.setProperty(
       '--bfa-journal-field-radius',
       fieldStyle !== null && fieldStyle.borderRadius !== ''
@@ -114,7 +102,6 @@ export function paintJournalSurface(
     fontFamily: style.fontFamily,
     inputClass: copiedClassName(field),
     mode: theme.mode,
-    sidebarClass: sidebarClass(sheet.ownerDocument),
   };
 }
 
@@ -153,18 +140,18 @@ function replaceMarkedClass(
   }
 }
 
-export function sidebarClass(doc: Document): string {
-  const sidebar = doc.querySelector<HTMLElement>(JOURNAL_SIDEBAR_SELECTOR);
-  if (sidebar === null) {
-    return JOURNAL_SIDEBAR_CLASS;
-  }
-
-  const names = [...sidebar.classList].filter((name) => !/hidden/i.test(name));
-  return names.join(' ') || JOURNAL_SIDEBAR_CLASS;
+function fieldSelector(): string {
+  const roots = CHARACTER_SHEET_SELECTOR.split(',').map((part) => part.trim());
+  const sheetFields = roots.flatMap((root) => [`${root} input`, `${root} textarea`]);
+  return [
+    ...sheetFields,
+    `${PRIMARY_BOX_SELECTOR} input`,
+    `${PRIMARY_BOX_SELECTOR} textarea`,
+  ].join(', ');
 }
 
-function fieldSample(doc: Document): HTMLElement | null {
-  const fields = doc.querySelectorAll<HTMLElement>(JOURNAL_FIELD_SAMPLE_SELECTOR);
+function fieldSample(sheet: HTMLElement): HTMLElement | null {
+  const fields = sheet.ownerDocument.querySelectorAll<HTMLElement>(fieldSelector());
   for (const field of fields) {
     if (field.closest('.bfa-character-journal-section, .bfa-journal-panel') !== null) {
       continue;
@@ -229,10 +216,7 @@ function neutralButtonClass(sheet: HTMLElement): string {
       continue;
     }
 
-    if (
-      /Button_button|ButtonVariants_/.test(button.className)
-      || new RegExp(JOURNAL_NATIVE_BUTTON_CLASS_FRAGMENTS.split(' ').join('|')).test(button.className)
-    ) {
+    if (NATIVE_BUTTON_CLASS_PATTERN.test(button.className)) {
       return button.className;
     }
   }
@@ -242,20 +226,66 @@ function neutralButtonClass(sheet: HTMLElement): string {
 
 function activeTab(sheet: HTMLElement): HTMLElement | null {
   return sheet.querySelector<HTMLElement>(
-      `[aria-selected="true"], .${JOURNAL_CLASSIC_TAB_ACTIVE_CLASS}`,
+      `[aria-selected="true"], ${SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR}`,
   );
 }
 
-function sidebarWidth(doc: Document): string {
-  const sidebar = doc.querySelector<HTMLElement>(JOURNAL_SIDEBAR_SELECTOR);
-  const width = sidebar?.getBoundingClientRect().width ?? 0;
-  if (width > 80) {
-    return `${Math.round(width)}px`;
+function sampleThemeColor(sheet: HTMLElement): string | null {
+  const candidates: HTMLElement[] = [];
+  const active = activeTab(sheet);
+  if (active !== null) {
+    candidates.push(active);
   }
+  candidates.push(...sheet.querySelectorAll<HTMLElement>(PRIMARY_BOX_SELECTOR));
+  for (const element of candidates) {
+    if (element.closest('.bfa-character-journal-section, .bfa-journal-panel') !== null) {
+      continue;
+    }
+    const color = accentFromStyle(readStyle(element));
+    if (color !== null) {
+      return color;
+    }
+  }
+  return null;
+}
 
-  // The owner's 2026-10-20 captures show a right column about this wide.
-  // A live sidebar width replaces it when one is on the page.
-  return '340px';
+function accentFromStyle(style: CSSStyleDeclaration): string | null {
+  const underline = underlineColor(style);
+  if (underline !== null && isChromatic(underline)) {
+    return underline;
+  }
+  const shadow = firstColor(style.boxShadow);
+  if (shadow !== null && isChromatic(shadow)) {
+    return shadow;
+  }
+  const edges: Array<[string, string]> = [
+    [style.borderTopWidth, style.borderTopColor],
+    [style.borderRightWidth, style.borderRightColor],
+    [style.borderBottomWidth, style.borderBottomColor],
+    [style.borderLeftWidth, style.borderLeftColor],
+  ];
+  for (const [width, color] of edges) {
+    const size = Number.parseFloat(width);
+    if (Number.isFinite(size) && size >= 1 && isChromatic(color)) {
+      return opaque(color);
+    }
+  }
+  return null;
+}
+
+function firstColor(value: string): string | null {
+  return /rgba?\([^)]+\)/.exec(value)?.[0] ?? null;
+}
+
+function isChromatic(color: string): boolean {
+  const match = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(color);
+  if (match === null) {
+    return false;
+  }
+  const channels = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const max = Math.max(...channels);
+  const min = Math.min(...channels);
+  return max - min > 28 && max > 70;
 }
 
 function underlineColor(style: CSSStyleDeclaration): string | null {

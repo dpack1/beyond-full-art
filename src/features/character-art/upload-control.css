@@ -43,19 +43,8 @@
   min-width: 0;
 }
 
-.bfa-art-sync__upload-intro .ct-decoration-manager__upload-heading-rules {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-
-.bfa-art-sync__upload-intro .ct-decoration-manager__upload-file {
-  max-width: 100%;
-  min-width: 0;
-}
-
-.bfa-art-sync__upload-intro .ct-decoration-manager__upload-file-input {
-  max-width: 100%;
-}
+/* Rules that name D&D Beyond portrait-manager classes are appended from the
+   selector map when these styles are injected. */
 
 .bfa-art-sync__button {
   appearance: none;
@@ -231,11 +220,6 @@
 .bfa-art-sync--compact .bfa-art-sync__top-layout {
   grid-template-columns: minmax(0, 1fr);
   margin-bottom: 14px;
-}
-
-.bfa-art-sync--compact .bfa-art-sync__upload-intro .ct-decoration-manager__upload-heading-rules {
-  font-size: 12px;
-  line-height: 1.35;
 }
 
 .bfa-art-sync--compact .bfa-art-sync__selected-row {

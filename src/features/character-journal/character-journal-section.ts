@@ -23,10 +23,6 @@ import {applySheetTheme, observeSheetTheme} from './character-journal-theme';
 import type {JournalEntryType, JournalNote} from './character-journal-types';
 import {normalizeJournalEntryTitle, validateJournalImageFile} from './character-journal-types';
 import {restoreNativeTabAfterJournal} from '../../platform/dndbeyond/character-sheet-tabs-adapter';
-import {
-  JOURNAL_SIDEBAR_CLASS,
-  JOURNAL_SIDEBAR_PORTAL_CLASS,
-} from '../../ddb/selectors';
 
 export interface CharacterJournalSection {
   destroy(): void;
@@ -133,7 +129,7 @@ export function createCharacterJournalSection(
       state.panel.note = {...state.panel.note, body: next};
       scheduleSave();
     },
-    onClose: () => requestHide(),
+    onClose: () => closeNote(),
     onConfirm: (accepted) => {
       const kind = state.panel?.confirm;
       if (state.panel !== null) {
@@ -161,7 +157,12 @@ export function createCharacterJournalSection(
         return;
       }
 
-      if (kind === 'discard' || kind === 'hide') {
+      if (kind === 'discard') {
+        closePanel();
+        return;
+      }
+
+      if (kind === 'hide') {
         const teardown = pendingTeardown;
         pendingTeardown = null;
         hideCancel = null;
@@ -627,16 +628,21 @@ export function createCharacterJournalSection(
     });
     const paint = paintJournalSurface(panel.root, state.contentHost ?? list.root);
     applyCopiedControlClasses(panel.root, paint);
-    panel.root.classList.add(
-        'bfa-journal-panel',
-        JOURNAL_SIDEBAR_CLASS,
-        JOURNAL_SIDEBAR_PORTAL_CLASS,
-    );
-    for (const name of paint.sidebarClass.split(/\s+/)) {
-      if (name !== '') {
-        panel.root.classList.add(name);
-      }
+    panel.root.classList.add('bfa-journal-panel');
+  }
+
+  function closeNote(): void {
+    if (state.panel === null) {
+      return;
     }
+
+    if (state.panel.mismatch || !isDirty()) {
+      closePanel();
+      return;
+    }
+
+    state.panel.confirm = 'discard';
+    renderPanel();
   }
 
   function confirmModel(kind: OpenPanel['confirm']): PanelConfirmModel | null {
@@ -990,6 +996,40 @@ function createId(): string {
   return `journal-${Date.now()}`;
 }
 
+function accentFromCapturedChrome(chrome: string): string | null {
+  const [color = '', borderBottom = '', boxShadow = ''] = chrome.split('|');
+  for (const value of [boxShadow, borderBottom, color]) {
+    const match = /rgba?\([^)]+\)|#[\da-f]{6}/i.exec(value);
+    if (match?.[0] !== undefined && isChromaticColor(match[0])) {
+      return match[0];
+    }
+  }
+
+  return null;
+}
+
+function isChromaticColor(color: string): boolean {
+  const hex = /^#([\da-f]{6})$/i.exec(color);
+  const rgb = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(color);
+  const hexChannels = hex?.[1];
+  const channels = hexChannels !== undefined
+    ? [
+      Number.parseInt(hexChannels.slice(0, 2), 16),
+      Number.parseInt(hexChannels.slice(2, 4), 16),
+      Number.parseInt(hexChannels.slice(4, 6), 16),
+    ]
+    : rgb?.[1] === undefined || rgb[2] === undefined || rgb[3] === undefined
+      ? null
+      : [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])];
+  if (channels === null || channels.some((channel) => !Number.isFinite(channel))) {
+    return false;
+  }
+
+  const max = Math.max(...channels);
+  const min = Math.min(...channels);
+  return max - min > 28 && max > 70;
+}
+
 function setTabActive(tab: HTMLElement, isActive: boolean): void {
   const hitTarget = tab.closest<HTMLElement>('[data-bfa-character-journal-tab-item]') ?? tab;
   tab.classList.toggle('bfa-character-journal-tab--active', isActive);
@@ -1002,19 +1042,23 @@ function setTabActive(tab: HTMLElement, isActive: boolean): void {
   tab.style.color = '';
   tab.style.borderBottom = '';
   tab.style.boxShadow = '';
-  if (isActive && (nativeActiveClass === undefined || nativeActiveClass === '')) {
-    const chrome = hitTarget.dataset.bfaTabChrome;
-    if (chrome !== undefined) {
-      const [color, borderBottom, boxShadow] = chrome.split('|');
-      if (color !== undefined) {
-        tab.style.color = color;
-      }
-      if (borderBottom !== undefined) {
-        tab.style.borderBottom = borderBottom;
-      }
-      if (boxShadow !== undefined) {
-        tab.style.boxShadow = boxShadow;
-      }
+  const chrome = hitTarget.dataset.bfaTabChrome;
+  const accent = chrome === undefined ? null : accentFromCapturedChrome(chrome);
+  if (isActive && accent !== null) {
+    hitTarget.style.setProperty('--bfa-journal-accent', accent);
+  } else {
+    hitTarget.style.removeProperty('--bfa-journal-accent');
+  }
+  if (isActive && (nativeActiveClass === undefined || nativeActiveClass === '') && chrome !== undefined) {
+    const [color, borderBottom, boxShadow] = chrome.split('|');
+    if (color !== undefined) {
+      tab.style.color = color;
+    }
+    if (borderBottom !== undefined) {
+      tab.style.borderBottom = borderBottom;
+    }
+    if (boxShadow !== undefined) {
+      tab.style.boxShadow = boxShadow;
     }
   }
 

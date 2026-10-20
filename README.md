@@ -4,7 +4,7 @@
 
 Beyond Full Art is a Chrome Manifest V3 extension for D&D Beyond character art. It keeps D&D Beyond's portrait flow and adds local full-art storage, a portrait crop tool, a fullscreen viewer, sharper character-card portraits, and a local character journal.
 
-This file is the runbook: what the extension does, how to install it, and how to build, run, and test it. Product and architecture detail lives in `docs/`. Shipped features are listed in `.agent/FEATURES.md`. Work that has not shipped, including the character journal, lives in `.agent/plans/` and follows `.agent/PLANS.md`. Agent-facing conventions live in `AGENTS.md`.
+This file is the runbook: what the extension does, how to install it, and how to build, run, and test it. Product and architecture detail lives in `docs/`. The D&D Beyond sheet reference is [docs/ddb-reference/README.md](docs/ddb-reference/README.md). Shipped features are listed in `.agent/FEATURES.md`. Work that has not shipped, including the character journal, lives in `.agent/plans/` and follows `.agent/PLANS.md`. Agent-facing conventions live in `AGENTS.md`.
 
 ## The problems it solves
 
@@ -198,15 +198,18 @@ Toolbar popup
 | --- | --- |
 | `src/content/` | Content-script entrypoints. The sheet entry installs the page features. |
 | `src/features/` | Viewer, art controls, crop, card portraits, and journal UI. |
-| `src/platform/dndbeyond/` | Selectors, URL parsing, and D&D Beyond DOM adapters. |
+| `src/platform/dndbeyond/selectors.ts` | The only D&D Beyond selector map. A renamed class is a one-line edit here. |
+| `src/platform/dndbeyond/` | URL parsing and the DOM adapters that import the map. |
 | `src/platform/chrome/` | Storage, IndexedDB, and runtime-message validation. |
 | `src/background/service-worker.ts` | Owns art reads and writes. Treat it as ephemeral. |
 | `src/popup/` | Toolbar popup: two settings and the stored-art inventory. |
 | `src/shared/` | Small DOM, download, and result helpers. |
 | `tests/unit`, `tests/dom`, `tests/e2e` | Pure logic, jsdom fixtures, and Playwright extension fixtures. |
+| `docs/ddb-reference/` | Living reference for Matilda Greywolf's sheet: layout, tabs, theme, and the hooks the extension uses. |
 | `docs/` | Spec, architecture, decisions, test checklists, and deletion research. |
+| `.agent/` | Shipped feature list and future plans. |
 
-D&D Beyond selectors and private endpoints are unstable. They belong in `src/platform/dndbeyond/`. The longer design notes are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+D&D Beyond selectors and private endpoints are unstable. Every selector the extension depends on is in `src/platform/dndbeyond/selectors.ts`. The sheet layout, including where the tab row sits on a wide desktop, is in [docs/ddb-reference/README.md](docs/ddb-reference/README.md). The longer design notes are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ### Commands
 
@@ -245,7 +248,11 @@ Automated tests use saved DOM fixtures and do not call the live site. Playwright
 BFA_PLAYWRIGHT_HEADLESS=false npm run test:e2e
 ```
 
-Manual checklists for the live site are in [docs/TESTING.md](docs/TESTING.md). A change that touches a D&D Beyond adapter still needs a live check; the fixture suite cannot prove the current site DOM.
+`npm test` includes the selector health check. A failure names the selector, the features it breaks, what it targeted, and what to look for. The usual fix is one line in `src/platform/dndbeyond/selectors.ts`.
+
+The live check is skipped unless you point it at a logged-in sheet. The command, the reference character, and the storage-state setup are in [docs/TESTING.md](docs/TESTING.md#selector-health). `npm run test:e2e` skips this check when the URL is unset.
+
+Manual checklists for the live site are in [docs/TESTING.md](docs/TESTING.md). Read [docs/ddb-reference/README.md](docs/ddb-reference/README.md) instead of browsing the live site for structure. A change that touches a D&D Beyond adapter still needs a live check; the fixture suite cannot prove the current site DOM.
 
 ### Where to read next
 
@@ -253,6 +260,7 @@ Manual checklists for the live site are in [docs/TESTING.md](docs/TESTING.md). A
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
 - [docs/DECISIONS.md](docs/DECISIONS.md)
+- [docs/ddb-reference/README.md](docs/ddb-reference/README.md)
 - [docs/TESTING.md](docs/TESTING.md)
 - [AGENTS.md](AGENTS.md)
 

@@ -305,4 +305,20 @@ Why:
 - ADR-017 still holds: the journal is extension-owned and local. ADR-020 still
   holds: the journal follows the sheet. The look is sampled from the sheet
   Dylan uses, Matilda Greywolf (`172153137`), including the Notes and Extras
-  tab strip and the right-hand pane. Mockup colors are not the source.
+  tab strip and the right-hand pane. The red frames and the active-tab
+  underline are that character's theme color, sampled at runtime. They are
+  not a fixed red. Mockup colors are not the source.
+
+## ADR-022: One selector map and a sheet reference
+
+Status: Accepted
+
+Keep every D&D Beyond selector in `src/platform/dndbeyond/selectors.ts`, describe the sheet in `docs/ddb-reference/README.md`, and fail tests with the selector id, the features it breaks, what it targeted, and what to look for.
+
+Why:
+
+- D&D Beyond's DOM changes without notice. A renamed class should be a one-line fix in a file a new reader can find.
+- Agents should read the reference doc instead of scraping the live site. The live site stays the place for the QA check.
+- Matilda Greywolf (`https://www.dndbeyond.com/characters/172153137`) is the reference sheet and the live-QA character as of 2026-10-20.
+- Fixture tests prove the code selectors still match saved DOM. The Playwright live check is opt-in so CI does not need a logged-in session.
+- This decision landed on main as ADR-019 before the journal photo and sheet-pane decisions were in that history. On this branch those keep ADR-019 and ADR-020, and the selector map is ADR-022.

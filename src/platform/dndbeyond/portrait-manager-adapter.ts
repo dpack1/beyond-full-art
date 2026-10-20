@@ -1,4 +1,5 @@
 import {
+  CHANGE_PORTRAIT_BUTTON_TEXT,
   PORTRAIT_MANAGER_CUSTOM_CONTENT_SELECTOR,
   PORTRAIT_MANAGER_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
@@ -16,8 +17,6 @@ export interface PortraitManagementTarget {
   uploadInput: HTMLInputElement;
   uploadSection: HTMLElement;
 }
-
-const CHANGE_PORTRAIT_BUTTON_TEXT = 'Change Portrait';
 
 export function findPortraitManagementTargets(
     root: ParentNode,

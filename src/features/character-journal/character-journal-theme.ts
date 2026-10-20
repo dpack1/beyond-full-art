@@ -1,8 +1,8 @@
 import {
-  JOURNAL_SHEET_CLASS,
-  JOURNAL_TEXT_SAMPLE_SELECTOR,
-  JOURNAL_THEME_DARK_CLASS,
-} from '../../ddb/selectors';
+  CHARACTER_SHEET_SELECTOR,
+  SHEET_TAB_NAV_ITEM_SELECTOR,
+  THEME_DARK_CLASS,
+} from '../../platform/dndbeyond/selectors';
 import type {Cleanup} from '../../shared/types';
 
 export interface SheetThemeColors {
@@ -77,7 +77,7 @@ export function observeSheetTheme(
     onChange: () => void,
 ): Cleanup {
   const observer = new MutationObserver(onChange);
-  const sheet = anchor.closest<HTMLElement>(`.${JOURNAL_SHEET_CLASS}`) ?? anchor;
+  const sheet = anchor.closest<HTMLElement>(CHARACTER_SHEET_SELECTOR) ?? anchor;
   observer.observe(sheet, {
     attributeFilter: THEME_ATTRIBUTE_NAMES,
     attributes: true,
@@ -107,7 +107,7 @@ function explicitTheme(anchor: HTMLElement): 'dark' | 'light' | null {
     }
 
     for (const className of current.classList) {
-      if (className === JOURNAL_THEME_DARK_CLASS || /(?:^|[-_])dark-mode$/i.test(className)) {
+      if (className === THEME_DARK_CLASS || /(?:^|[-_])dark-mode$/i.test(className)) {
         return 'dark';
       }
     }
@@ -136,7 +136,7 @@ function firstOpaqueBackground(anchor: HTMLElement): RgbColor | null {
 
 function sampledForeground(anchor: HTMLElement): RgbColor | null {
   const sample = anchor.querySelector<HTMLElement>(
-      JOURNAL_TEXT_SAMPLE_SELECTOR,
+      `${SHEET_TAB_NAV_ITEM_SELECTOR}, h1, h2, p`,
   ) ?? anchor;
   return parseColor(readStyle(sample).color);
 }

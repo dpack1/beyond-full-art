@@ -1,49 +1,20 @@
-import {JOURNAL_SHEET_ROOT_SELECTOR} from '../../ddb/selectors';
 import type {Cleanup} from '../../shared/types';
 import {
   CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME,
   CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME,
   CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME,
+  CHARACTER_SHEET_SELECTOR,
+  SHEET_TAB_CONTROL_SELECTOR,
+  SHEET_TAB_LABELS,
+  SHEET_TAB_LIST_SELECTOR,
+  SHEET_TAB_TEXT_SELECTOR,
 } from './selectors';
-const TAB_CONTROL_SELECTOR = [
-  'a',
-  'button',
-  'label',
-  '[role="tab"]',
-  '[role="button"]',
-  '[role="radio"]',
-  'input[type="radio"]',
-].join(',');
-const TEXT_TAB_SELECTOR = [
-  'a',
-  'button',
-  'div',
-  'label',
-  'span',
-  '[role]',
-].join(',');
-const TAB_LIST_SELECTOR = [
-  '[role="tablist"]',
-  '[role="list"]',
-  'ul',
-  'ol',
-  'nav',
-  'menu',
-].join(',');
+
 const CORE_SHEET_TAB_LABELS = [
   'actions',
   'spells',
   'inventory',
   'features & traits',
-  'extras',
-];
-const CHARACTER_SHEET_TAB_LABELS = [
-  'actions',
-  'spells',
-  'inventory',
-  'features & traits',
-  'background',
-  'notes',
   'extras',
 ];
 
@@ -62,7 +33,7 @@ export function observeJournalTabTargets(
   let insertAttempts = 0;
   let attemptWindowStartedAt = Date.now();
   let scanScheduled = false;
-  const sheetSelector = JOURNAL_SHEET_ROOT_SELECTOR;
+  const sheetSelector = CHARACTER_SHEET_SELECTOR;
 
   const scan = () => {
     if (
@@ -318,7 +289,7 @@ function findVisuallyActiveTab(root: HTMLElement): HTMLElement | null {
 }
 
 function findExtrasTab(root: ParentNode): HTMLElement | null {
-  const candidates = root.querySelectorAll<HTMLElement>(TAB_CONTROL_SELECTOR);
+  const candidates = root.querySelectorAll<HTMLElement>(SHEET_TAB_CONTROL_SELECTOR);
 
   for (const candidate of candidates) {
     if (candidate.closest(`[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}]`) !== null) {
@@ -352,7 +323,7 @@ function findNativeTabs(extrasTab: HTMLElement): HTMLElement[] {
   }
 
   return Array.from(tabListRoot.querySelectorAll<HTMLElement>(
-      TAB_CONTROL_SELECTOR,
+      SHEET_TAB_CONTROL_SELECTOR,
   ))
       .concat(Array.from(tabListRoot.children)
           .filter((element): element is HTMLElement => element instanceof HTMLElement))
@@ -390,7 +361,7 @@ function createInsertionItem(
     referenceElement: HTMLElement,
     journalTab: HTMLButtonElement,
 ): HTMLElement {
-  if (!referenceElement.matches(TAB_CONTROL_SELECTOR)) {
+  if (!referenceElement.matches(SHEET_TAB_CONTROL_SELECTOR)) {
     const item = referenceElement.ownerDocument.createElement(
         referenceElement.tagName,
     );
@@ -488,7 +459,7 @@ function nativeTabItem(target: HTMLElement): HTMLElement {
 }
 
 function findTabListRoot(tab: HTMLElement): HTMLElement | null {
-  const semanticRoot = tab.closest<HTMLElement>(TAB_LIST_SELECTOR);
+  const semanticRoot = tab.closest<HTMLElement>(SHEET_TAB_LIST_SELECTOR);
   if (semanticRoot !== null) {
     return semanticRoot;
   }
@@ -569,7 +540,7 @@ function getControlText(control: HTMLElement): string {
 }
 
 function findExactTextExtrasTab(root: ParentNode): HTMLElement | null {
-  const candidates = root.querySelectorAll<HTMLElement>(TEXT_TAB_SELECTOR);
+  const candidates = root.querySelectorAll<HTMLElement>(SHEET_TAB_TEXT_SELECTOR);
   for (const candidate of candidates) {
     if (candidate.closest(`[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}]`) !== null) {
       continue;
@@ -597,7 +568,7 @@ function findTabListRootByLabels(tab: HTMLElement): HTMLElement | null {
   let current: HTMLElement | null = tab;
   while (current !== null && current !== current.ownerDocument.body) {
     const currentText = normalizeText(current.textContent ?? '');
-    const hasClassicLabels = CHARACTER_SHEET_TAB_LABELS.every((label) =>
+    const hasClassicLabels = SHEET_TAB_LABELS.every((label) =>
       currentText.includes(label),
     );
     const hasCoreLabels = CORE_SHEET_TAB_LABELS.every((label) =>

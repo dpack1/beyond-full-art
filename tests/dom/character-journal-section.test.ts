@@ -31,7 +31,8 @@ describe('character journal section', () => {
     expect(getContentHost().querySelector('.bfa-character-journal-section')).not.toBeNull();
     expect(getNativePanel().hidden).toBe(true);
     expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No notes');
-    expect(document.querySelector('.ct-sidebar[data-bfa-journal-panel]')).not.toBeNull();
+    expect(document.querySelector('[data-bfa-journal-panel]')).not.toBeNull();
+    expect(document.querySelector('.ct-sidebar')).toBeNull();
 
     section.hide();
     expect(getNativePanel().hidden).toBe(false);
@@ -125,6 +126,25 @@ describe('character journal section', () => {
 
     expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
     expect(document.activeElement).toBe(row);
+    expect(section.isShown()).toBe(true);
+    section.destroy();
+  });
+
+  it('returns to the journal list when Close discards a draft', async () => {
+    const section = createCharacterJournalSection(createFakeService([]));
+    await showSection(section);
+    openNewSession();
+    titleField().value = 'Leave this';
+    titleField().dispatchEvent(new Event('input'));
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click();
+    expect(document.querySelector('.bfa-journal-confirm')?.textContent)
+        .toContain('This note is not saved yet.');
+    buttonNamed('Discard')?.click();
+
+    expect(section.isShown()).toBe(true);
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(buttonNamed('New note')).toBeDefined();
     section.destroy();
   });
 

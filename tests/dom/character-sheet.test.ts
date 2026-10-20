@@ -402,6 +402,13 @@ describe('character sheet enhancement', () => {
     buttonByText('Discard')?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
+        .not.toBeNull();
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(false);
+
+    buttonByText('Actions')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
         .toBeNull();
     expect(await readStorage('bfa.preferences.characterJournalEnabled')).toBe(false);
 
