@@ -245,3 +245,16 @@ Why:
 
 Future image bytes should use extension-origin IndexedDB rather than
 `chrome.storage.local`, matching the full-art storage boundary.
+
+## ADR-019: One selector map and a sheet reference
+
+Status: Accepted
+
+Keep every D&D Beyond selector in `src/platform/dndbeyond/selectors.ts`, describe the sheet in `docs/ddb-reference/README.md`, and fail tests with the selector id, the features it breaks, what it targeted, and what to look for.
+
+Why:
+
+- D&D Beyond's DOM changes without notice. A renamed class should be a one-line fix in a file a new reader can find.
+- Agents should read the reference doc instead of scraping the live site. The live site stays the place for the QA check.
+- Matilda Greywolf (`https://www.dndbeyond.com/characters/172153137`) is the reference sheet and the live-QA character as of 2026-10-20.
+- Fixture tests prove the code selectors still match saved DOM. The Playwright live check is opt-in so CI does not need a logged-in session.

@@ -2,14 +2,86 @@
 
 Beyond Full Art is a Chrome Manifest V3 extension for D&D Beyond character art. `README.md` is the human runbook. This file is the working agreement for code changes.
 
+## The pattern
+
+Keep the project readable for the next person, human or agent:
+
+- Human-readable code and docs. Named functions, explicit types, and comments only where the intent is not obvious.
+- One D&D Beyond selector map: `src/platform/dndbeyond/selectors.ts`. Each entry says what it targets and which features break when it misses.
+- One sheet reference: `docs/ddb-reference/README.md`. Read it instead of the live site. The reference and live-QA character is Matilda Greywolf, https://www.dndbeyond.com/characters/172153137.
+- Tests that name the breakage. A selector health failure tells you the selector id, the selector string, the features it breaks, what it targeted, and what to look for on the page. A renamed class is usually one line in the map.
+
+Keep these docs current in the same change that makes them stale: this file, `README.md`, `docs/ddb-reference/`, and `.agent/` when a feature ships or a plan changes. Shared design decisions still go in `docs/DECISIONS.md`. Phase status still goes in `docs/IMPLEMENTATION_PLAN.md`.
+
 Before changing behavior, read:
 
 - `docs/PRODUCT_SPEC.md`
 - `docs/ARCHITECTURE.md`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/DECISIONS.md`
+- `docs/ddb-reference/README.md` when the change touches the D&D Beyond page
 
 For deletion-related work, also read `docs/NETWORK_DELETE_RESEARCH.md`. The observed request screenshots are in `docs/reference/`. Deletion cleanup is specified and still unbuilt. Add modules for it when that phase has real behavior.
+
+## Where things live
+
+| Path | What it is |
+| --- | --- |
+| `README.md` | Human quick start and runbook |
+| `AGENTS.md` | This file: setup, the UI-breakage playbook, and code conventions |
+| `.agent/FEATURES.md` | Shipped features |
+| `.agent/PLANS.md` and `.agent/plans/` | Future work that has not shipped |
+| `docs/ddb-reference/` | D&D Beyond sheet structure, look, and the hooks the extension uses |
+| `docs/` | Spec, architecture, decisions, testing, and deletion research |
+
+## Setup
+
+Node.js 20 (`.nvmrc` is `20.18.0`).
+
+```text
+nvm use
+npm install
+```
+
+## Build and load the unpacked extension
+
+Follow [Install](README.md#install) in the README. Chrome loads `dist/`, not the repository root. `npm run watch` is described under [Start and stop](README.md#start-and-stop).
+
+After a source change, let the build finish, click **Reload** on the extension card, and refresh the D&D Beyond tab.
+
+## Tests
+
+```text
+npm run typecheck
+npm test
+npm run build
+npm run test:e2e
+npm run test:all
+```
+
+`npm test` is Vitest. It includes `tests/dom/selector-health.test.ts`, which checks every code selector against the saved fixtures.
+
+`npm run test:e2e` builds, then runs Playwright against local fixtures. It does not call the live site. The live selector check is in that suite and skips unless you set a sheet URL. The command and the storage-state setup are in [docs/TESTING.md](docs/TESTING.md#selector-health). Playwright needs Chromium once: `npx playwright install chromium`. The suite is headless unless `BFA_PLAYWRIGHT_HEADLESS=false`.
+
+Manual live checklists are in `docs/TESTING.md`.
+
+## D&D Beyond changed its UI
+
+1. Read `docs/ddb-reference/README.md` for the last verified structure. Do not browse the live site to rediscover it.
+2. Run `npm test`. The selector health failure names the broken entry.
+3. Open the page only if you are doing the live check in [docs/TESTING.md](docs/TESTING.md#selector-health), or confirming a failure the fixtures cannot see.
+4. On a wide desktop sheet the tab row is at the top of the right-hand content box, not along the bottom. The journal looks for the Extras label in that row.
+5. Change the one selector in `src/platform/dndbeyond/selectors.ts`. A renamed class is usually the whole fix.
+6. Update `docs/ddb-reference/README.md` in the same change: the fact that changed, its provenance tag, and the Last verified date. Replace screenshots when the look changed.
+7. Run `npm run typecheck`, `npm test`, `npm run build`, and `npm run test:e2e`. Run the live check when a logged-in sheet is available.
+
+## Making adjustments
+
+- Match the surrounding code. Prefer a small direct change over a new framework or abstraction.
+- Put a new D&D Beyond selector in the map, with `targets`, `features`, `lookFor`, and the fixtures that contain it. The health test scans other `.ts` and `.css` files under `src/` and fails when a line matches `ddbc-`, `ct-decoration`, `ct-sidebar`, `ct-character`, `ct-theme`, `ct-primary`, `ddb-campaigns-`, `character-manage-pane`, `Information Sidebar`, `user-selected-avatar`, or `/avatars/`.
+- Extension-owned classes and attributes stay `bfa-` or `data-bfa-`. They are not part of the D&D Beyond map's health check.
+- Do not lose user artwork. Do not block D&D Beyond's own clicks. `preventDefault()` is limited to the cases already called out below.
+- Update the docs listed under [The pattern](#the-pattern) when behavior, architecture, permissions, storage, or a D&D Beyond assumption changes.
 
 ## Layout
 
@@ -24,7 +96,7 @@ src/
     crop-workflow/                      square portrait crop dialog
     fullscreen-viewer/                  accessible fullscreen overlay
   platform/chrome/                      storage, IndexedDB, runtime messages
-  platform/dndbeyond/                   selectors, URLs, DOM adapters
+  platform/dndbeyond/                   selector map, URLs, DOM adapters
   popup/                                toolbar settings and stored-art inventory
   shared/                               DOM, download, and result helpers
 tests/
@@ -33,6 +105,8 @@ tests/
   e2e/                                  Playwright extension fixtures
   fixtures/                             minimal DOM used by the tests
 docs/                                   spec, architecture, decisions, research
+docs/ddb-reference/                     live sheet structure; read this, not the live site
+.agent/                                 shipped features and future plans
 assets/icons/                           extension icons; icon-source.png is the master
 assets/readme/                          README images only
 scripts/build.mjs                       esbuild bundle into dist/
@@ -40,31 +114,13 @@ scripts/build.mjs                       esbuild bundle into dist/
 
 Preserve these boundaries:
 
-- D&D Beyond selectors and endpoint details live under `src/platform/dndbeyond/`.
+- D&D Beyond selectors live in `src/platform/dndbeyond/selectors.ts`. URL parsing and DOM adapters live next to that map.
 - Chrome API access lives behind `src/platform/chrome/` where tests need a seam.
 - UI components own their markup, behavior, and styles.
 - Storage code stays separate from DOM integration.
 - The popup is one surface: settings toggles plus the stored-art inventory.
 
 Avoid large files. Consider splitting a file that approaches 250 lines when it has more than one responsibility. Do not split cohesive code merely to satisfy a line count. `src/features/character-art/upload-control.ts` and `src/platform/chrome/messages.ts` are already past that guideline; split them only when changing their behavior.
-
-## Commands
-
-Node.js 20 (`.nvmrc` is `20.18.0`).
-
-```text
-npm install
-npm run typecheck
-npm test
-npm run build
-npm run watch
-npm run test:e2e
-npm run test:all
-```
-
-`npm run build` is required before Chrome can see TypeScript or static-file changes. Load `dist/`, not the repository root. `npm run watch` rebuilds the four script bundles and the CSS they import. It copies `manifest.json`, icons, and `src/popup/settings.html` only when it starts.
-
-Playwright needs Chromium: `npx playwright install chromium`. The e2e suite is headless unless `BFA_PLAYWRIGHT_HEADLESS=false`. It writes `test-results/`, which is gitignored.
 
 ## Conventions
 
@@ -89,7 +145,7 @@ Playwright needs Chromium: `npx playwright install chromium`. The e2e suite is h
 
 ### D&D Beyond integration
 
-- Never spread raw D&D Beyond CSS selectors through feature code. Add them to `src/platform/dndbeyond/selectors.ts` or the adapter that owns that surface.
+- Never spread raw D&D Beyond CSS selectors through feature code. Add them to `src/platform/dndbeyond/selectors.ts`. The selector health test scans other `.ts` and `.css` files under `src/` and fails when a line matches `ddbc-`, `ct-decoration`, `ct-sidebar`, `ct-character`, `ct-theme`, `ct-primary`, `ddb-campaigns-`, `character-manage-pane`, `Information Sidebar`, `user-selected-avatar`, or `/avatars/`.
 - Treat D&D Beyond DOM structure and private endpoints as unstable external contracts.
 - Do not guess a selector or request payload when it can be verified on the live site.
 - When an assumption is verified, document the date and the observed behavior.
@@ -131,7 +187,7 @@ Playwright needs Chromium: `npx playwright install chromium`. The e2e suite is h
 - Journal image tiles are a placeholder. Do not store image bytes in `chrome.storage.local`.
 - `assets/icons/icon-source.png` is the icon master. The build copies only `icon-16.png`, `icon-32.png`, `icon-48.png`, and `icon-128.png`.
 - README diagrams under `assets/readme/svg/` are the labeled screenshots. Do not commit generated `dist/` or `test-results/`.
-- `.agent/` is gitignored local scratch. Shared design changes go in `docs/DECISIONS.md`. Phase status goes in `docs/IMPLEMENTATION_PLAN.md`.
+- `.agent/` is tracked. `FEATURES.md` lists shipped features. `PLANS.md` and `plans/` hold work that has not shipped. Update them when a feature ships or a plan changes. Shared design decisions go in `docs/DECISIONS.md`. Phase status goes in `docs/IMPLEMENTATION_PLAN.md`.
 
 ## Validation
 
@@ -143,10 +199,14 @@ npm test
 npm run build
 ```
 
-Add or update tests for non-trivial parsing, storage, preference, and request-correlation logic. For D&D Beyond DOM changes, include concise manual verification steps in the pull request. The live checklists are in `docs/TESTING.md`.
+Run `npm run test:e2e` when a change touches a content script, a D&D Beyond adapter, or the selector map. Run the live selector check from [Tests](#tests) when a logged-in sheet is available.
+
+Add or update tests for non-trivial parsing, storage, preference, request-correlation, and selector logic. For D&D Beyond DOM changes, include concise manual verification steps in the pull request. The live checklists are in `docs/TESTING.md`. The sheet reference is `docs/ddb-reference/README.md`.
 
 ## Documentation
 
 Update documentation in the same change when behavior, architecture, permissions, storage, or external assumptions change.
 
 Record meaningful architecture changes in `docs/DECISIONS.md`.
+
+When D&D Beyond's sheet changes, update `docs/ddb-reference/README.md` and the selector map together. The refresh steps are at the bottom of that reference.

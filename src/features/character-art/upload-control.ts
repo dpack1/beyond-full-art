@@ -17,7 +17,10 @@ import {
   CHARACTER_ART_STYLES_ATTRIBUTE_NAME,
   PORTRAIT_MANAGER_AVATAR_IMAGE_SELECTOR,
   PORTRAIT_MANAGER_CUSTOM_SECTION_SELECTOR,
+  PORTRAIT_MANAGER_UPLOAD_FILE_CLASS,
+  PORTRAIT_MANAGER_UPLOAD_FILE_INPUT_CLASS,
   PORTRAIT_MANAGER_UPLOAD_FORM_SELECTOR,
+  PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_CLASS,
   PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_HEADING_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
@@ -943,6 +946,30 @@ function createButton(
   return button;
 }
 
+function portraitManagerLayoutCss(): string {
+  // Class names stay in the selector map so a D&D Beyond rename is one edit.
+  const rules = PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_CLASS;
+  const file = PORTRAIT_MANAGER_UPLOAD_FILE_CLASS;
+  const input = PORTRAIT_MANAGER_UPLOAD_FILE_INPUT_CLASS;
+  return [
+    `.bfa-art-sync__upload-intro .${rules} {`,
+    '  max-width: 100%;',
+    '  overflow-wrap: anywhere;',
+    '}',
+    `.bfa-art-sync__upload-intro .${file} {`,
+    '  max-width: 100%;',
+    '  min-width: 0;',
+    '}',
+    `.bfa-art-sync__upload-intro .${input} {`,
+    '  max-width: 100%;',
+    '}',
+    `.bfa-art-sync--compact .bfa-art-sync__upload-intro .${rules} {`,
+    '  font-size: 12px;',
+    '  line-height: 1.35;',
+    '}',
+  ].join('\n');
+}
+
 function ensureCharacterArtStyles(doc: Document): void {
   if (doc.head.querySelector(`[${CHARACTER_ART_STYLES_ATTRIBUTE_NAME}]`) !== null) {
     return;
@@ -950,7 +977,7 @@ function ensureCharacterArtStyles(doc: Document): void {
 
   const styleElement = doc.createElement('style');
   styleElement.setAttribute(CHARACTER_ART_STYLES_ATTRIBUTE_NAME, 'true');
-  styleElement.textContent = characterArtStyles;
+  styleElement.textContent = `${characterArtStyles}\n${portraitManagerLayoutCss()}`;
   doc.head.append(styleElement);
 }
 

@@ -58,6 +58,34 @@ The suite writes `test-results/selector-health-report.json` with the current
 fixture selector matrix. This file is generated output and should not be
 committed.
 
+### Selector health
+
+`tests/dom/selector-health.test.ts` runs with `npm test`. It checks every
+code selector in `src/platform/dndbeyond/selectors.ts` against the saved
+fixtures. A failure names the selector id, the selector string, the features
+it breaks, what it targeted, and what to look for on the page. The usual fix
+is one line in the selector map.
+
+`tests/e2e/selector-health-live.spec.ts` is part of `npm run test:e2e` and
+skips unless a sheet URL is set. Point it at the reference character,
+Matilda Greywolf:
+
+```text
+BFA_LIVE_CHARACTER_SHEET_URL="https://www.dndbeyond.com/characters/172153137" \
+BFA_LIVE_SHEET_THEME=light \
+BFA_LIVE_STORAGE_STATE=path/to/storage-state.json \
+npx playwright test tests/e2e/selector-health-live.spec.ts
+```
+
+`BFA_LIVE_SHEET_THEME` is `light` or `dark`. Set `dark` when Underdark Mode is
+on (Manage, then Character Settings). `BFA_LIVE_STORAGE_STATE` is a Playwright
+[storage state](https://playwright.dev/docs/auth) from a logged-in D&D Beyond
+session. Without it the check hits the sign-in page.
+
+The sheet's layout and the screenshots live in
+[docs/ddb-reference/README.md](ddb-reference/README.md). Read that instead of
+opening the live site for anything other than this check.
+
 ### Storage tests
 
 When full-art storage is implemented:

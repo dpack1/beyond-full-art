@@ -2,6 +2,8 @@
 
 These files live in `docs/reference/`. They are evidence for deletion-cleanup research, not extension artwork.
 
+Character-sheet screenshots and the layout notes live in `docs/ddb-reference/`. The reference character is Matilda Greywolf.
+
 ## `characters-delete-network-request.png`
 
 Chrome DevTools Network details for an observed character deletion request. It shows the character-service URL, DELETE method, and successful 204 response.

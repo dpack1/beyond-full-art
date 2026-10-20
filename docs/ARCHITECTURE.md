@@ -81,7 +81,9 @@ sequenceDiagram
 
 ## D&D Beyond DOM adapter
 
-D&D Beyond is an external application with client-rendered UI. Keep these details isolated:
+D&D Beyond is an external application with client-rendered UI. The living description of the sheet, including Matilda Greywolf as the reference and live-QA character, is [docs/ddb-reference/README.md](ddb-reference/README.md). Read that instead of opening the live site. Every D&D Beyond selector the extension depends on is in `src/platform/dndbeyond/selectors.ts`. A renamed class is a one-line change there. `tests/dom/selector-health.test.ts` checks the code selectors against fixtures, and `tests/e2e/selector-health-live.spec.ts` checks the sheet selectors when a logged-in sheet is available.
+
+Keep these details isolated:
 
 - character-page URL recognition,
 - character ID extraction,
@@ -172,6 +174,11 @@ The adapter inserts a project-owned button immediately after the tab-strip item
 that contains `Extras`, finds the sheet content host as the sibling panel next
 to that tab strip, and marks the inserted tab with
 `data-bfa-character-journal-tab="true"` for idempotency.
+
+On the 2026-10-20 wide desktop capture of Matilda Greywolf, that tab row sits
+at the top of the right-hand content box, not along the bottom of the page.
+The content host is the body under the row. See
+[docs/ddb-reference/README.md](ddb-reference/README.md).
 
 When the journal tab is active, the extension hides the native sheet content
 children in that host, appends `bfa-character-journal-section`, and restores the
