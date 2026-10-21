@@ -571,6 +571,36 @@ describe('character journal section', () => {
     expect(titles()).toEqual(['Session']);
     section.destroy();
   });
+
+  it('does not show Extras content inside the journal', async () => {
+    const style = document.createElement('style');
+    style.textContent = '#native-panel { display: block; }';
+    document.head.append(style);
+    getNativePanel().textContent = 'Familiar Petal the sprite';
+    const section = createCharacterJournalSection(createFakeService([]));
+    await showSection(section);
+
+    const native = getNativePanel();
+    const journal = document.querySelector('.bfa-character-journal-section');
+    expect(native.style.getPropertyPriority('display')).toBe('important');
+    expect(native.style.getPropertyValue('display')).toBe('none');
+    expect(journal?.contains(native)).toBe(false);
+    expect(journal?.textContent).not.toContain('Petal');
+
+    const inserted = document.createElement('div');
+    inserted.textContent = 'Reinserted familiar';
+    getContentHost().append(inserted);
+    await flush();
+    expect(inserted.style.getPropertyPriority('display')).toBe('important');
+    expect(journal?.textContent).not.toContain('Reinserted');
+
+    section.hide();
+    expect(native.hidden).toBe(false);
+    expect(native.style.getPropertyPriority('display')).toBe('');
+    expect(getComputedStyle(native).display).toBe('block');
+    style.remove();
+    section.destroy();
+  });
 });
 
 async function showSection(

@@ -45,6 +45,7 @@ export function createCharacterJournalSection(
   const photoUrls = new Map<string, string>();
   let showGeneration = 0;
   let reloadSerial = 0;
+  let nativeContentObserver: MutationObserver | null = null;
   const flags = {
     hideCancel: null as (() => void) | null,
     pendingTeardown: null as (() => void) | null,
@@ -241,29 +242,63 @@ export function createCharacterJournalSection(
   }
 
   function mount(host: HTMLElement): void {
-    for (const child of [...host.children]) {
-      if (child !== list.root && child instanceof HTMLElement) {
-        child.dataset.bfaJournalHidden = child.hidden ? 'true' : 'false';
-        child.hidden = true;
-      }
-    }
-
+    concealNativeSiblings(host);
     if (list.root.parentElement !== host) {
       host.append(list.root);
+    }
+    nativeContentObserver?.disconnect();
+    nativeContentObserver = new MutationObserver(() => {
+      if (!isShown() || state.contentHost !== host) {
+        return;
+      }
+      concealNativeSiblings(host);
+    });
+    nativeContentObserver.observe(host, {childList: true});
+  }
+
+  function concealNativeSiblings(host: HTMLElement): void {
+    for (const child of [...host.children]) {
+      if (child === list.root || !(child instanceof HTMLElement)) {
+        continue;
+      }
+      if (child.dataset.bfaJournalConcealed === 'true') {
+        continue;
+      }
+      // Author `display` beats the hidden attribute, so Extras stays visible
+      // unless display is forced off.
+      child.dataset.bfaJournalHidden = child.hidden ? 'true' : 'false';
+      child.dataset.bfaJournalDisplay = child.style.getPropertyValue('display');
+      child.dataset.bfaJournalDisplayPriority = child.style.getPropertyPriority('display');
+      child.hidden = true;
+      child.style.setProperty('display', 'none', 'important');
+      child.dataset.bfaJournalConcealed = 'true';
     }
   }
 
   function restoreNativeContent(): void {
+    nativeContentObserver?.disconnect();
+    nativeContentObserver = null;
     const host = state.contentHost;
     if (host === null) {
       return;
     }
 
-    for (const child of host.children) {
-      if (child instanceof HTMLElement && child.dataset.bfaJournalHidden !== undefined) {
-        child.hidden = child.dataset.bfaJournalHidden === 'true';
-        delete child.dataset.bfaJournalHidden;
+    for (const child of [...host.children]) {
+      if (!(child instanceof HTMLElement) || child.dataset.bfaJournalConcealed !== 'true') {
+        continue;
       }
+      const previous = child.dataset.bfaJournalDisplay ?? '';
+      const priority = child.dataset.bfaJournalDisplayPriority ?? '';
+      if (previous === '') {
+        child.style.removeProperty('display');
+      } else {
+        child.style.setProperty('display', previous, priority);
+      }
+      child.hidden = child.dataset.bfaJournalHidden === 'true';
+      delete child.dataset.bfaJournalHidden;
+      delete child.dataset.bfaJournalDisplay;
+      delete child.dataset.bfaJournalDisplayPriority;
+      delete child.dataset.bfaJournalConcealed;
     }
   }
 
