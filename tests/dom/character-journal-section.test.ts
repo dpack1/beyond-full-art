@@ -497,6 +497,41 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('schedules a save when autocomplete creates a wikilink target', async () => {
+    const saved: string[] = [];
+    let created = 0;
+    const service = createFakeService([]);
+    const save = service.save.bind(service);
+    service.save = async (entry, loaded) => {
+      saved.push(entry.body);
+      return save(entry, loaded);
+    };
+    const createPlaceholder = service.createPlaceholder.bind(service);
+    service.createPlaceholder = async (characterId, title) => {
+      created += 1;
+      return createPlaceholder(characterId, title);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    openNewSession();
+    const editor = document.querySelector<HTMLTextAreaElement>('.bfa-journal-editor');
+    if (editor === null) {
+      throw new Error('Missing editor');
+    }
+    editor.value = '[[Ghost';
+    editor.setSelectionRange(editor.value.length, editor.value.length);
+    editor.dispatchEvent(new Event('input'));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    saved.length = 0;
+
+    document.querySelector<HTMLButtonElement>('.bfa-journal-autocomplete-create')?.click();
+    expect(editor.value).toBe('[[Ghost]]');
+    expect(created).toBe(1);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(saved.some((body) => body.includes('[[Ghost]]'))).toBe(true);
+    section.destroy();
+  });
+
   it('keeps the newer character list when an older reload finishes last', async () => {
     const notes = [note({id: 'gate', title: 'Old Gate'})];
     const service = createFakeService(notes);

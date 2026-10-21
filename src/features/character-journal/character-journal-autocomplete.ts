@@ -109,6 +109,7 @@ export function createWikiAutocomplete(
       const create = optionButton(`Create “${createName}”`, '', () => {
         insertWiki(field, createName);
         dismiss();
+        field?.dispatchEvent(new Event('input'));
         onCreate?.(createName);
       });
       create.classList.add('bfa-journal-autocomplete-create');
