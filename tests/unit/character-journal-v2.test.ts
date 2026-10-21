@@ -165,6 +165,33 @@ describe('journal version 2 model', () => {
     expect(root.querySelector('.bfa-journal-wikilink')?.tagName).toBe('BUTTON');
   });
 
+  it('renders read-mode markdown as HTML', () => {
+    const root = renderJournalMarkdown([
+      '**test** and *soft*',
+      '# Hall',
+      '- outer\n  - inner\n    - [ ] nested task',
+      'See [site](https://example.com/notes) and [[Voss]].',
+      '![door](bfa-journal-image:photo-1)',
+    ].join('\n\n'), {
+      document,
+      imageUrl: (id) => id === 'photo-1' ? 'blob:local' : null,
+      images: [{id: 'photo-1'}],
+      resolveWiki: (name) => name === 'Voss' ? 'one' : 'missing',
+    });
+
+    expect(root.querySelector('strong')?.outerHTML).toBe('<strong>test</strong>');
+    expect(root.querySelector('em')?.outerHTML).toBe('<em>soft</em>');
+    expect(root.querySelector('h1')?.outerHTML).toBe('<h1>Hall</h1>');
+    expect(root.querySelectorAll('ul')).toHaveLength(3);
+    expect(root.querySelector('li ul li ul')).not.toBeNull();
+    expect(root.querySelector('a')?.outerHTML).toContain('>site</a>');
+    expect(root.querySelector('a')?.getAttribute('href')).toBe('https://example.com/notes');
+    expect(root.querySelector('.bfa-journal-wikilink')?.outerHTML).toContain('>Voss</button>');
+    expect(root.querySelector('img')?.outerHTML).toContain('src="blob:local"');
+    expect(root.innerHTML).not.toContain('**');
+    expect(root.textContent).not.toContain('**test**');
+  });
+
   it('renders a nested list and its nested task', () => {
     const root = renderJournalMarkdown(
         '- outer\n  - inner\n    - [ ] nested task\n',

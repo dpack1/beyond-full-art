@@ -572,6 +572,24 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('renders markdown HTML when a note is opened', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({
+        body: '**test** and *soft*\n\n- outer\n  - inner',
+        id: 'door',
+        title: 'Locked door',
+      }),
+    ]));
+    await showSection(section);
+    rowNamed('Locked door')?.click();
+    const read = document.querySelector('.bfa-journal-read');
+    expect(read?.querySelector('strong')?.outerHTML).toBe('<strong>test</strong>');
+    expect(read?.querySelector('em')?.outerHTML).toBe('<em>soft</em>');
+    expect(read?.querySelectorAll('ul').length).toBeGreaterThan(1);
+    expect(read?.textContent).not.toContain('**');
+    section.destroy();
+  });
+
   it('does not show Extras content inside the journal', async () => {
     const style = document.createElement('style');
     style.textContent = '#native-panel { display: block; }';

@@ -358,6 +358,62 @@
   width: 48px;
 }
 
+.bfa-journal-read {
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.bfa-journal-read p,
+.bfa-journal-read ul,
+.bfa-journal-read ol,
+.bfa-journal-read blockquote,
+.bfa-journal-read pre {
+  margin: 0.4em 0;
+}
+
+.bfa-journal-read h1,
+.bfa-journal-read h2,
+.bfa-journal-read h3 {
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0.7em 0 0.3em;
+}
+
+.bfa-journal-read h1 {
+  font-size: 1.35em;
+}
+
+.bfa-journal-read h2 {
+  font-size: 1.2em;
+}
+
+.bfa-journal-read h3 {
+  font-size: 1.05em;
+}
+
+.bfa-journal-read strong {
+  font-weight: 700;
+}
+
+.bfa-journal-read em {
+  font-style: italic;
+}
+
+.bfa-journal-read ul,
+.bfa-journal-read ol {
+  padding-left: 1.4em;
+}
+
+.bfa-journal-read a {
+  color: var(--bfa-journal-link, inherit);
+}
+
+.bfa-journal-read img,
+.bfa-journal-inline-image {
+  display: block;
+  max-width: 100%;
+}
+
 .bfa-journal-new-note {
   background: var(--bfa-journal-surface);
   border: 1px solid var(--bfa-journal-border);
