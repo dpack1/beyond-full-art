@@ -679,6 +679,7 @@ describe('character journal section', () => {
           '**test** and *soft*',
           '# Hall',
           '- outer\n  - inner',
+          '- [ ] packed',
           'See [site](https://example.com/notes) and [[Voss]].',
         ].join('\n\n'),
         id: 'door',
@@ -688,22 +689,46 @@ describe('character journal section', () => {
     await showSection(section);
     rowNamed('Locked door')?.click();
     const read = document.querySelector('.bfa-journal-read');
-    expect(read?.querySelector('strong')?.textContent).toBe('test');
-    expect(read?.querySelector('em')?.textContent).toBe('soft');
+    const strong = read?.querySelector('strong');
+    const em = read?.querySelector('em');
+    expect(strong?.textContent).toBe('test');
+    expect(em?.textContent).toBe('soft');
     expect(read?.querySelector('h1')?.textContent).toBe('Hall');
-    expect(read?.querySelectorAll('ul').length).toBeGreaterThan(1);
+    expect(read?.querySelector('ul ul')).not.toBeNull();
+    expect(read?.querySelector('input[type="checkbox"]')).not.toBeNull();
     expect(read?.querySelector('a')?.getAttribute('href')).toBe('https://example.com/notes');
     expect(read?.querySelector('.bfa-journal-wikilink')?.textContent).toBe('Voss');
     expect(read?.textContent).not.toContain('**');
+    expect(read?.textContent).not.toContain('*soft*');
+    if (strong instanceof HTMLElement && em instanceof HTMLElement && read instanceof HTMLElement) {
+      expect(['700', 'bold']).toContain(getComputedStyle(strong).fontWeight);
+      expect(getComputedStyle(em).fontStyle).toBe('italic');
+      const heading = read.querySelector('h1');
+      expect(heading instanceof HTMLElement && ['700', 'bold'].includes(getComputedStyle(heading).fontWeight)).toBe(true);
+      expect(getComputedStyle(read).whiteSpace).not.toBe('pre-wrap');
+      const list = read.querySelector('ul');
+      const listType = list instanceof HTMLElement ? getComputedStyle(list).listStyleType : '';
+      expect(['disc', '']).toContain(listType);
+    }
     expect(document.querySelector('[data-bfa-journal-native-chrome] [aria-label="Close"]')).not.toBeNull();
     expect(document.querySelector('.ct-note-manage-pane [aria-label="Close"]')).toBeNull();
 
+    const header = document.querySelector('.bfa-journal-header-primary');
+    const direction = header instanceof HTMLElement ? getComputedStyle(header).flexDirection : '';
+    expect(['column', '']).toContain(direction);
     buttonNamed('Edit')?.click();
     const editor = document.querySelector<HTMLTextAreaElement>('.bfa-journal-editor');
     const title = titleField();
     const notePane = document.querySelector('.ct-note-manage-pane');
+    const done = buttonNamed('Done editing');
+    expect(done?.getAttribute('aria-pressed')).toBe('true');
+    expect(done?.querySelector('svg')).not.toBeNull();
+    expect(done?.textContent).toBe('');
+    expect(document.querySelectorAll('.bfa-journal-format-bar .bfa-journal-icon-button')).toHaveLength(7);
     expect(editor?.style.width).toBe('100%');
     expect(title.style.width).toBe('100%');
+    expect(header?.contains(title)).toBe(true);
+    expect(header?.contains(done ?? null)).toBe(true);
     expect(notePane?.contains(editor)).toBe(true);
     expect(notePane?.contains(document.querySelector('[aria-label="Close"]'))).toBe(false);
     section.destroy();
@@ -814,7 +839,10 @@ function titles(): string[] {
 
 function buttonNamed(label: string): HTMLButtonElement | undefined {
   return Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-      .find((button) => button.textContent === label);
+      .find((button) =>
+        button.textContent === label
+        || button.getAttribute('aria-label') === label
+        || button.title === label);
 }
 
 function bannerButton(label: string): HTMLButtonElement | undefined {

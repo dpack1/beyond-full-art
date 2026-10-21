@@ -348,15 +348,68 @@
   text-transform: uppercase;
 }
 
-.bfa-journal-panel-title {
-  margin: 0;
-  min-width: 0;
+.bfa-journal-panel .bfa-journal-header-primary {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
 }
 
-.bfa-journal-read {
+.bfa-journal-panel .bfa-journal-panel-title {
+  display: block;
+  flex: 0 0 auto;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+  width: 100%;
+}
+
+.bfa-journal-format-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin: 0 0 8px;
+}
+
+.bfa-journal-icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 28px;
+  justify-content: center;
+  opacity: 0.55;
+  padding: 0;
+  width: 28px;
+}
+
+.bfa-journal-icon-button:hover,
+.bfa-journal-icon-button:focus-visible,
+.bfa-journal-icon-button[aria-pressed='true'] {
+  opacity: 1;
+}
+
+.bfa-journal-icon-button[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.bfa-journal-icon-button:focus-visible {
+  outline: 2px solid var(--bfa-journal-focus, currentColor);
+  outline-offset: 1px;
+}
+
+.bfa-journal-panel .bfa-journal-read {
+  font-style: normal;
   font-weight: 400;
   line-height: 1.45;
+  /* The sheet can set a later font-weight or white-space on sidebar text. */
+  white-space: normal !important;
 }
 
 .bfa-journal-read p,
@@ -367,41 +420,56 @@
   margin: 0.4em 0;
 }
 
-.bfa-journal-read h1,
-.bfa-journal-read h2,
-.bfa-journal-read h3 {
-  font-weight: 700;
+.bfa-journal-panel .bfa-journal-read h1,
+.bfa-journal-panel .bfa-journal-read h2,
+.bfa-journal-panel .bfa-journal-read h3 {
+  font-weight: 700 !important;
   line-height: 1.2;
   margin: 0.7em 0 0.3em;
+  white-space: normal;
 }
 
-.bfa-journal-read h1 {
+.bfa-journal-panel .bfa-journal-read h1 {
   font-size: 1.35em;
 }
 
-.bfa-journal-read h2 {
+.bfa-journal-panel .bfa-journal-read h2 {
   font-size: 1.2em;
 }
 
-.bfa-journal-read h3 {
+.bfa-journal-panel .bfa-journal-read h3 {
   font-size: 1.05em;
 }
 
-.bfa-journal-read strong {
-  font-weight: 700;
+.bfa-journal-panel .bfa-journal-read strong,
+.bfa-journal-panel .bfa-journal-read b {
+  font-weight: 700 !important;
 }
 
-.bfa-journal-read em {
-  font-style: italic;
+.bfa-journal-panel .bfa-journal-read em,
+.bfa-journal-panel .bfa-journal-read i {
+  font-style: italic !important;
 }
 
-.bfa-journal-read ul,
-.bfa-journal-read ol {
+.bfa-journal-panel .bfa-journal-read ul,
+.bfa-journal-panel .bfa-journal-read ol {
+  display: block;
+  margin: 0.4em 0;
   padding-left: 1.4em;
+  white-space: normal;
 }
 
-.bfa-journal-read a {
+.bfa-journal-panel .bfa-journal-read ul {
+  list-style: disc outside !important;
+}
+
+.bfa-journal-panel .bfa-journal-read ol {
+  list-style: decimal outside !important;
+}
+
+.bfa-journal-panel .bfa-journal-read a {
   color: var(--bfa-journal-link, inherit);
+  text-decoration: underline;
 }
 
 .bfa-journal-read img,

@@ -1,6 +1,12 @@
 import {SIDEBAR_TEXTAREA_CLASS} from '../../platform/dndbeyond/selectors';
 import {trapTabKey} from '../fullscreen-viewer/focus';
 import {applyJournalFormat, type JournalFormatKind} from './character-journal-format';
+import {
+  checkIcon,
+  FORMAT_ICONS,
+  journalIcon,
+  pencilIcon,
+} from './character-journal-icons';
 import {renderJournalMarkdown} from './character-journal-markdown';
 import {journalTypeLabel} from './character-journal-query';
 import {createJournalSidebar} from './character-journal-sidebar';
@@ -103,7 +109,7 @@ export function createJournalPanel(
     setDark,
     title,
   } = shell;
-  const editButton = button(doc, 'Edit', 'bfa-journal-button');
+  const editButton = iconButton(doc, 'Edit', pencilIcon(doc));
   const tag = doc.createElement('span');
   tag.className = 'bfa-journal-tag';
   const typeSelect = doc.createElement('select');
@@ -248,7 +254,14 @@ export function createJournalPanel(
       }
       typeSelect.value = model.type;
       needs.hidden = !model.needsDetails;
-      editButton.textContent = model.mode === 'edit' ? 'Done editing' : 'Edit';
+      const editing = model.mode === 'edit';
+      editButton.setAttribute('aria-label', editing ? 'Done editing' : 'Edit');
+      editButton.title = editing ? 'Done editing' : 'Edit';
+      editButton.setAttribute('aria-pressed', editing ? 'true' : 'false');
+      if (editButton.dataset.mode !== model.mode) {
+        editButton.dataset.mode = model.mode;
+        editButton.replaceChildren(editing ? checkIcon(doc) : pencilIcon(doc));
+      }
       editButton.hidden = model.mismatch;
       status.textContent = statusLabel(model.status);
       status.dataset.tone = model.status ?? '';
@@ -327,7 +340,8 @@ function appendEditor(
     fileInput: HTMLInputElement,
 ): HTMLTextAreaElement {
   const toolbar = doc.createElement('div');
-  toolbar.className = 'bfa-journal-toolbar';
+  toolbar.className = 'bfa-journal-format-bar';
+  toolbar.setAttribute('aria-label', 'Formatting');
   const formats: readonly [string, JournalFormatKind | 'image'][] = [
     ['Bold', 'bold'],
     ['Italic', 'italic'],
@@ -352,7 +366,7 @@ function appendEditor(
   });
   field.append(textarea);
   for (const [label, kind] of formats) {
-    const control = button(doc, label, 'bfa-journal-button bfa-journal-toolbar-button');
+    const control = iconButton(doc, label, journalIcon(doc, FORMAT_ICONS[kind]));
     control.addEventListener('click', () => {
       if (kind === 'image') {
         fileInput.click();
@@ -562,6 +576,16 @@ const PANEL_TYPES = ['session', 'npc', 'place', 'item', 'quest', 'backstory'] as
 
 function isPanelType(value: string): value is JournalEntryType {
   return (PANEL_TYPES as readonly string[]).includes(value);
+}
+
+function iconButton(doc: Document, label: string, icon: SVGElement): HTMLButtonElement {
+  const element = doc.createElement('button');
+  element.type = 'button';
+  element.className = 'bfa-journal-icon-button';
+  element.setAttribute('aria-label', label);
+  element.title = label;
+  element.append(icon);
+  return element;
 }
 
 function button(doc: Document, label: string, className: string): HTMLButtonElement {

@@ -32,9 +32,14 @@ test('uses the journal for notes, photos, and search', async ({
   await page.getByRole('button', {name: 'Manage Notes'}).click();
   await page.getByRole('combobox', {name: 'Type'}).selectOption('session');
   await page.getByRole('textbox', {name: 'Title'}).fill('The locked door');
-  await page.getByRole('textbox', {name: 'Note', exact: true}).fill(
-      'Matilda found a locked door beneath the chapel.',
-  );
+  await page.getByRole('textbox', {name: 'Note', exact: true}).fill([
+    '**Bold vow** and *soft* beneath the chapel.',
+    '# Hall',
+    '- outer',
+    '  - inner',
+    '- [ ] packed',
+    'See [site](https://example.com/notes) and [[Voss]].',
+  ].join('\n\n'));
   await expect(page.getByText('Saved', {exact: true})).toBeVisible();
   await page.screenshot({
     fullPage: true,
@@ -44,6 +49,28 @@ test('uses the journal for notes, photos, and search', async ({
   await page.locator('.bfa-journal-file-input').setInputFiles(PHOTO_FIXTURE);
   await expect(page.getByText('icon-128.png', {exact: true})).toBeVisible();
   await page.getByRole('button', {name: 'Done editing'}).click();
+  await page.addStyleTag({
+    content: [
+      '.ct-sidebar strong, .ct-note-manage-pane strong { font-weight: 400; }',
+      '.ct-sidebar em, .ct-note-manage-pane em { font-style: normal; }',
+      '.ct-note-manage-pane { white-space: pre-wrap; }',
+    ].join(''),
+  });
+  const readStyles = await page.locator('.bfa-journal-read').evaluate((read) => {
+    const strong = read.querySelector('strong');
+    const em = read.querySelector('em');
+    return {
+      em: em instanceof HTMLElement ? getComputedStyle(em).fontStyle : '',
+      strong: strong instanceof HTMLElement ? getComputedStyle(strong).fontWeight : '',
+      text: read.textContent ?? '',
+      whiteSpace: getComputedStyle(read).whiteSpace,
+    };
+  });
+  expect(readStyles.text).toContain('Bold vow');
+  expect(readStyles.text).not.toContain('**');
+  expect(['700', 'bold']).toContain(readStyles.strong);
+  expect(readStyles.em).toBe('italic');
+  expect(readStyles.whiteSpace).toBe('normal');
   const photoButton = page.getByRole('button', {name: 'View photo icon-128.png'});
   await expect(photoButton).toBeVisible();
   await page.screenshot({

@@ -116,7 +116,7 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
   header.className = SIDEBAR_HEADER_CLASS;
   const parentSlot = doc.createElement('div');
   const primary = doc.createElement('div');
-  primary.className = SIDEBAR_HEADER_PRIMARY_CLASS;
+  primary.className = `${SIDEBAR_HEADER_PRIMARY_CLASS} bfa-journal-header-primary`;
   const title = doc.createElement('h1');
   title.className = `${SIDEBAR_HEADING_CLASS} ${SIDEBAR_HEADING_HASH_CLASS} bfa-journal-panel-title`;
   const callout = doc.createElement('div');
