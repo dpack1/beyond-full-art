@@ -226,7 +226,9 @@ function appendList(
       li.append(box, options.document.createTextNode(' '));
     }
 
-    appendInline(li, item.tokens, options, names);
+    for (const token of item.tokens) {
+      appendToken(li, token, options, names, taskIndex);
+    }
     list.append(li);
   }
 

@@ -165,6 +165,26 @@ describe('journal version 2 model', () => {
     expect(root.querySelector('.bfa-journal-wikilink')?.tagName).toBe('BUTTON');
   });
 
+  it('renders a nested list and its nested task', () => {
+    const root = renderJournalMarkdown(
+        '- outer\n  - inner\n    - [ ] nested task\n',
+        {
+          document,
+          imageUrl: () => null,
+          images: [],
+          resolveWiki: () => 'missing',
+        },
+    );
+
+    expect(root.querySelectorAll('ul')).toHaveLength(3);
+    expect(root.textContent).toContain('outer');
+    expect(root.textContent).toContain('inner');
+    expect(root.textContent).toContain('nested task');
+    expect(root.querySelectorAll('input.bfa-journal-task')).toHaveLength(1);
+    expect(root.querySelector('input.bfa-journal-task')?.parentElement?.textContent)
+        .toContain('nested task');
+  });
+
   it('patches one checkbox and leaves the surrounding markdown', () => {
     const body = '## Loot\n\n- [ ] Rope\n- [x] Map\n\nDone.';
     expect(patchTaskCheckbox(body, 0, true)).toBe('## Loot\n\n- [x] Rope\n- [x] Map\n\nDone.');
