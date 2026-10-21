@@ -1,5 +1,7 @@
 # Character Journal v2 design
 
+Shipped as beta in acd760c.
+
 This is the screen spec for the player wiki in
 `.agent/plans/character-journal-v2.md`. A builder should be able to implement
 the Journal tab, the list, and the slide-in panel from this file without
@@ -974,8 +976,8 @@ same answers.
 - The 3 MB cap stays.
 - Oldest-first is not a control. Sessions sort by `sessionDate`, then
   `updatedAt`. Everything else sorts by `updatedAt`.
-- Implementation branches off `cursor/character-journal-cade`. Pull
-  request #6 stays unmerged.
+- Implementation branched off `cursor/character-journal-cade`. Pull
+  request #6 was left unmerged when this decision was made.
 - Selected chip and active tab: `#c5312d` in light, `#ff8a84` in dark.
 - Mention count reads `Mentioned in 3`, and is hidden at 0.
 - Phone targets are 44px.

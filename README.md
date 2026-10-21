@@ -4,7 +4,7 @@
 
 Beyond Full Art is a Chrome Manifest V3 extension for D&D Beyond character art. It keeps D&D Beyond's portrait flow and adds local full-art storage, a portrait crop tool, a fullscreen viewer, sharper character-card portraits, and a local character journal.
 
-This file is the runbook: what the extension does, how to install it, and how to build, run, and test it. Product and architecture detail lives in `docs/`. The D&D Beyond sheet reference is [docs/ddb-reference/README.md](docs/ddb-reference/README.md). Shipped features are listed in `.agent/FEATURES.md`. Work that has not shipped, including the character journal, lives in `.agent/plans/` and follows `.agent/PLANS.md`. Agent-facing conventions live in `AGENTS.md`.
+This file is the runbook: what the extension does, how to install it, and how to build, run, and test it. Product and architecture detail lives in `docs/`. The D&D Beyond sheet reference is [docs/ddb-reference/README.md](docs/ddb-reference/README.md). The journal note panel follows the Information Sidebar in [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). Shipped features are listed in `.agent/FEATURES.md`. Work that has not shipped lives in `.agent/plans/` and follows `.agent/PLANS.md`. Agent-facing conventions live in `AGENTS.md`.
 
 ## The problems it solves
 
@@ -54,11 +54,11 @@ On campaign pages and `https://www.dndbeyond.com/characters`, enabled card portr
 
 ### Character journal
 
-On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. It is a local player wiki for that character: categories, search, `[[Name]]` links, and a right-hand note panel. The tab, the list, and the panel follow the sheet's light and Underdark appearance. A note can hold PNG, JPEG, or WebP photos. Files over 3 MB are resized (longest edge 2048px) and stored under 3 MB. A file over 25 MB is refused, and the panel says the size and the limit. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. Existing photos are not rewritten. Nothing is written to D&D Beyond notes, backstory, or extras. The journal is not shipped until Dylan approves it.
+On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. This is the shipped beta. Search, **Filter**, and **Manage Notes** sit on one toolbar. Choosing a note opens a slide-in panel that mirrors the Information Sidebar in [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). Read mode renders markdown. **Edit** switches to the source, with an icon toolbar. Photos sit in the note as `![[img:<id>|caption|width]]`, inserted at the cursor by the image button, paste, or drop. PNG, JPEG, and WebP files over 3 MB are resized (longest edge 2048px) and stored under 3 MB. A file over 25 MB is refused. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. The tab, the list, and the panel follow the sheet's light and dark appearance. Nothing is written to D&D Beyond notes, backstory, or extras. The UI lives in `src/features/character-journal/`.
 
 ### Not built yet
 
-Character-deletion cleanup is specified in `docs/PRODUCT_SPEC.md` and researched in `docs/NETWORK_DELETE_RESEARCH.md`. The extension does not yet notice when a D&D Beyond character is deleted, and it does not offer to delete the matching local art.
+Character-deletion cleanup is specified in `docs/PRODUCT_SPEC.md` and researched in `docs/NETWORK_DELETE_RESEARCH.md`. The extension does not yet notice when a D&D Beyond character is deleted, and it does not offer to delete the matching local art. Journal popup access and export, a versioned format doc and import, and extras images are still later work.
 
 ## Screenshots
 
@@ -198,6 +198,7 @@ Toolbar popup
 | --- | --- |
 | `src/content/` | Content-script entrypoints. The sheet entry installs the page features. |
 | `src/features/` | Viewer, art controls, crop, card portraits, and journal UI. |
+| `src/features/character-journal/` | Journal tab, slide-in note panel, markdown, and photo embeds. |
 | `src/platform/dndbeyond/selectors.ts` | The only D&D Beyond selector map. A renamed class is a one-line edit here. |
 | `src/platform/dndbeyond/` | URL parsing and the DOM adapters that import the map. |
 | `src/platform/chrome/` | Storage, IndexedDB, and runtime-message validation. |
@@ -209,7 +210,7 @@ Toolbar popup
 | `docs/` | Spec, architecture, decisions, test checklists, and deletion research. |
 | `.agent/` | Shipped feature list and future plans. |
 
-D&D Beyond selectors and private endpoints are unstable. Every selector the extension depends on is in `src/platform/dndbeyond/selectors.ts`. The sheet layout, including where the tab row sits on a wide desktop, is in [docs/ddb-reference/README.md](docs/ddb-reference/README.md). The longer design notes are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+D&D Beyond selectors and private endpoints are unstable. Every selector the extension depends on is in `src/platform/dndbeyond/selectors.ts`. The sheet layout, including where the tab row sits on a wide desktop, is in [docs/ddb-reference/README.md](docs/ddb-reference/README.md). The journal note panel follows [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). The longer design notes are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ### Commands
 
@@ -292,14 +293,14 @@ Available now:
 - Full-art download from the viewer and from the popup inventory
 - Optional character-card portrait enhancement
 - Manual removal of stored full art
-
-In review, not shipped until Dylan approves it:
-
-- Character journal, version 2
+- Character journal (beta)
 
 Planned next:
 
-- Cleanup of local art when a D&D Beyond character is deleted
+- Journal popup access, with export
+- A versioned journal format doc, plus import
+- Extras images
+- Cleanup of local art and journal data when a D&D Beyond character is deleted
 
 ## Known limits
 
@@ -307,7 +308,8 @@ Planned next:
 - Local art is tied to the browser where you installed the extension.
 - Only one active full-art image is stored per character right now.
 - There is not yet a built-in storage dashboard or usage meter beyond the popup inventory summary.
-- Journal photos are one image per add, in PNG, JPEG, or WebP. The note body places each one with `![[img:<id>]]` (caption and width optional). Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. There is no journal import or export.
+- Journal photos are one image per add, in PNG, JPEG, or WebP. The note body places each one with `![[img:<id>|caption|width]]`. Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. There is no journal import or export.
+- A long journal title is cut off in the edit-mode input. A plain line right after a list item joins that bullet, which is ordinary markdown.
 
 ## Disclaimer
 
