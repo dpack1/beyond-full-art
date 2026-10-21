@@ -169,6 +169,9 @@ export function createCharacterJournalSection(
 
     if (state.panel === null && characterId !== state.characterId) {
       state.characterId = characterId;
+      state.notes = [];
+      state.migration = 'loading';
+      renderList();
       void reload();
     }
   }

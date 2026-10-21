@@ -429,6 +429,44 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('clears the previous character list while the new character loads', async () => {
+    const notes = [note({body: 'Stays on the first sheet', id: 'gate', title: 'Old Gate'})];
+    const savedIds: string[] = [];
+    const service = createFakeService(notes);
+    const open = service.open.bind(service);
+    const save = service.save.bind(service);
+    service.save = async (entry, loaded) => {
+      savedIds.push(`${entry.characterId}:${entry.id}`);
+      return save(entry, loaded);
+    };
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    service.open = async (characterId) => {
+      const result = await open(characterId);
+      await gate;
+      return result;
+    };
+
+    section.syncRoute('222');
+
+    expect(titles()).toEqual([]);
+    expect(document.querySelector('.bfa-journal-row')).toBeNull();
+    expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('Loading notes');
+    document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
+    await flush();
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(savedIds).toEqual([]);
+    release();
+    await flush();
+    expect(titles()).toEqual([]);
+    expect(notes.map((entry) => entry.characterId)).toEqual(['169418374']);
+    section.destroy();
+  });
+
   it('keeps the newer character list when an older reload finishes last', async () => {
     const notes = [note({id: 'gate', title: 'Old Gate'})];
     const service = createFakeService(notes);
