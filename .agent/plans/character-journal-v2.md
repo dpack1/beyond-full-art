@@ -1,5 +1,7 @@
 # Character journal v2
 
+Shipped as beta in acd760c.
+
 ## Native chrome, 2026-10-21
 
 The list no longer has a quick-note bar, a New note menu, or category chips.
@@ -33,9 +35,7 @@ When this plan is complete, a player on a D&D Beyond character sheet can:
 Notes and photos already stored by the current journal come with them. A
 failed save still leaves the text on screen. Nothing is written to D&D Beyond.
 
-This plan is the spec for that work. It does not implement it. The current
-journal on pull request #6 stays as it is until an implementation branch picks
-this plan up.
+This plan is the spec for that work. It does not implement it.
 
 ## Scope
 
@@ -51,7 +51,7 @@ Included:
 - Images on the new entries, including the photos already stored.
 - Light and dark appearance sampled from the sheet, keyboard use, and a layout
   that works in the sheet column and at phone width.
-- The sheet-integration bugs still open on pull request #6, fixed as part of
+- The sheet-integration bugs from pull request #6, fixed as part of
   the new host rather than left for the old editor.
 - Unit tests, DOM tests, and Playwright coverage whose screenshots are
   reviewed against a written checklist. A live-sheet checklist stays in the
@@ -74,9 +74,9 @@ Excluded:
 
 ## Current state
 
-Pull request #6 (`cursor/character-journal-cade`, head `4e2722a`) is open and
-unmerged. The journal is not listed in `.agent/FEATURES.md`. Its living spec
-is `.agent/plans/character-journal.md`.
+When this plan was written, pull request #6 (`cursor/character-journal-cade`,
+head `4e2722a`) was still open. The journal has since shipped as beta. The
+version 1 spec is `.agent/plans/character-journal.md`.
 
 What that branch does:
 
@@ -108,7 +108,7 @@ QA pass on draft pull request #8 left the bugs in Lessons from pull request #6.
 Those bugs are still open at `4e2722a`. This plan does not change that branch.
 
 Anyone who has used the unpacked extension already has version 1 notes. Treat
-those notes as player data even though the feature has not shipped.
+those notes as player data.
 
 ## External assumptions
 
@@ -659,15 +659,15 @@ Update these in the implementation pull request, not in this plan:
   still hold. Record the sanitizer decision in that ADR.
 - `docs/IMPLEMENTATION_PLAN.md` and `docs/TESTING.md` for the new exit
   criteria and the live checklist.
-- `.agent/plans/character-journal.md` stays the spec for the unmerged version 1
-  slice. Point it at this file when implementation starts, so the two plans do
-  not diverge in silence.
+- `.agent/plans/character-journal.md` stays the spec for the version 1 slice.
+  Point it at this file when implementation starts, so the two plans do not
+  diverge in silence.
 
 ## Milestones
 
 Each milestone is shippable on its own and has a check that does not depend on
-later milestones. Implementation branches off `cursor/character-journal-cade`.
-It does not merge pull request #6.
+later milestones. Implementation branched off `cursor/character-journal-cade`
+and did not wait for pull request #6.
 
 - [x] **M1. Pure model.** Version 2 types, the version 1 mapping, link and tag
       parsing, the markdown builder, grapheme preview, and the rename rewrite

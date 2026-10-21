@@ -1,8 +1,10 @@
 # Character Journal
 
+Shipped as beta in acd760c.
+
 Version 2 is specified in `.agent/plans/character-journal-v2.md` and
 `.agent/plans/character-journal-v2-design.md`. This file remains the spec for
-the unmerged version 1 slice. New journal behavior follows the version 2 plan.
+the version 1 slice. New journal behavior follows the version 2 plan.
 
 ## Goal
 
@@ -13,8 +15,8 @@ after D&D Beyond's `Extras` tab, create and manage local journal entries for
 the current character, refresh the page, and keep writing without syncing or
 modifying D&D Beyond's own notes, backstory, or character data.
 
-The journal includes notes and photos, and a way to find them. It stays out of
-`.agent/FEATURES.md` until the owner approves it and it ships.
+The journal includes notes and photos, and a way to find them. The shipped
+beta is listed in `.agent/FEATURES.md`.
 
 ## Scope
 
@@ -70,10 +72,10 @@ format doc, or import.
 
 ## Current State
 
-The character journal is implemented on `cursor/character-journal-cade` and is
-not shipped. `.agent/FEATURES.md` does not list it.
+The character journal shipped as beta in acd760c. The notes below describe the
+version 1 slice that lived on `cursor/character-journal-cade`.
 
-What the branch does now:
+What that slice did:
 
 - Inserts a Journal tab immediately after Extras. The label is uppercase and
   uses the sheet tab's active underline and hover.

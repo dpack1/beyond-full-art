@@ -2,7 +2,7 @@
 
 This file tracks completed, user-facing features that are already part of the extension. The human runbook is `README.md`. Agent instructions are `AGENTS.md`. The D&D Beyond sheet reference is `docs/ddb-reference/`.
 
-Future work belongs in `.agent/plans/` until it ships. The character journal is not in the shipped list. Version 2 is implemented on the journal branch and stays here until Dylan approves it.
+Future work belongs in `.agent/plans/` until it ships.
 
 ## Shipped Features
 
@@ -42,3 +42,28 @@ Status: complete
 - Keeps D&D Beyond's card layout, links, and portrait choices intact.
 - Preloads upgraded images before swapping them into the page.
 - Includes a popup setting so the enhancement can be enabled or disabled.
+
+### Character journal
+
+Status: shipped (beta)
+
+Dylan approved this after live testing. It is on main as `acd760c`.
+
+- Adds a Journal tab on the character sheet, after Extras.
+- Opens each note in a slide-in panel that mirrors D&D Beyond's Information Sidebar.
+- Searches, filters, and creates notes from a toolbar with search, Filter, and Manage Notes.
+- Reads markdown, and edits it with an icon toolbar and an edit toggle.
+- Embeds photos inline as `![[img:<id>|caption|width]]`. The image button, paste, and drop insert one at the cursor. Large photos are resized automatically. The bytes stay in IndexedDB.
+- Follows the sheet's light and dark theme.
+
+Known caveats:
+
+- A long title is cut off in the edit-mode input.
+- A plain line right after a list item joins that bullet. That is ordinary markdown.
+
+Deferred follow-ups:
+
+- Popup access, with export
+- A versioned format doc, plus import
+- Extras images
+- Cleanup when a character is deleted
