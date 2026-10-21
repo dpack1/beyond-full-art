@@ -146,11 +146,11 @@ Current implementation slice (version 2, not shipped until Dylan approves it):
 - extension-owned `Journal` tab inserted after D&D Beyond's `Extras` tab,
 - popup preference to enable or disable the inserted Journal tab,
 - journal list in the sheet content region, beside the tab strip,
-- right-hand note panel on `document.body`, about 340px, theme color sampled from the sheet,
+- right-hand note panel on `document.body`, content box about 340px, close and back in the edge chrome, theme color sampled from the sheet,
 - local markdown notes keyed by D&D Beyond character ID, schema version 2,
 - one-way migration from version 1 with a backup that is not overwritten,
 - image bytes in extension-origin IndexedDB,
-- category chips, search, `[[Name]]` links, quick notes, and autosave,
+- search copied from the sheet's section search, a multi-select Filter button, Manage Notes, `[[Name]]` links, and autosave,
 - unit, DOM fixture, and Playwright coverage.
 
 Remaining work:

@@ -158,9 +158,7 @@
   }
 }
 
-.bfa-journal-quick-note,
-.bfa-journal-search-row,
-.bfa-journal-chips,
+.bfa-journal-section-toolbar,
 .bfa-journal-toolbar,
 .bfa-journal-panel-footer,
 .bfa-journal-confirm {
@@ -170,11 +168,27 @@
   align-items: center;
 }
 
-.bfa-journal-field,
+.bfa-journal-section-toolbar {
+  flex-wrap: wrap;
+}
+
+.bfa-journal-search-shell {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bfa-journal-search {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.bfa-journal-search:not([data-bfa-journal-input-class]),
 .bfa-journal-title-field,
 .bfa-journal-editor {
   background: var(--bfa-journal-surface);
-  border: 1px solid var(--bfa-journal-border);
+  border: 1px solid var(--bfa-journal-line);
   border-radius: var(--bfa-journal-field-radius, 4px);
   color: var(--bfa-journal-text);
   font: inherit;
@@ -184,22 +198,72 @@
   padding: 8px 10px;
 }
 
-.bfa-journal-search-row .bfa-journal-search,
-.bfa-journal-quick-note .bfa-journal-field {
-  border-color: var(--bfa-journal-line);
-  flex: 1 1 180px;
+.bfa-journal-panel .bfa-journal-title-field,
+.bfa-journal-panel .bfa-journal-editor {
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  width: 100%;
 }
 
 .bfa-journal-editor {
   border-color: var(--bfa-journal-accent, var(--bfa-journal-border));
   min-height: 180px;
   resize: vertical;
-  width: 100%;
+}
+
+.bfa-journal-filter-button,
+.bfa-journal-manage {
+  flex: 0 0 auto;
+}
+
+.bfa-journal-filter-button:not([data-bfa-journal-button-class]),
+.bfa-journal-manage:not([data-bfa-journal-button-class]) {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--bfa-journal-line);
+  border-radius: var(--bfa-journal-field-radius, 4px);
+  color: var(--bfa-journal-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: normal;
+  min-height: 36px;
+  padding: 0 12px;
+  text-transform: none;
+}
+
+.bfa-journal-manage:not([data-bfa-journal-button-class]) {
+  background: var(--bfa-journal-text);
+  border-color: transparent;
+  color: var(--bfa-journal-background);
+}
+
+.bfa-journal-filter {
+  background: var(--bfa-journal-background);
+  border: 1px solid var(--bfa-journal-line);
+  display: grid;
+  flex: 1 0 100%;
+  gap: 6px;
+  padding: 8px;
+}
+
+.bfa-journal-filter[hidden] {
+  display: none;
+}
+
+.bfa-journal-filter-option {
+  align-items: center;
+  display: flex;
+  font-size: 14px;
+  font-weight: 400;
+  gap: 8px;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .bfa-journal-button,
-.bfa-journal-chip,
-.bfa-journal-menu-item,
 .bfa-journal-row,
 .bfa-journal-mention-button {
   appearance: none;
@@ -217,34 +281,11 @@
   text-transform: uppercase;
 }
 
-.bfa-journal-chip,
 .bfa-journal-row,
-.bfa-journal-mention-button,
-.bfa-journal-menu-item {
+.bfa-journal-mention-button {
   background: transparent;
   border-color: transparent;
   text-align: left;
-}
-
-.bfa-journal-chips {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-}
-
-.bfa-journal-chip {
-  background: var(--bfa-journal-chip, #eceeef);
-  border: 0;
-  border-radius: 999px;
-  color: var(--bfa-journal-text);
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.bfa-journal-chip[aria-checked="true"] {
-  background: var(--bfa-journal-text);
-  color: var(--bfa-journal-background);
 }
 
 .bfa-journal-button-primary {
@@ -271,6 +312,7 @@
 
 .bfa-journal-panel-title {
   color: var(--bfa-journal-text);
+  display: block;
   font-family: var(--bfa-journal-font, inherit);
   font-size: 22px;
   font-weight: 700;
@@ -278,12 +320,63 @@
   margin: 0;
   min-width: 0;
   text-transform: none;
+  width: 100%;
 }
 
-.bfa-journal-section-label {
-  border-bottom: 1px solid var(--bfa-journal-line);
+.bfa-journal-read {
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.bfa-journal-read p,
+.bfa-journal-read ul,
+.bfa-journal-read ol,
+.bfa-journal-read blockquote,
+.bfa-journal-read pre {
+  margin: 0.4em 0;
+}
+
+.bfa-journal-read h1,
+.bfa-journal-read h2,
+.bfa-journal-read h3 {
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0.7em 0 0.3em;
+}
+
+.bfa-journal-read h1 {
+  font-size: 1.35em;
+}
+
+.bfa-journal-read h2 {
+  font-size: 1.2em;
+}
+
+.bfa-journal-read h3 {
+  font-size: 1.05em;
+}
+
+.bfa-journal-read strong {
+  font-weight: 700;
+}
+
+.bfa-journal-read em {
+  font-style: italic;
+}
+
+.bfa-journal-read ul,
+.bfa-journal-read ol {
+  padding-left: 1.4em;
+}
+
+.bfa-journal-read a {
+  color: var(--bfa-journal-link, inherit);
+}
+
+.bfa-journal-read img,
+.bfa-journal-inline-image {
   display: block;
-  padding-bottom: 6px;
+  max-width: 100%;
 }
 
 .bfa-journal-list {
@@ -358,91 +451,6 @@
   width: 48px;
 }
 
-.bfa-journal-read {
-  font-weight: 400;
-  line-height: 1.45;
-}
-
-.bfa-journal-read p,
-.bfa-journal-read ul,
-.bfa-journal-read ol,
-.bfa-journal-read blockquote,
-.bfa-journal-read pre {
-  margin: 0.4em 0;
-}
-
-.bfa-journal-read h1,
-.bfa-journal-read h2,
-.bfa-journal-read h3 {
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0.7em 0 0.3em;
-}
-
-.bfa-journal-read h1 {
-  font-size: 1.35em;
-}
-
-.bfa-journal-read h2 {
-  font-size: 1.2em;
-}
-
-.bfa-journal-read h3 {
-  font-size: 1.05em;
-}
-
-.bfa-journal-read strong {
-  font-weight: 700;
-}
-
-.bfa-journal-read em {
-  font-style: italic;
-}
-
-.bfa-journal-read ul,
-.bfa-journal-read ol {
-  padding-left: 1.4em;
-}
-
-.bfa-journal-read a {
-  color: var(--bfa-journal-link, inherit);
-}
-
-.bfa-journal-read img,
-.bfa-journal-inline-image {
-  display: block;
-  max-width: 100%;
-}
-
-.bfa-journal-new-note {
-  background: var(--bfa-journal-surface);
-  border: 1px solid var(--bfa-journal-border);
-  display: grid;
-  min-width: 160px;
-  padding: 6px;
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 2;
-}
-
-.bfa-journal-new-note[hidden] {
-  display: none;
-}
-
-.bfa-journal-search-row {
-  position: relative;
-}
-
-.bfa-journal-menu-label {
-  color: var(--bfa-journal-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
 .bfa-journal-type {
   background: var(--bfa-journal-surface);
   border: 1px solid var(--bfa-journal-line);
@@ -460,28 +468,62 @@
 }
 
 .bfa-journal-panel {
-  background: var(--bfa-journal-background);
-  border-left: 2px solid var(--bfa-journal-accent, var(--bfa-journal-line));
+  background: transparent;
+  border: 0;
   border-radius: 0;
   box-sizing: border-box;
   color: var(--bfa-journal-text);
   display: flex;
+  flex-direction: column;
   height: 100%;
   max-width: 100%;
+  pointer-events: none;
   position: fixed;
   right: 0;
   top: 0;
-  width: var(--bfa-journal-panel-width, 340px);
+  width: calc(var(--bfa-journal-panel-width, 340px) + 40px);
   z-index: 2147483000;
 }
 
+.bfa-journal-pane-chrome,
 .bfa-journal-panel-sheet {
+  pointer-events: auto;
+}
+
+.bfa-journal-pane-chrome {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 4px 4px 0 8px;
+}
+
+.bfa-journal-pane-back,
+.bfa-journal-pane-close {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--bfa-journal-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0;
+}
+
+.bfa-journal-panel-sheet {
+  background: var(--bfa-journal-background);
+  border: 2px solid var(--bfa-journal-accent, var(--bfa-journal-line));
+  box-sizing: border-box;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  margin: 0 36px 12px 8px;
   min-height: 0;
   min-width: 0;
-  width: 100%;
 }
 
 .bfa-journal-panel-header,
@@ -491,32 +533,9 @@
 }
 
 .bfa-journal-panel-header {
-  border-bottom: 2px solid var(--bfa-journal-accent, var(--bfa-journal-line));
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-}
-
-.bfa-journal-panel-heading {
-  align-items: start;
-  column-gap: 8px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-}
-
-.bfa-journal-panel-heading > .bfa-journal-back {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.bfa-journal-panel-heading > .bfa-journal-panel-title {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.bfa-journal-panel-heading > .bfa-journal-close {
-  grid-column: 3;
-  grid-row: 1;
-  justify-self: end;
 }
 
 .bfa-journal-panel-actions {
@@ -536,17 +555,9 @@
   margin-top: auto;
 }
 
-.bfa-journal-close {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  font-size: 22px;
-  line-height: 1;
-  min-height: 36px;
-  min-width: 36px;
+.bfa-journal-panel-sheet,
+.bfa-journal-panel-sheet * {
+  box-sizing: border-box;
 }
 
 .bfa-journal-confirm {
@@ -590,12 +601,14 @@
 }
 
 .bfa-journal-button:focus-visible,
-.bfa-journal-chip:focus-visible,
+.bfa-journal-filter-button:focus-visible,
+.bfa-journal-manage:focus-visible,
 .bfa-journal-row:focus-visible,
-.bfa-journal-field:focus-visible,
+.bfa-journal-search:focus-visible,
 .bfa-journal-title-field:focus-visible,
 .bfa-journal-editor:focus-visible,
-.bfa-journal-close:focus-visible {
+.bfa-journal-pane-close:focus-visible,
+.bfa-journal-pane-back:focus-visible {
   outline: 2px solid var(--bfa-journal-focus);
   outline-offset: 2px;
 }
@@ -605,41 +618,27 @@
     width: 100%;
   }
 
+  .bfa-journal-panel-sheet {
+    margin-right: 8px;
+  }
+
   .bfa-journal-button,
-  .bfa-journal-chip,
-  .bfa-journal-field,
+  .bfa-journal-filter-button,
+  .bfa-journal-manage,
   .bfa-journal-row,
-  .bfa-journal-close {
+  .bfa-journal-search,
+  .bfa-journal-pane-close,
+  .bfa-journal-pane-back {
     min-height: 44px;
   }
 
-  .bfa-journal-quick-note,
-  .bfa-journal-search-row {
+  .bfa-journal-section-toolbar {
     align-items: stretch;
-    flex-direction: column;
   }
 
-  .bfa-journal-quick-note > .bfa-journal-button,
-  .bfa-journal-search-row > .bfa-journal-button {
-    width: 100%;
-  }
-
-  .bfa-journal-search-row .bfa-journal-search,
-  .bfa-journal-quick-note .bfa-journal-field {
-    flex: 1 1 auto;
-    min-height: 44px;
-  }
-
-  .bfa-journal-chips {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-  }
-
-  .bfa-journal-close {
-    height: 44px;
-    min-height: 44px;
+  .bfa-journal-pane-close,
+  .bfa-journal-pane-back {
     min-width: 44px;
-    width: 44px;
   }
 
   .bfa-journal-row {

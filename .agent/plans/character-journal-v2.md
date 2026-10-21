@@ -1,5 +1,15 @@
 # Character journal v2
 
+## Native chrome, 2026-10-21
+
+The list no longer has a quick-note bar, a New note menu, or category chips.
+Journal conceals the sheet's current section instead of leaving it visible.
+The toolbar is search, Filter (multi-select types), and Manage Notes. Manage
+Notes is the only create path, and it opens the sidebar. Read mode renders
+markdown. The sidebar's close and back controls sit outside the content box,
+matching the action and notes slide-in. Editor fields span that box. The
+older sections below describe the first version of this plan.
+
 ## Goal
 
 Replace the split note list and editor with a player-only wiki on the existing

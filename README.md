@@ -171,9 +171,9 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 
 1. Leave **Character Journal tab** enabled in the popup.
 2. Open a character sheet and choose **Journal**, immediately after **Extras**.
-3. File a line into today's session, or choose **New note** and pick a category.
-4. Read the note in the side panel. **Edit** changes it. The note saves on its own. **Close** returns to the list.
-5. Search titles, tags, and text. Category chips filter the list. `[[Name]]` links to another note, or creates a placeholder.
+3. Choose **Manage Notes** to create a note in the side panel. Pick its type there.
+4. Read the note in that panel. Markdown renders in read mode. **Edit** changes it. The note saves on its own. **Close**, in the pane chrome, returns to the list.
+5. Search titles, tags, and text. **Filter** selects one or more types. `[[Name]]` links to another note. A missing name stays unresolved until autocomplete creates it.
 6. Use **Image** while editing to add a PNG, JPEG, or WebP photo under 3 MB.
 7. Choose a native D&D Beyond tab to return to the sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
 

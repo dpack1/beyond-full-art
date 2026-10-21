@@ -214,13 +214,29 @@ the structure those bugs require, not a full copy of the sheet.
 Version 2 keeps the Journal tab and moves the note into a right-hand panel.
 The list mounts on the content region next to the tab strip
 (`.ddbc-tab-list__content` on the classic sheet). It does not search scrolling
-descendants for a mount. The panel is appended to `document.body` so a sheet
-`overflow: hidden` cannot clip it. It is the extension's own dialog, about
-340px wide, with a theme-color left edge and header rule. The action and notes
-slide-in class was not captured, and `ct-sidebar__portal` is the portrait
-sidebar, so the notes panel does not copy those classes. Hashed module classes
-are copied from a live input or neutral button when one is on the page. Classes
-whose name contains `hidden` are not copied.
+descendants for a mount. While Journal is open, every other child of that
+region is concealed with `display: none !important`. The `hidden` attribute
+alone loses to the sheet's own `display` rule, which is why Extras used to
+stay on screen inside the journal. Children the sheet inserts later are
+concealed the same way, and the previous display is restored when Journal
+closes.
+
+The section toolbar is the native section row: a search field, Filter, then
+Manage Notes. The search copies its class, and the class of a small parent
+that only wraps that input, from a live section search
+(`SHEET_SECTION_SEARCH_SELECTOR` in `selectors.ts`). Type filters sit in the
+Filter menu and can be combined. An empty selection shows every note. Manage
+Notes opens the sidebar. That is the only create path.
+
+The panel is appended to `document.body` so a sheet `overflow: hidden` cannot
+clip it. The content box is about 340px. Close, and Back when a note was
+opened from another note, sit in a chrome strip outside that box, in the
+same places as the action and notes slide-in. The slide-in class was not
+captured, and `ct-sidebar__portal` is the portrait sidebar, so the notes
+panel does not copy those classes. Hashed module classes are copied from a
+live input or neutral button when one is on the page. Classes whose name
+contains `hidden` are not copied. Title and note fields are the full width
+of the content box inside its padding.
 
 The visual source is Matilda Greywolf,
 `https://www.dndbeyond.com/characters/172153137`, captured 2026-10-20 in light

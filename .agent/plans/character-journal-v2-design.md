@@ -10,6 +10,29 @@ PNG next to it is the reviewed rendering of each frame. Regenerate the HTML
 with `node compose.mjs` from that folder. The frames set the sheet theme
 themselves. They do not follow the operating system.
 
+## Native chrome, 2026-10-21
+
+Dylan's live pass on head `385de25` replaces the custom list chrome. Where
+this file still says File note, New note, category chips, or a Back and
+Close row inside the note header, the sheet wins:
+
+- The Journal section does not keep Extras (or any other tab section) on
+  screen. Those nodes are concealed, including nodes the sheet inserts
+  while Journal is open.
+- The toolbar is a search field, Filter, and Manage Notes. Search copies
+  the live section search's classes instead of a journal-only field style.
+  Filter is a multi-select of NPC, Place, Item, Quest, Session, and
+  Backstory. Nothing selected shows every note. Manage Notes opens the
+  sidebar. That is the only way to create a note.
+- Read mode renders markdown to elements: bold, italic, headings, nested
+  lists, links, wikilinks, and journal images.
+- The title field and the note textarea are the full width of the sidebar
+  content box, inside that box's padding.
+- Close, and Back when the note was opened from another note, sit in the
+  strip outside the content box. They are not buttons inside the note
+  header. The slide-in class is still uncaptured, so the panel does not
+  reuse the portrait sidebar.
+
 ## Sheet look, 2026-10-20
 
 Dylan reviewed the mockups and rejected them as a visual source. They do

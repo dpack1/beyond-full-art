@@ -91,18 +91,22 @@ export function createJournalPanel(
   root.setAttribute('aria-modal', 'true');
   root.tabIndex = -1;
 
+  const chrome = doc.createElement('div');
+  chrome.className = 'bfa-journal-pane-chrome';
+  chrome.dataset.bfaJournalPaneControl = 'true';
+  const backButton = button(doc, '‹', 'bfa-journal-pane-back');
+  backButton.setAttribute('aria-label', 'Back');
+  backButton.hidden = true;
+  const closeButton = button(doc, '×', 'bfa-journal-close bfa-journal-pane-close');
+  closeButton.setAttribute('aria-label', 'Close');
+  chrome.append(backButton, closeButton);
+
   const sheet = doc.createElement('div');
   sheet.className = 'bfa-journal-panel-sheet';
   const header = doc.createElement('header');
   header.className = 'bfa-journal-panel-header';
-  const heading = doc.createElement('div');
-  heading.className = 'bfa-journal-panel-heading';
   const actions = doc.createElement('div');
   actions.className = 'bfa-journal-panel-actions';
-  const closeButton = button(doc, '×', 'bfa-journal-close');
-  closeButton.setAttribute('aria-label', 'Close');
-  const backButton = button(doc, 'Back', 'bfa-journal-button bfa-journal-back');
-  backButton.hidden = true;
   const title = doc.createElement('h2');
   title.className = 'bfa-journal-panel-title';
   const editButton = button(doc, 'Edit', 'bfa-journal-button');
@@ -139,9 +143,8 @@ export function createJournalPanel(
   needs.hidden = true;
   const status = doc.createElement('p');
   status.className = 'bfa-journal-status';
-  heading.append(backButton, title, closeButton);
   actions.append(editButton, typeSelect, tag, needs, status);
-  header.append(heading, actions);
+  header.append(title, actions);
 
   const body = doc.createElement('div');
   body.className = 'bfa-journal-panel-body';
@@ -150,7 +153,7 @@ export function createJournalPanel(
   const deleteButton = button(doc, 'Delete note', 'bfa-journal-button bfa-journal-button-danger');
   footer.append(deleteButton);
   sheet.append(header, body, footer);
-  root.append(sheet);
+  root.append(chrome, sheet);
 
   const fileInput = doc.createElement('input');
   fileInput.className = 'bfa-journal-file-input';
@@ -265,6 +268,7 @@ export function createJournalPanel(
         if (model.mode === 'edit') {
           titleField = doc.createElement('input');
           titleField.className = 'bfa-journal-title-field';
+          titleField.style.width = '100%';
           titleField.value = model.title === 'Untitled entry' ? '' : model.title;
           titleField.setAttribute('aria-label', 'Title');
           titleField.addEventListener('input', () => handlers.onInput());
@@ -341,6 +345,7 @@ function appendEditor(
   ];
   const textarea = doc.createElement('textarea');
   textarea.className = 'bfa-journal-editor';
+  textarea.style.width = '100%';
   textarea.value = model.body;
   textarea.setAttribute('aria-label', 'Note');
   textarea.addEventListener('input', () => handlers.onInput());

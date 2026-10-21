@@ -189,8 +189,9 @@ a single long native notes field.
 - Store journal entries locally by D&D Beyond character ID.
 - Support creating, editing, listing, saving, and deleting text entries.
 - Let the user search titles, `#tags`, note text, and photo file names.
-- Filter the list with All, Sessions, NPCs, Places, Items, Quests, and
-  Backstory. Counts ignore the search text.
+- Filter the list from a Filter button. Sessions, NPCs, Places, Items,
+  Quests, and Backstory can be selected together. An empty selection shows
+  every note. Manage Notes is the only way to create a note.
 - Keep one local journal per character. There is no character cap.
 - Link notes with `[[Name]]`. A unique title opens that note. A missing title
   can become a placeholder. Duplicate titles ask which note to open.
@@ -210,8 +211,10 @@ a single long native notes field.
   block entries migrate once per character, after a backup that is not
   overwritten.
 - Photos are PNG, JPEG, or WebP, up to 3 MB, and belong to one note.
-- The list sits in the same content box as Notes and Extras. The note panel
-  is the sheet's right-hand pane.
+- The list sits in the same content box as Notes and Extras and hides that
+  box's native section while Journal is open. The note panel uses the
+  right-hand slide-in's edge controls: close and back sit outside the
+  content box.
 - There is no cloud sync, no GM view, and no D&D Beyond field sync.
 
 ### Deferred product decisions

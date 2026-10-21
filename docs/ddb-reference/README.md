@@ -82,7 +82,7 @@ The selector map asks the live check for these tab classes. They are not readabl
 | `ddbc-tab-list__nav-item` | One tab item, main row or secondary row |
 | `ddbc-tab-list__nav-item--is-active` | The selected tab item |
 
-The journal queries `ddbc-tab-list__nav-item` and the active class when it samples the theme color and copies the active tab's underline. It still finds Extras by its label, inserts a Journal button after that item, and mounts on the next sibling of the tab row. On the live-shaped fixture that sibling is `ddbc-tab-list__content`. **from-code**
+The journal queries `ddbc-tab-list__nav-item` and the active class when it samples the theme color and copies the active tab's underline. It still finds Extras by its label, inserts a Journal button after that item, and mounts on the next sibling of the tab row. On the live-shaped fixture that sibling is `ddbc-tab-list__content`. While Journal is open, the other children of that region are concealed. The section toolbar copies a live section search input (`input[type="search"]`, or an input whose placeholder or accessible name contains "Search") and, when that input's parent only wraps the field, that parent's classes. Filter and Manage Notes follow the Extras row: search, then filter, then Manage. **from-code**
 
 In light mode the inactive main-tab labels read as gray (about `#75838b`) and the active label is near-black (about `#13191d`). The secondary row sits on a light gray track (about `#eceeef`). **from-screenshot**
 
@@ -103,7 +103,7 @@ Clicking a row such as Longsword, or a notes section such as Organizations, open
 - The action panel titles the item (Longsword), offers Customize, and lists stats and tags.
 - The notes panel titles the section (Organizations), has a text field ("Enter your notes here!"), and a short prompt under it.
 - Light fill is near white (`#fefefe`). Dark fill is `#12181c`.
-- No class name for this slide-in was captured. Do not guess one.
+- No class name for this slide-in was captured. Do not guess one. The journal panel does not copy `ct-sidebar`. Its close control, and Back when a note was opened from another note, sit outside the content box, in the same places as the X and the arrows in these captures. **from-screenshot** for the placement, **from-code** for the journal panel.
 
 ### Information sidebar and portrait manager
 
@@ -207,6 +207,7 @@ The map in `src/platform/dndbeyond/selectors.ts` is the list to edit. This table
 | `sheet-tab-nav-item` | `.ddbc-tab-list__nav-item` | code |
 | `sheet-tab-nav-item-active` | `.ddbc-tab-list__nav-item--is-active` | code |
 | `sheet-tab-content` | `.ddbc-tab-list__content` | code, fixture only |
+| section search | `input[type="search"]`, or an input whose placeholder or accessible name contains `Search` | code. The journal copies the live element's classes. It does not hardcode a search class. |
 
 ### Sheet structure and theme (live check)
 
