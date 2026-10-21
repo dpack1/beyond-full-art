@@ -9,16 +9,14 @@ import {previewJournalText} from './character-journal-markdown';
 import {installJournalNotes, type JournalNotes, type OpenPanel} from './character-journal-notes';
 import {createJournalPhotoViewer} from './character-journal-photo-viewer';
 import {
-  journalCategoryCounts,
   journalEmptyLabel,
   journalTypeLabel,
   visibleJournalNotes,
-  type JournalCategory,
 } from './character-journal-query';
-import {applyCopiedControlClasses, paintJournalSurface} from './character-journal-sheet-style';
+import {applyCopiedControlClasses, copyNativeSearchChrome, paintJournalSurface} from './character-journal-sheet-style';
 import type {CharacterJournalService} from './character-journal-service';
 import {applySheetTheme, observeSheetTheme} from './character-journal-theme';
-import type {JournalNote} from './character-journal-types';
+import type {JournalEntryType, JournalNote} from './character-journal-types';
 import {restoreNativeTabAfterJournal} from '../../platform/dndbeyond/character-sheet-tabs-adapter';
 
 export interface CharacterJournalSection {
@@ -52,15 +50,14 @@ export function createCharacterJournalSection(
     suppressRouteAdopt: false,
   };
   const state = {
-    category: 'all' as JournalCategory,
     characterId: null as CharacterId | null,
     contentHost: null as HTMLElement | null,
+    fileError: null as string | null,
+    filters: [] as JournalEntryType[],
     migration: 'current' as 'current' | 'failed' | 'loading' | 'migrated',
     notes: [] as JournalNote[],
     panel: null as OpenPanel | null,
     query: '',
-    quickNote: '',
-    fileError: null as string | null,
     routeId: null as CharacterId | null,
     stopTheme: null as (() => void) | null,
     tab: null as HTMLElement | null,
@@ -69,15 +66,15 @@ export function createCharacterJournalSection(
   const autocomplete = createWikiAutocomplete(doc, () => state.notes);
   let notes!: JournalNotes;
   const list = createJournalList(doc, {
-    onCategory: (category) => {
-      state.category = category;
+    onFilter: (types) => {
+      state.filters = [...types];
       renderList();
     },
-    onFile: (text) => {
-      void notes.fileQuickNote(text);
-    },
-    onNew: (type) => {
-      notes.openNew(type, list.root.querySelector<HTMLElement>('.bfa-journal-new-note') ?? list.root);
+    onManage: () => {
+      notes.openNew(
+          'unset',
+          list.root.querySelector<HTMLElement>('.bfa-journal-manage') ?? list.root,
+      );
     },
     onOpen: (entryId, returnFocus) => {
       const note = state.notes.find((entry) => entry.id === entryId);
@@ -143,7 +140,8 @@ export function createCharacterJournalSection(
       }
 
       state.migration = 'current';
-      list.setFileError(journalSaveErrorMessage(error));
+      state.fileError = journalSaveErrorMessage(error);
+      list.setAlert(state.fileError);
     }
 
     renderList();
@@ -232,6 +230,7 @@ export function createCharacterJournalSection(
     flags.pendingTeardown = null;
     photoViewer.destroy();
     revokePhotoUrls();
+    list.disconnect();
     list.root.remove();
     notes.panel.root.remove();
     removeJournalStyles(doc);
@@ -264,8 +263,8 @@ export function createCharacterJournalSection(
       if (child.dataset.bfaJournalConcealed === 'true') {
         continue;
       }
-      // Author `display` beats the hidden attribute, so Extras stays visible
-      // unless display is forced off.
+      // The sheet's own display rule beats the hidden attribute, so Extras
+      // stays on screen unless display is forced off.
       child.dataset.bfaJournalHidden = child.hidden ? 'true' : 'false';
       child.dataset.bfaJournalDisplay = child.style.getPropertyValue('display');
       child.dataset.bfaJournalDisplayPriority = child.style.getPropertyPriority('display');
@@ -342,9 +341,8 @@ export function createCharacterJournalSection(
   function renderList(): void {
     const loading = state.migration === 'loading';
     const failed = state.migration === 'failed';
-    list.setCategory(state.category);
-    list.setCounts(loading || failed ? null : journalCategoryCounts(state.notes));
-    list.setFileError(state.fileError);
+    list.setFilters(state.filters);
+    list.setAlert(state.fileError);
     if (loading) {
       list.setRows([]);
       list.setMessage('Loading notes', 'muted');
@@ -357,16 +355,16 @@ export function createCharacterJournalSection(
       return;
     }
 
-    const visible = visibleJournalNotes(state.notes, state.category, state.query);
+    const visible = visibleJournalNotes(state.notes, state.filters, state.query);
     const counts = mentionCounts(state.notes);
     list.setRows(visible.map((note) => rowModel(note, counts.get(note.id) ?? 0)));
-    const notice = state.category === 'all'
+    const notice = state.filters.length === 0
       && state.query.trim() === ''
       && state.notes.some((note) => note.type === 'unset' && !note.needsDetails);
     if (notice) {
       list.setMessage('Earlier notes are uncategorized.', 'notice');
     } else if (visible.length === 0) {
-      list.setMessage(journalEmptyLabel(state.category, state.query), 'muted');
+      list.setMessage(journalEmptyLabel(state.filters, state.query), 'muted');
     } else {
       list.setMessage(null, 'muted');
     }
@@ -411,6 +409,7 @@ export function createCharacterJournalSection(
     const anchor = state.contentHost ?? list.root;
     applySheetTheme(list.root, anchor);
     applyCopiedControlClasses(list.root, paintJournalSurface(list.root, anchor));
+    copyNativeSearchChrome(list.root, anchor);
     if (!notes.panel.root.hidden) {
       applyCopiedControlClasses(
           notes.panel.root,

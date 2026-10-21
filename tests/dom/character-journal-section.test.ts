@@ -144,7 +144,9 @@ describe('character journal section', () => {
 
     expect(section.isShown()).toBe(true);
     expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
-    expect(buttonNamed('New note')).toBeDefined();
+    expect(buttonNamed('Manage Notes')).toBeDefined();
+    expect(buttonNamed('File note')).toBeUndefined();
+    expect(buttonNamed('New note')).toBeUndefined();
     section.destroy();
   });
 
@@ -234,7 +236,7 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('uses a pressed chip whose label contrasts with the pill', async () => {
+  it('keeps the Manage Notes label readable against its fill', async () => {
     const sheet = document.querySelector<HTMLElement>('.ct-character-sheet');
     if (sheet === null) {
       throw new Error('Missing sheet');
@@ -246,18 +248,18 @@ describe('character journal section', () => {
     const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);
 
-    const chip = document.querySelector<HTMLElement>('.bfa-journal-chip[aria-checked="true"]');
+    const manage = buttonNamed('Manage Notes');
     const root = document.querySelector<HTMLElement>('.bfa-character-journal-section');
-    if (chip === null || root === null) {
-      throw new Error('Missing pressed chip');
+    if (manage === undefined || root === null) {
+      throw new Error('Missing Manage Notes');
     }
     const foreground = root.style.getPropertyValue('--bfa-journal-background');
     const background = root.style.getPropertyValue('--bfa-journal-text');
     expect(
         colorsContrast(foreground, background),
-        `Pressed All chip label ${foreground} on fill ${background} is below 4.5:1. The Notes-tab pill is unreadable.`,
+        `Manage Notes label ${foreground} on fill ${background} is below 4.5:1.`,
     ).toBe(true);
-    expect(chip.textContent ?? '').toMatch(/All/);
+    expect(document.querySelector('.bfa-journal-chip')).toBeNull();
 
     sheet.classList.remove('ct-character-sheet--dark-mode');
     sheet.dataset.theme = 'light';
@@ -269,17 +271,17 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('loads the new character after Discard and files the next note there', async () => {
-    const filed: string[] = [];
+  it('loads the new character after Discard and creates the next note there', async () => {
+    const saved: string[] = [];
     const notes = [
       note({id: 'gate', title: 'Old Gate'}),
       note({body: 'Still here', id: 'chapel', title: 'Chapel'}),
     ];
     const service = createFakeService(notes);
-    const fileQuickNote = service.fileQuickNote.bind(service);
-    service.fileQuickNote = async (characterId, text) => {
-      filed.push(characterId);
-      return fileQuickNote(characterId, text);
+    const save = service.save.bind(service);
+    service.save = async (entry, loaded) => {
+      saved.push(entry.characterId);
+      return save(entry, loaded);
     };
     const section = createCharacterJournalSection(service);
     await showSection(section);
@@ -288,24 +290,21 @@ describe('character journal section', () => {
 
     expect(document.body.textContent).toContain('another character');
     expect(titles()).toContain('Old Gate');
-    const fileField = document.querySelector<HTMLInputElement>('.bfa-journal-field');
-    if (fileField === null) {
-      throw new Error('Missing quick note');
-    }
-    fileField.value = 'Filed too soon';
-    buttonNamed('File note')?.click();
+    buttonNamed('Manage Notes')?.click();
     await flush();
-    expect(filed).toEqual([]);
+    expect(saved).toEqual([]);
+    expect(document.body.textContent).toContain('Close the open note');
 
     bannerButton('Discard')?.click();
     await flush();
 
     expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
     expect(titles()).toEqual([]);
-    fileField.value = 'Arrived';
-    buttonNamed('File note')?.click();
-    await flush();
-    expect(filed).toEqual(['222']);
+    buttonNamed('Manage Notes')?.click();
+    titleField().value = 'Arrived';
+    titleField().dispatchEvent(new Event('input'));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(saved).toEqual(['222']);
     section.destroy();
   });
 
@@ -396,7 +395,7 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('keeps Close in the heading row and ignores Unsorted on a typed note', async () => {
+  it('keeps close and back in the pane chrome and ignores Unsorted on a typed note', async () => {
     const section = createCharacterJournalSection(createFakeService([
       note({id: 'door', title: 'Locked door', type: 'unset'}),
     ]));
@@ -404,11 +403,9 @@ describe('character journal section', () => {
     document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
     const heading = document.querySelector('.bfa-journal-panel-heading');
     const close = document.querySelector('.bfa-journal-close');
-    const actions = document.querySelector('.bfa-journal-panel-actions');
     expect(heading?.contains(close)).toBe(true);
-    expect(heading?.querySelector('.bfa-journal-panel-title')).not.toBeNull();
-    expect(actions?.contains(close)).toBe(false);
-    expect(actions?.querySelector('.bfa-journal-type')).not.toBeNull();
+    expect(document.querySelector('.bfa-journal-panel-actions')?.querySelector('.bfa-journal-type'))
+        .not.toBeNull();
 
     const unsetSelect = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
     expect(unsetSelect?.querySelector<HTMLOptionElement>('option[value="unset"]')?.disabled)
@@ -549,44 +546,28 @@ describe('character journal section', () => {
 
     section.syncRoute('222');
     await flush();
-    const fileField = document.querySelector<HTMLInputElement>('.bfa-journal-field');
-    if (fileField === null) {
-      throw new Error('Missing quick note');
-    }
-    fileField.value = 'Arrived after discard';
-    buttonNamed('File note')?.click();
+    notes.push(note({characterId: '222', id: 'arrived', title: 'Arrived'}));
+    section.syncRoute('333');
     await flush();
-    expect(release).toHaveLength(2);
+    section.syncRoute('222');
+    await flush();
+    expect(release).toHaveLength(3);
 
-    const newer = release[1];
+    const newest = release[2];
     const older = release[0];
-    if (newer === undefined || older === undefined) {
+    const middle = release[1];
+    if (newest === undefined || older === undefined || middle === undefined) {
       throw new Error('Missing reload gates');
     }
-    newer();
+    newest();
     await flush();
-    expect(titles()).toEqual(['Session']);
+    expect(titles()).toEqual(['Arrived']);
     older();
     await flush();
-    expect(titles()).toEqual(['Session']);
-    section.destroy();
-  });
-
-  it('renders markdown HTML when a note is opened', async () => {
-    const section = createCharacterJournalSection(createFakeService([
-      note({
-        body: '**test** and *soft*\n\n- outer\n  - inner',
-        id: 'door',
-        title: 'Locked door',
-      }),
-    ]));
-    await showSection(section);
-    rowNamed('Locked door')?.click();
-    const read = document.querySelector('.bfa-journal-read');
-    expect(read?.querySelector('strong')?.outerHTML).toBe('<strong>test</strong>');
-    expect(read?.querySelector('em')?.outerHTML).toBe('<em>soft</em>');
-    expect(read?.querySelectorAll('ul').length).toBeGreaterThan(1);
-    expect(read?.textContent).not.toContain('**');
+    expect(titles()).toEqual(['Arrived']);
+    middle();
+    await flush();
+    expect(titles()).toEqual(['Arrived']);
     section.destroy();
   });
 
@@ -604,9 +585,11 @@ describe('character journal section', () => {
     expect(native.style.getPropertyValue('display')).toBe('none');
     expect(journal?.contains(native)).toBe(false);
     expect(journal?.textContent).not.toContain('Petal');
+    expect(journal?.textContent).not.toContain('Familiar');
 
     const inserted = document.createElement('div');
     inserted.textContent = 'Reinserted familiar';
+    inserted.style.display = 'block';
     getContentHost().append(inserted);
     await flush();
     expect(inserted.style.getPropertyPriority('display')).toBe('important');
@@ -617,6 +600,71 @@ describe('character journal section', () => {
     expect(native.style.getPropertyPriority('display')).toBe('');
     expect(getComputedStyle(native).display).toBe('block');
     style.remove();
+    section.destroy();
+  });
+
+  it('copies the native section search and filters by more than one type', async () => {
+    const shell = document.createElement('div');
+    shell.className = 'sheet-search-shell';
+    const nativeSearch = document.createElement('input');
+    nativeSearch.className = 'sheet-search-input';
+    nativeSearch.type = 'search';
+    nativeSearch.placeholder = 'Search Names, Types, or Tags';
+    shell.append(nativeSearch);
+    document.querySelector('.ct-character-sheet')?.append(shell);
+
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door', type: 'session'}),
+      note({id: 'warden', title: 'Warden', type: 'npc'}),
+      note({id: 'chapel', title: 'Chapel', type: 'place'}),
+    ]));
+    await showSection(section);
+
+    const search = document.querySelector<HTMLInputElement>('.bfa-journal-search');
+    expect(search?.classList.contains('sheet-search-input')).toBe(true);
+    expect(search?.getAttribute('data-bfa-journal-input-class')).toBe('sheet-search-input');
+    expect(search?.parentElement?.classList.contains('sheet-search-shell')).toBe(true);
+    expect(document.querySelector('.bfa-journal-quick-note')).toBeNull();
+
+    buttonNamed('Filter')?.click();
+    const boxes = document.querySelectorAll<HTMLInputElement>('.bfa-journal-filter input');
+    expect(boxes.length).toBe(6);
+    const npc = Array.from(boxes).find((box) => box.value === 'npc');
+    const place = Array.from(boxes).find((box) => box.value === 'place');
+    if (npc === undefined || place === undefined) {
+      throw new Error('Missing filter');
+    }
+    npc.checked = true;
+    npc.dispatchEvent(new Event('change'));
+    place.checked = true;
+    place.dispatchEvent(new Event('change'));
+    expect(titles().sort()).toEqual(['Chapel', 'Warden']);
+    section.destroy();
+  });
+
+  it('renders markdown in the open note and spans the editor across the pane', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({
+        body: [
+          '**test** and *soft*',
+          '# Hall',
+          '- outer\n  - inner',
+          'See [site](https://example.com/notes) and [[Voss]].',
+        ].join('\n\n'),
+        id: 'door',
+        title: 'Locked door',
+      }),
+    ]));
+    await showSection(section);
+    rowNamed('Locked door')?.click();
+    const read = document.querySelector('.bfa-journal-read');
+    expect(read?.querySelector('strong')?.textContent).toBe('test');
+    expect(read?.querySelector('em')?.textContent).toBe('soft');
+    expect(read?.querySelector('h1')?.textContent).toBe('Hall');
+    expect(read?.querySelectorAll('ul').length).toBeGreaterThan(1);
+    expect(read?.querySelector('a')?.getAttribute('href')).toBe('https://example.com/notes');
+    expect(read?.querySelector('.bfa-journal-wikilink')?.textContent).toBe('Voss');
+    expect(read?.textContent).not.toContain('**');
     section.destroy();
   });
 });
@@ -699,8 +747,13 @@ function note(overrides: Partial<JournalNote> & Pick<JournalNote, 'id' | 'title'
 }
 
 function openNewSession(): void {
-  buttonNamed('New note')?.click();
-  buttonNamed('Session')?.click();
+  buttonNamed('Manage Notes')?.click();
+  const select = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
+  if (select === null) {
+    throw new Error('Missing type control');
+  }
+  select.value = 'session';
+  select.dispatchEvent(new Event('change'));
 }
 
 function titleField(): HTMLInputElement {

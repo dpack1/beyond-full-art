@@ -23,14 +23,14 @@ test('uses the journal for notes, photos, and search', async ({
 
   await page.getByRole('button', {name: 'Journal'}).click();
   await expect(page.getByText('No notes', {exact: true})).toBeVisible();
-  await expect(page.getByRole('heading', {name: 'Journal'})).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Manage Notes'})).toBeVisible();
   await page.screenshot({
     fullPage: true,
     path: path.join(ARTIFACT_DIR, 'journal-empty.png'),
   });
 
-  await page.getByRole('button', {name: 'New note'}).click();
-  await page.getByRole('menuitem', {name: 'Session'}).click();
+  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('combobox', {name: 'Type'}).selectOption('session');
   await page.getByRole('textbox', {name: 'Title'}).fill('The locked door');
   await page.getByRole('textbox', {name: 'Note', exact: true}).fill(
       'Matilda found a locked door beneath the chapel.',
@@ -68,8 +68,8 @@ test('uses the journal for notes, photos, and search', async ({
   await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
   await expect(page.getByRole('dialog')).toBeHidden();
 
-  await page.getByRole('button', {name: 'New note'}).click();
-  await page.getByRole('menuitem', {name: 'Place'}).click();
+  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('combobox', {name: 'Type'}).selectOption('place');
   await page.getByRole('textbox', {name: 'Title'}).fill('Market day');
   await page.getByRole('textbox', {name: 'Note', exact: true}).fill('Bought rope and rations before the rain.');
   await expect(page.getByText('Saved', {exact: true})).toBeVisible();
@@ -92,15 +92,17 @@ test('uses the journal for notes, photos, and search', async ({
   });
 
   await page.getByLabel('Search notes').fill('');
-  await page.getByRole('radio', {name: /Sessions/}).click();
+  await page.getByRole('button', {name: 'Filter'}).click();
+  await page.getByRole('checkbox', {name: 'Sessions'}).check();
   await expect(page.getByRole('button', {name: /The locked door/})).toBeVisible();
+  await expect(page.getByRole('button', {name: /Market day/})).toHaveCount(0);
   await page.screenshot({
     fullPage: true,
     path: path.join(ARTIFACT_DIR, 'journal-photo-filter.png'),
   });
 
   await page.setViewportSize({width: 390, height: 844});
-  await page.getByRole('radio', {name: /All/}).click();
+  await page.getByRole('checkbox', {name: 'Sessions'}).uncheck();
   await page.screenshot({
     fullPage: true,
     path: path.join(ARTIFACT_DIR, 'journal-phone.png'),

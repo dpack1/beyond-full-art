@@ -124,10 +124,25 @@ describe('journal version 2 model', () => {
       title: 'Café',
       body: `${'a'.repeat(86)}🎲 and more ${'b'.repeat(40)}`,
     });
-    expect(visibleJournalNotes([cafe], 'all', 'café').map((entry) => entry.id))
+    expect(visibleJournalNotes([cafe], [], 'café').map((entry) => entry.id))
         .toEqual(['cafe']);
-    expect(journalEmptyLabel('quest', '')).toBe('No quests');
-    expect(journalEmptyLabel('all', 'nope')).toBe('No matches');
+    expect(visibleJournalNotes(
+        [cafe, note({id: 'npc', title: 'Warden', type: 'npc'})],
+        ['npc'],
+        '',
+    ).map((entry) => entry.id)).toEqual(['npc']);
+    expect(visibleJournalNotes(
+        [
+          note({id: 'session', title: 'Today', type: 'session'}),
+          note({id: 'npc', title: 'Warden', type: 'npc'}),
+          note({id: 'place', title: 'Chapel', type: 'place'}),
+        ],
+        ['npc', 'place'],
+        '',
+    ).map((entry) => entry.id).sort()).toEqual(['npc', 'place']);
+    expect(journalEmptyLabel(['quest'], '')).toBe('No quests');
+    expect(journalEmptyLabel([], 'nope')).toBe('No matches');
+    expect(journalEmptyLabel(['npc', 'place'], '')).toBe('No notes');
 
     const preview = previewJournalText(`${'a'.repeat(86)}🎲`);
     expect(preview.endsWith('🎲')).toBe(true);

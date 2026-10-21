@@ -48,7 +48,6 @@ export interface JournalNoteFlags {
 export interface JournalNotes {
   cancelSave(): void;
   closePanel(): void;
-  fileQuickNote(text: string): Promise<void>;
   finishPendingHide(): void;
   isDirty(): boolean;
   openNew(type: JournalEntryType, returnFocus: HTMLElement): void;
@@ -273,6 +272,14 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       return;
     }
 
+    if (filingCharacterId() === null) {
+      state.fileError = 'This sheet changed. Close the open note before adding a note.';
+      list.setAlert(state.fileError);
+      return;
+    }
+
+    state.fileError = null;
+    list.setAlert(null);
     const timestamp = new Date().toISOString();
     openNote({
       body: starterJournalBody(type),
@@ -338,10 +345,11 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     const returnTarget = state.panel?.returnFocus ?? null;
     const adoptRoute = state.routeId !== null && state.routeId !== state.characterId;
     state.panel = null;
+    state.fileError = null;
     panel.root.hidden = true;
     list.root.inert = false;
+    list.setAlert(null);
     restoreFocus(returnTarget);
-    watchQuickNoteField();
     if (adoptRoute && state.routeId !== null && !flags.suppressRouteAdopt) {
       state.characterId = state.routeId;
       void reload();
@@ -575,27 +583,6 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     }
   }
 
-  async function fileQuickNote(text: string): Promise<void> {
-    const characterId = filingCharacterId();
-    if (characterId === null || text.trim() === '') {
-      if (text.trim() !== '' && state.routeId !== null && state.routeId !== state.characterId) {
-        state.fileError = 'This sheet changed. Close the open note before filing.';
-        list.setFileError(state.fileError);
-      }
-      return;
-    }
-
-    try {
-      await service.fileQuickNote(characterId, text);
-      state.fileError = null;
-      list.setQuickNote('');
-      await reload();
-    } catch {
-      state.fileError = 'That note could not be filed. It is still in the field.';
-      renderList();
-    }
-  }
-
   async function addImage(file: File): Promise<void> {
     if (state.panel === null) {
       return;
@@ -714,30 +701,12 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     return state.characterId;
   }
 
-  function watchQuickNoteField(): void {
-    autocomplete.watch(list.fileField, (name) => {
-      const characterId = filingCharacterId();
-      if (characterId === null) {
-        return;
-      }
-
-      void service.createPlaceholder(characterId, name).then(() => {
-        void fileQuickNote(list.fileField.value);
-      }).catch(() => {
-        list.setFileError('That note could not be filed. It is still in the field.');
-      });
-    });
-  }
-
-  watchQuickNoteField();
-
   return {
     cancelSave() {
       window.clearTimeout(saveTimer);
       saveTimer = 0;
     },
     closePanel,
-    fileQuickNote,
     finishPendingHide,
     isDirty,
     openNew,

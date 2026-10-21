@@ -164,25 +164,35 @@ export function journalCategoryCounts(
 
 export function visibleJournalNotes(
     notes: readonly JournalNote[],
-    category: JournalCategory,
+    filters: readonly JournalEntryType[],
     query: string,
 ): JournalNote[] {
+  const selected = new Set<JournalEntryType>(
+      filters.filter((type) => type !== 'unset'),
+  );
   const needle = query.trim().toLocaleLowerCase();
   return notes
-      .filter((note) => category === 'all' || note.type === category)
+      .filter((note) => selected.size === 0 || selected.has(note.type))
       .filter((note) => needle === '' || journalSearchText(note).includes(needle))
-      .sort((left, right) => compareJournalNotes(left, right, category));
+      .sort((left, right) => compareJournalNotes(left, right, selected));
 }
 
 export function journalEmptyLabel(
-    category: JournalCategory,
+    filters: readonly JournalEntryType[],
     query: string,
 ): string {
   if (query.trim() !== '') {
     return 'No matches';
   }
 
-  return EMPTY_LABELS[category];
+  if (filters.length === 1) {
+    const only = filters[0];
+    if (only !== undefined && only !== 'unset') {
+      return EMPTY_LABELS[only];
+    }
+  }
+
+  return EMPTY_LABELS.all;
 }
 
 export function journalRowPreview(note: JournalNote): string {
@@ -200,11 +210,11 @@ function journalSearchText(note: JournalNote): string {
 function compareJournalNotes(
     left: JournalNote,
     right: JournalNote,
-    category: JournalCategory,
+    selected: ReadonlySet<JournalEntryType>,
 ): number {
-  if (category === 'session' || category === 'all') {
+  if (selected.size === 0 || selected.has('session')) {
     const dateComparison = compareSessionDate(left, right);
-    if (category === 'session' && dateComparison !== 0) {
+    if (selected.size === 1 && selected.has('session') && dateComparison !== 0) {
       return dateComparison;
     }
   }

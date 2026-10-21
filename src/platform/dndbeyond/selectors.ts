@@ -379,6 +379,13 @@ export const SHEET_TAB_NAV_ITEM_SELECTOR = '.ddbc-tab-list__nav-item';
 export const SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR =
   '.ddbc-tab-list__nav-item--is-active';
 export const SHEET_TAB_CONTENT_SELECTOR = '.ddbc-tab-list__content';
+// Structural lookup for a section search (Inventory, Spells, Extras). The
+// class string is copied from the live input. It is not hardcoded here.
+export const SHEET_SECTION_SEARCH_SELECTOR = [
+  'input[type="search"]',
+  'input[placeholder*="Search" i]',
+  'input[aria-label*="Search" i]',
+].join(', ');
 export const PRIMARY_BOX_SELECTOR = '.ct-primary-box';
 export const THEME_DARK_CLASS = 'ct-theme-dark';
 export const THEME_DARK_SELECTOR = `.${THEME_DARK_CLASS}`;

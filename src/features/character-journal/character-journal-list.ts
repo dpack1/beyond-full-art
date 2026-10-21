@@ -1,9 +1,7 @@
-import {
-  JOURNAL_CATEGORIES,
-  journalCategoryLabel,
-  type JournalCategory,
-} from './character-journal-query';
+import {journalCategoryLabel, type JournalCategory} from './character-journal-query';
 import type {JournalEntryType} from './character-journal-types';
+
+type JournalFilterType = Exclude<JournalCategory, 'all'>;
 
 export interface JournalRowModel {
   id: string;
@@ -17,14 +15,13 @@ export interface JournalRowModel {
 }
 
 export interface JournalListHandlers {
-  onCategory: (category: JournalCategory) => void;
-  onFile: (text: string) => void;
-  onNew: (type: JournalEntryType) => void;
+  onFilter: (types: readonly JournalEntryType[]) => void;
+  onManage: () => void;
   onOpen: (entryId: string, returnFocus: HTMLElement) => void;
   onSearch: (query: string) => void;
 }
 
-const NEW_NOTE_TYPES: readonly JournalEntryType[] = [
+const FILTER_TYPES: readonly JournalFilterType[] = [
   'session',
   'npc',
   'place',
@@ -34,14 +31,12 @@ const NEW_NOTE_TYPES: readonly JournalEntryType[] = [
 ];
 
 export interface JournalListView {
-  fileField: HTMLInputElement;
+  disconnect(): void;
   root: HTMLElement;
   searchField: HTMLInputElement;
-  setCategory(category: JournalCategory): void;
-  setCounts(counts: Record<JournalCategory, number> | null): void;
-  setFileError(message: string | null): void;
+  setAlert(message: string | null): void;
+  setFilters(types: readonly JournalEntryType[]): void;
   setMessage(message: string | null, tone: 'alert' | 'muted' | 'notice'): void;
-  setQuickNote(value: string): void;
   setRows(rows: readonly JournalRowModel[]): void;
 }
 
@@ -54,69 +49,52 @@ export function createJournalList(
   root.hidden = true;
   root.setAttribute('aria-label', 'Journal');
 
-  const heading = doc.createElement('h2');
-  heading.className = 'bfa-journal-section-label';
-  heading.textContent = 'Journal';
+  const toolbar = doc.createElement('div');
+  toolbar.className = 'bfa-journal-section-toolbar';
 
-  const quickRow = doc.createElement('div');
-  quickRow.className = 'bfa-journal-quick-note';
-  const fileField = doc.createElement('input');
-  fileField.className = 'bfa-journal-field';
-  fileField.type = 'text';
-  fileField.placeholder = "Note for today's session";
-  fileField.setAttribute('aria-label', "Note for today's session");
-  const fileButton = button(doc, 'File note', 'bfa-journal-button bfa-journal-button-primary');
-  quickRow.append(fileField, fileButton);
-
-  const fileError = doc.createElement('p');
-  fileError.className = 'bfa-journal-alert';
-  fileError.setAttribute('role', 'alert');
-  fileError.hidden = true;
-
-  const searchRow = doc.createElement('div');
-  searchRow.className = 'bfa-journal-search-row';
+  const searchShell = doc.createElement('div');
+  searchShell.className = 'bfa-journal-search-shell';
   const searchField = doc.createElement('input');
-  searchField.className = 'bfa-journal-field bfa-journal-search';
+  searchField.className = 'bfa-journal-search';
   searchField.type = 'search';
-  searchField.placeholder = 'Search notes';
+  searchField.placeholder = 'Search';
   searchField.setAttribute('aria-label', 'Search notes');
-  const newButton = button(doc, 'New note', 'bfa-journal-button');
-  newButton.setAttribute('aria-haspopup', 'menu');
-  newButton.setAttribute('aria-expanded', 'false');
-  const menu = doc.createElement('div');
-  menu.className = 'bfa-journal-new-note';
-  menu.hidden = true;
-  menu.setAttribute('role', 'menu');
-  const menuLabel = doc.createElement('p');
-  menuLabel.className = 'bfa-journal-menu-label';
-  menuLabel.textContent = 'New note';
-  menu.append(menuLabel);
-  for (const type of NEW_NOTE_TYPES) {
-    const item = button(doc, labelForNew(type), 'bfa-journal-menu-item');
-    item.setAttribute('role', 'menuitem');
-    item.addEventListener('click', () => {
-      closeMenu();
-      handlers.onNew(type);
-    });
-    menu.append(item);
-  }
-  searchRow.append(searchField, newButton, menu);
+  searchShell.append(searchField);
 
-  const chips = doc.createElement('div');
-  chips.className = 'bfa-journal-chips';
-  chips.setAttribute('role', 'radiogroup');
-  chips.setAttribute('aria-label', 'Categories');
-  const chipButtons = new Map<JournalCategory, HTMLButtonElement>();
-  for (const category of JOURNAL_CATEGORIES) {
-    const chip = button(doc, journalCategoryLabel(category), 'bfa-journal-chip');
-    chip.setAttribute('role', 'radio');
-    chip.setAttribute('aria-checked', category === 'all' ? 'true' : 'false');
-    chip.addEventListener('click', () => {
-      handlers.onCategory(category);
+  const filterButton = button(doc, 'Filter', 'bfa-journal-filter-button');
+  filterButton.setAttribute('aria-haspopup', 'true');
+  filterButton.setAttribute('aria-expanded', 'false');
+  filterButton.setAttribute('aria-controls', 'bfa-journal-filter');
+
+  const manageButton = button(doc, 'Manage Notes', 'bfa-journal-manage');
+
+  const filter = doc.createElement('div');
+  filter.className = 'bfa-journal-filter';
+  filter.id = 'bfa-journal-filter';
+  filter.hidden = true;
+  filter.setAttribute('role', 'group');
+  filter.setAttribute('aria-label', 'Note types');
+  const filterInputs = new Map<JournalFilterType, HTMLInputElement>();
+  for (const type of FILTER_TYPES) {
+    const option = doc.createElement('label');
+    option.className = 'bfa-journal-filter-option';
+    const box = doc.createElement('input');
+    box.type = 'checkbox';
+    box.value = type;
+    box.addEventListener('change', () => {
+      handlers.onFilter(selectedTypes());
     });
-    chipButtons.set(category, chip);
-    chips.append(chip);
+    filterInputs.set(type, box);
+    option.append(box, doc.createTextNode(journalCategoryLabel(type)));
+    filter.append(option);
   }
+
+  toolbar.append(searchShell, filterButton, manageButton, filter);
+
+  const alert = doc.createElement('p');
+  alert.className = 'bfa-journal-alert';
+  alert.setAttribute('role', 'alert');
+  alert.hidden = true;
 
   const message = doc.createElement('p');
   message.className = 'bfa-journal-message';
@@ -125,76 +103,59 @@ export function createJournalList(
   const list = doc.createElement('div');
   list.className = 'bfa-journal-list';
 
-  root.append(heading, quickRow, fileError, searchRow, chips, message, list);
+  root.append(toolbar, alert, message, list);
 
-  fileButton.addEventListener('click', () => {
-    handlers.onFile(fileField.value);
-  });
-  fileField.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && !event.isComposing) {
-      event.preventDefault();
-      handlers.onFile(fileField.value);
+  const onDocPointer = (event: Event): void => {
+    if (filter.hidden) {
+      return;
     }
-  });
+    const target = event.target;
+    if (target instanceof Node && toolbar.contains(target)) {
+      return;
+    }
+    closeFilter();
+  };
+  doc.addEventListener('pointerdown', onDocPointer);
+
   searchField.addEventListener('input', () => {
     handlers.onSearch(searchField.value);
   });
-  newButton.addEventListener('click', () => {
-    const open = menu.hidden;
-    menu.hidden = !open;
-    newButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+  filterButton.addEventListener('click', () => {
+    const open = filter.hidden;
+    filter.hidden = !open;
+    filterButton.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) {
-      menu.querySelector('button')?.focus();
+      filter.querySelector('input')?.focus();
     }
   });
-  menu.addEventListener('keydown', (event) => {
+  filter.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
-      closeMenu();
-      newButton.focus();
+      closeFilter();
+      filterButton.focus();
     }
   });
-  chips.addEventListener('keydown', (event) => {
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
-      return;
-    }
-
-    const selected = JOURNAL_CATEGORIES.find((category) =>
-      chipButtons.get(category)?.getAttribute('aria-checked') === 'true',
-    ) ?? 'all';
-    const index = JOURNAL_CATEGORIES.indexOf(selected);
-    const nextIndex = event.key === 'ArrowRight'
-      ? Math.min(JOURNAL_CATEGORIES.length - 1, index + 1)
-      : Math.max(0, index - 1);
-    const next = JOURNAL_CATEGORIES[nextIndex];
-    if (next !== undefined && next !== selected) {
-      event.preventDefault();
-      handlers.onCategory(next);
-      chipButtons.get(next)?.focus();
-    }
+  manageButton.addEventListener('click', () => {
+    closeFilter();
+    handlers.onManage();
   });
 
   return {
-    fileField,
+    disconnect() {
+      doc.removeEventListener('pointerdown', onDocPointer);
+    },
     root,
     searchField,
-    setCategory(category) {
-      for (const [key, chip] of chipButtons) {
-        const selected = key === category;
-        chip.setAttribute('aria-checked', selected ? 'true' : 'false');
-        chip.classList.toggle('is-selected', selected);
-      }
+    setAlert(text) {
+      alert.hidden = text === null;
+      alert.textContent = text ?? '';
     },
-    setCounts(counts) {
-      for (const [key, chip] of chipButtons) {
-        const label = journalCategoryLabel(key);
-        chip.textContent = counts === null ? label : `${label} ${counts[key]}`;
+    setFilters(types) {
+      const selected = new Set(types);
+      for (const [type, box] of filterInputs) {
+        box.checked = selected.has(type);
       }
-    },
-    setFileError(text) {
-      fileError.hidden = text === null;
-      fileError.textContent = text ?? '';
     },
     setMessage(text, tone) {
       message.hidden = text === null;
@@ -207,9 +168,6 @@ export function createJournalList(
         message.removeAttribute('role');
       }
     },
-    setQuickNote(value) {
-      fileField.value = value;
-    },
     setRows(rows) {
       list.replaceChildren();
       for (const row of rows) {
@@ -218,9 +176,13 @@ export function createJournalList(
     },
   };
 
-  function closeMenu(): void {
-    menu.hidden = true;
-    newButton.setAttribute('aria-expanded', 'false');
+  function selectedTypes(): JournalEntryType[] {
+    return FILTER_TYPES.filter((type) => filterInputs.get(type)?.checked === true);
+  }
+
+  function closeFilter(): void {
+    filter.hidden = true;
+    filterButton.setAttribute('aria-expanded', 'false');
   }
 }
 
@@ -288,25 +250,6 @@ function previewJournal(preview: string): string {
     ? Array.from(new Intl.Segmenter(undefined, {granularity: 'grapheme'}).segment(preview), (part) => part.segment)
     : Array.from(preview);
   return clusters.length <= 90 ? preview : `${clusters.slice(0, 89).join('')}…`;
-}
-
-function labelForNew(type: JournalEntryType): string {
-  switch (type) {
-    case 'backstory':
-      return 'Backstory';
-    case 'item':
-      return 'Item';
-    case 'npc':
-      return 'NPC';
-    case 'place':
-      return 'Place';
-    case 'quest':
-      return 'Quest';
-    case 'session':
-      return 'Session';
-    case 'unset':
-      return 'Note';
-  }
 }
 
 function button(doc: Document, label: string, className: string): HTMLButtonElement {

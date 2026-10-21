@@ -42,7 +42,7 @@ test('opens the live-shaped journal on the first click in dark and light themes'
       .toBeVisible();
   await expect(page.locator('#sheet-nav')).not.toHaveAttribute('data-sheet-pointerdowns');
 
-  const darkHeading = await page.locator('.bfa-journal-section-label')
+  const darkHeading = await page.locator('.bfa-character-journal-section')
       .evaluate((element) => getComputedStyle(element).color);
   const darkSearch = await page.locator('.bfa-journal-search')
       .evaluate((element) => getComputedStyle(element).backgroundColor);
@@ -64,7 +64,7 @@ test('opens the live-shaped journal on the first click in dark and light themes'
   await page.getByRole('button', {name: 'Appearance'}).click();
   await expect(page.locator('#sheet')).toHaveAttribute('data-theme', 'light');
   await expect.poll(async () => relativeLuminance(
-      await page.locator('.bfa-journal-section-label')
+      await page.locator('.bfa-character-journal-section')
           .evaluate((element) => getComputedStyle(element).color),
   )).toBeLessThan(0.35);
   await page.locator('#sheet-nav').screenshot({
