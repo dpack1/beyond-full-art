@@ -467,6 +467,36 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('saves a checkbox on the note that changed when a link is followed', async () => {
+    const notes = [
+      note({
+        body: '- [ ] Pack the rope\nSee [[Beta]]',
+        id: 'alpha',
+        title: 'Alpha',
+      }),
+      note({body: 'Waiting', id: 'beta', title: 'Beta'}),
+    ];
+    const saved: string[] = [];
+    const service = createFakeService(notes);
+    const save = service.save.bind(service);
+    service.save = async (entry, loaded) => {
+      saved.push(`${entry.id}:${entry.body}`);
+      return save(entry, loaded);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    rowNamed('Alpha')?.click();
+    document.querySelector<HTMLInputElement>('.bfa-journal-task')?.click();
+    wikiLink('Beta')?.click();
+    await flush();
+
+    expect(document.querySelector('.bfa-journal-panel-title')?.textContent).toBe('Beta');
+    expect(saved.some((entry) => entry.startsWith('alpha:') && entry.includes('[x]'))).toBe(true);
+    expect(saved.some((entry) => entry.startsWith('beta:'))).toBe(false);
+    expect(notes.find((entry) => entry.id === 'beta')?.body).toBe('Waiting');
+    section.destroy();
+  });
+
   it('keeps the newer character list when an older reload finishes last', async () => {
     const notes = [note({id: 'gate', title: 'Old Gate'})];
     const service = createFakeService(notes);

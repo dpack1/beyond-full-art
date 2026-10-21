@@ -298,6 +298,9 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       returnFocus: HTMLElement | null,
       history: string[],
   ): void {
+    if (state.panel !== null && state.panel.note.id !== note.id) {
+      flushScheduledSave();
+    }
     state.panel = {
       confirm: null,
       error: null,
@@ -497,8 +500,19 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     }
 
     saveTimer = window.setTimeout(() => {
+      saveTimer = 0;
       void savePanel();
     }, 500);
+  }
+
+  function flushScheduledSave(): void {
+    if (saveTimer === 0) {
+      return;
+    }
+
+    window.clearTimeout(saveTimer);
+    saveTimer = 0;
+    void savePanel();
   }
 
   async function savePanel(): Promise<void> {
@@ -507,6 +521,8 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     }
 
     const savedFor = state.characterId;
+    const entryId = state.panel.note.id;
+    const loadedUpdatedAt = state.panel.loadedUpdatedAt;
     const draft = draftNote();
     state.panel.status = 'saving';
     renderPanel();
@@ -516,13 +532,13 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
         characterId: savedFor,
         needsDetails: false,
         title: draft.title,
-      }, state.panel.loadedUpdatedAt);
+      }, loadedUpdatedAt);
       if (state.routeId !== null && state.routeId !== savedFor) {
         return;
       }
 
       if (result.kind === 'stale') {
-        if (state.panel === null) {
+        if (state.panel === null || state.panel.note.id !== entryId) {
           return;
         }
 
@@ -535,7 +551,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
 
       state.notes = upsert(state.notes, result.note);
       renderList();
-      if (state.panel === null) {
+      if (state.panel === null || state.panel.note.id !== entryId) {
         return;
       }
 
@@ -545,7 +561,11 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       state.panel.error = null;
       renderPanel();
     } catch (error) {
-      if (state.panel === null || (state.routeId !== null && state.routeId !== savedFor)) {
+      if (
+        state.panel === null
+        || state.panel.note.id !== entryId
+        || (state.routeId !== null && state.routeId !== savedFor)
+      ) {
         return;
       }
 
@@ -714,6 +734,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
   return {
     cancelSave() {
       window.clearTimeout(saveTimer);
+      saveTimer = 0;
     },
     closePanel,
     fileQuickNote,
