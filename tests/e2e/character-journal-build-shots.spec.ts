@@ -158,7 +158,7 @@ async function openJournal(page: Page): Promise<void> {
 }
 
 async function shotHeader(page: Page, name: string): Promise<void> {
-  const chrome = await page.locator('.bfa-journal-panel').boundingBox();
+  const chrome = await page.locator('.bfa-journal-panel [role="dialog"]').boundingBox();
   const title = await page.locator('.bfa-journal-panel-title').boundingBox();
   if (chrome === null || title === null) {
     throw new Error('Missing sidebar chrome');

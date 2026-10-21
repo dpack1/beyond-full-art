@@ -61,6 +61,86 @@ export function formatSidebarDrift(drift: SidebarDrift): string {
   return `${drift.role} ${drift.property}: expected ${drift.expected}; actual ${drift.actual}`;
 }
 
+export interface SidebarBox {
+  height: string;
+  left: 'auto';
+  position: 'fixed';
+  right: '0px';
+  top: string;
+  width: '340px';
+  zIndex: '10001';
+}
+
+export function journalSidebarBox(input: {topPx: number; viewportHeight: number}): SidebarBox {
+  const top = Math.max(0, Math.round(input.topPx));
+  const height = Math.max(240, Math.round(input.viewportHeight - top));
+  return {
+    height: `${height}px`,
+    left: 'auto',
+    position: 'fixed',
+    right: '0px',
+    top: `${top}px`,
+    width: '340px',
+    zIndex: '10001',
+  };
+}
+
+export interface SidebarRect {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+}
+
+export function controlsSitOnPanel(input: {
+  controls: SidebarRect;
+  paneTop: number;
+  panel: SidebarRect;
+}): SidebarDrift[] {
+  const drift: SidebarDrift[] = [];
+  if (input.controls.top < input.panel.top - 2 || input.controls.bottom > input.panel.bottom + 2) {
+    drift.push({
+      actual: `${Math.round(input.controls.top)}`,
+      expected: `${Math.round(input.panel.top)}`,
+      property: 'controls-top',
+      role: 'controls',
+    });
+  }
+  if (input.controls.left < input.panel.left - 2 || input.controls.right > input.panel.right + 2) {
+    drift.push({
+      actual: `${Math.round(input.controls.left)}..${Math.round(input.controls.right)}`,
+      expected: `${Math.round(input.panel.left)}..${Math.round(input.panel.right)}`,
+      property: 'controls-x',
+      role: 'controls',
+    });
+  }
+  if (input.controls.bottom > input.paneTop + 12) {
+    drift.push({
+      actual: `${Math.round(input.controls.bottom)}`,
+      expected: `${Math.round(input.paneTop)}`,
+      property: 'controls-above-pane',
+      role: 'controls',
+    });
+  }
+  if (input.controls.bottom - input.controls.top > 64) {
+    drift.push({
+      actual: `${Math.round(input.controls.bottom - input.controls.top)}`,
+      expected: '64',
+      property: 'controls-height',
+      role: 'controls',
+    });
+  }
+  if (input.paneTop - input.panel.top > 120) {
+    drift.push({
+      actual: `${Math.round(input.paneTop)}`,
+      expected: `${Math.round(input.panel.top + 120)}`,
+      property: 'pane-top',
+      role: 'controls',
+    });
+  }
+  return drift;
+}
+
 function tokens(className: string): string[] {
   return className.split(/\s+/).filter((token) => token !== '');
 }

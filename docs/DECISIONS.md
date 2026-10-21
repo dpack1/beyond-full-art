@@ -274,7 +274,10 @@ sheet's inner scroll pane. Version 2 does not. The section toolbar is the Extras
 Manage Notes on one line. The note panel copies the Information Sidebar's
 markup and class names, recorded in `docs/ddb-reference/sidebar.md`, so the
 sheet stylesheet paints it. It does not copy the sheet's script, and it is
-not mounted inside the live sidebar. That body is still a closed switch on
+not mounted inside the live sidebar. The dialog is `position: fixed` on the
+viewport, because the native sidebar's absolute box only lands on the right
+when `body` is the containing block. Opening a note closes an open native
+sidebar. That body is still a closed switch on
 the sheet's pane id. Hide closes the note. Prev and Next walk note history.
 Lock, overlay, and align are omitted. The portrait search ignores this copy.
 

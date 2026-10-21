@@ -46,6 +46,10 @@ Prev and Next are not in that bar. They are a `nav.styles_controls__-K4FO` insid
 
 The journal panel keeps Hide (it closes the note), Prev, and Next. Lock, overlay, fixed, and align have no journal action, so those buttons are not rendered.
 
+## Journal placement
+
+The native dialog is `position: absolute`. On the public sheet that resolves against `body`, which is `position: fixed`, so the pane sits on the right of the viewport. A signed-in sheet does not give the note panel that containing block. The note dialog therefore sets its own box: `position: fixed`, `right: 0`, `width: 340px`, `z-index: 10001`, `top` copied from the open native sidebar (otherwise the site nav height plus 6px), and `height` of the viewport minus that top. The edge controls stay in `ct-sidebar__inner`, above the pane, and stay content-sized. The toolbar's `flex: 1 1 100%` rule is not applied to them. Opening a note clicks the native sidebar's Hide control when that sidebar is wider than 200px, and repeats that close if the sheet opens it again.
+
 ## Hashes
 
 `styles_sidebar__RrEHr`, `styles_right__e4y1G`, `styles_visible__6s+G-`, `styles_hidden__NRO1j`, `styles_left__N7X7-`, `styles_mask__nuvIu`, `styles_controls__NSnn3`, `styles_pane__AOt0h`, `styles_border__jHreB`, `styles_gap__kuwYv`, `styles_content__3knKz`, `styles_controls__-K4FO`, and the other `styles_*` names in the JSON are build output from this bundle. They are not stable hooks. The parity check compares them to a live pane.

@@ -4,6 +4,7 @@ import {applyJournalFormat, type JournalFormatKind} from './character-journal-fo
 import {renderJournalMarkdown} from './character-journal-markdown';
 import {journalTypeLabel} from './character-journal-query';
 import {createJournalSidebar} from './character-journal-sidebar';
+import {placeJournalSidebar} from './character-journal-sidebar-place';
 import type {JournalEntryType} from './character-journal-types';
 
 export interface PanelImageModel {
@@ -74,6 +75,7 @@ export interface PanelHandlers {
 
 export interface JournalPanelView {
   fileInput: HTMLInputElement;
+  place(): void;
   readDraft(): {body: string; title: string};
   render(model: PanelModel): void;
   root: HTMLElement;
@@ -223,6 +225,9 @@ export function createJournalPanel(
 
   return {
     fileInput,
+    place() {
+      placeJournalSidebar(root, shell.dialog, doc);
+    },
     readDraft() {
       return {
         body: textarea?.value ?? '',
@@ -301,6 +306,7 @@ export function createJournalPanel(
       if (!root.contains(doc.activeElement)) {
         closeButton.focus();
       }
+      placeJournalSidebar(root, shell.dialog, doc);
     },
     root,
     setDark,

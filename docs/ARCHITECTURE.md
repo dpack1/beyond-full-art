@@ -230,13 +230,16 @@ search is not used. Type filters sit behind the funnel and can be combined.
 An empty selection shows every note. Manage Notes opens the note panel. That
 is the only create path.
 
-The panel is appended to `document.body` so a sheet `overflow: hidden` cannot
-clip it. It is a second copy of the Information Sidebar shell, not a child of
-the sheet's React tree. Checked 2026-10-21 on character 4741434, bundle
-`main.73ca5823.js`: the open dialog is `ct-sidebar` plus the hashed frame
-classes, 340px, absolute under the site nav, with the decorative border, the
-gap, and the scroll body. The note uses `ct-note-manage-pane` and
-`ct-sidebar__heading`. Class strings live in `selectors.ts`. The snapshot is
+The panel is appended to `document.body`, beside the native sidebar portal, so
+a sheet `overflow: hidden` cannot clip it. It is a second copy of the
+Information Sidebar shell, not a child of the sheet's React tree. Checked
+2026-10-21 on character 4741434, bundle `main.73ca5823.js`: the open dialog is
+`ct-sidebar` plus the hashed frame classes, 340px, with the decorative border,
+the gap, and the scroll body. The note uses `ct-note-manage-pane` and
+`ct-sidebar__heading`. The note dialog is `position: fixed` at `right: 0` and
+`z-index: 10001`. Its top follows the open native sidebar, and its height is
+the viewport minus that top. Opening a note hides an open native sidebar.
+Class strings live in `selectors.ts`. The snapshot is
 `docs/ddb-reference/sidebar.md`. Hide closes the note. Prev and Next walk the
 note history. Lock, overlay, and align are not rendered. The sheet's own
 sidebar body is still a closed switch with no slot for extension content, so

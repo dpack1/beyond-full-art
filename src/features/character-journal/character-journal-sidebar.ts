@@ -63,13 +63,20 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
   const dialog = doc.createElement('div');
   dialog.className = `${SIDEBAR_CLASS} ${SIDEBAR_FRAME_CLASS}`;
   dialog.setAttribute('role', 'dialog');
+  dialog.style.position = 'fixed';
   dialog.style.left = 'auto';
   dialog.style.right = '0px';
+  dialog.style.width = '340px';
+  dialog.style.zIndex = '10001';
 
   const inner = doc.createElement('div');
   inner.className = SIDEBAR_INNER_CLASS;
+  inner.style.position = 'absolute';
+  inner.style.inset = '0px';
   const controls = doc.createElement('div');
   controls.className = SIDEBAR_CONTROLS_CLASS;
+  controls.style.display = 'flex';
+  controls.style.flex = '0 0 auto';
   controls.dataset.bfaJournalNativeChrome = 'true';
   const visibility = doc.createElement('div');
   visibility.className = SIDEBAR_VISIBILITY_CLASS;
@@ -81,6 +88,11 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
 
   const pane = doc.createElement('div');
   pane.className = SIDEBAR_PANE_CLASS;
+  pane.style.position = 'relative';
+  pane.style.display = 'flex';
+  pane.style.flexDirection = 'column';
+  pane.style.flex = '1 1 auto';
+  pane.style.minHeight = '0px';
   const border = borderSvg(doc, false);
   border.classList.add('bfa-journal-frame');
   const gap = doc.createElement('div');

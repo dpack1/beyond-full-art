@@ -172,8 +172,9 @@
   flex-wrap: wrap;
 }
 
-.bfa-journal-toolbar-row,
-[data-bfa-journal-native-chrome] {
+/* Sidebar controls use the same native-chrome flag. This flex rule stays on
+   the toolbar row so it cannot stretch the note panel's edge controls. */
+.bfa-journal-toolbar-row {
   align-items: center;
   display: flex;
   flex: 1 1 100%;
@@ -182,16 +183,16 @@
   width: 100%;
 }
 
-[data-bfa-journal-native-chrome] > :first-child {
+.bfa-journal-toolbar-row > :first-child {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-[data-bfa-journal-native-chrome] > :not(:first-child) {
+.bfa-journal-toolbar-row > :not(:first-child) {
   flex: 0 0 auto;
 }
 
-[data-bfa-journal-native-chrome] .bfa-journal-search {
+.bfa-journal-toolbar-row .bfa-journal-search {
   background: transparent;
   border: 0;
   border-radius: 0;

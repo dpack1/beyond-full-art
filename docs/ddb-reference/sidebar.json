@@ -6,6 +6,15 @@
   "css": "main.875602ca.css",
   "viewport": "1440x1100",
   "pane": "SKILL Acrobatics",
+  "placement": {
+    "position": "fixed",
+    "right": "0px",
+    "width": "340px",
+    "zIndex": "10001",
+    "top": "the open native sidebar top, otherwise the site nav height plus 6px",
+    "height": "viewport height minus top",
+    "controls": "inside the fixed sidebar and above the pane"
+  },
   "optionalClasses": ["ct-sidebar--is-dark-mode", "styles_dark__6-qrS"],
   "omittedControls": [
     "Unlocked",

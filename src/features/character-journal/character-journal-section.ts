@@ -102,6 +102,8 @@ export function createCharacterJournalSection(
     state,
   });
   doc.body.append(notes.panel.root);
+  doc.addEventListener('click', keepNotePanelDocked, true);
+  doc.addEventListener('click', keepNotePanelDocked);
   doc.defaultView?.addEventListener('resize', fitOpenJournal);
   doc.addEventListener('visibilitychange', () => {
     if (doc.visibilityState === 'hidden') {
@@ -225,6 +227,8 @@ export function createCharacterJournalSection(
   }
 
   function destroy(): void {
+    doc.removeEventListener('click', keepNotePanelDocked, true);
+    doc.removeEventListener('click', keepNotePanelDocked);
     doc.defaultView?.removeEventListener('resize', fitOpenJournal);
     hide();
     flags.pendingTeardown = null;
@@ -418,9 +422,18 @@ export function createCharacterJournalSection(
     fitOpenJournal();
   }
 
+  function keepNotePanelDocked(): void {
+    if (!notes.panel.root.hidden) {
+      notes.panel.place();
+    }
+  }
+
   function fitOpenJournal(): void {
     if (state.contentHost !== null && isShown()) {
       fitJournalToVisiblePane(list.root, state.contentHost);
+    }
+    if (!notes.panel.root.hidden) {
+      notes.panel.place();
     }
   }
 
