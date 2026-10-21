@@ -129,6 +129,42 @@ const sidebarPortal = selector({
   targets: 'Sidebar portal root used to scope the portrait search.',
 });
 
+const sidebarInner = selector({
+  features: [CHARACTER_JOURNAL, FULLSCREEN_VIEWER],
+  fixtures: ['sidebar-shell'],
+  id: 'sidebar-inner',
+  lookFor: 'The open Information Sidebar column, class ct-sidebar__inner. It is inside the dialog the sheet labels Information Sidebar. The collapsed sidebar still has this node. Verified 2026-10-21 on character 4741434.',
+  selector: '.ct-sidebar__inner',
+  targets: 'Information Sidebar inner column.',
+});
+
+const sidebarHeading = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['sidebar-shell'],
+  id: 'sidebar-heading',
+  lookFor: 'The pane title, class ct-sidebar__heading, inside the open sidebar. A skill pane and a note pane both use it. Verified 2026-10-21.',
+  selector: '.ct-sidebar__heading',
+  targets: 'Information Sidebar pane title.',
+});
+
+const sidebarScroll = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['sidebar-shell'],
+  id: 'sidebar-scroll',
+  lookFor: 'The sidebar body scroller. The open pane marks it with data-scrollable-container="true" on the content node inside .ct-sidebar. It is absent while the sidebar is collapsed.',
+  selector: '.ct-sidebar [data-scrollable-container="true"]',
+  targets: 'Information Sidebar scroll container.',
+});
+
+const sidebarNote = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['sidebar-shell'],
+  id: 'sidebar-note',
+  lookFor: 'The notes pane body, class ct-note-manage-pane. The sheet mounts it only for a character note (Organizations and the other note keys). A skill pane does not have it.',
+  selector: '.ct-note-manage-pane',
+  targets: 'Character note pane inside the Information Sidebar.',
+});
+
 // --- Portrait manager: full-art storage, edit panel, crop ---
 
 export const PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_CLASS =
@@ -368,8 +404,46 @@ const sheetTabList = selector({
 // The journal queries these. Classes that are on the live-shaped fixture are
 // source: code. ct-primary-box and ct-theme-dark stay live checks: no saved
 // HTML showed them, and the reference says not to invent inner BEM names.
-// The action and notes slide-in has no captured class. Do not reuse
-// ct-sidebar for it. That portal is the portrait sidebar.
+// The note panel mirrors the open Information Sidebar. Class strings from
+// that shell, including hashed styles_* names verified 2026-10-21, live in
+// the constants below. The portrait search skips .bfa-journal-panel so this
+// copy does not take the portrait portal. See docs/ddb-reference/sidebar.md.
+
+// Information Sidebar shell, verified 2026-10-21 on character 4741434.
+// Bundle main.73ca5823.js, stylesheet main.875602ca.css. Hashes change when
+// that bundle changes. docs/ddb-reference/sidebar.json is the snapshot.
+export const SIDEBAR_PORTAL_CLASS = 'ct-sidebar__portal';
+export const SIDEBAR_CLASS = 'ct-sidebar';
+export const SIDEBAR_INNER_CLASS = 'ct-sidebar__inner';
+export const SIDEBAR_HEADER_CLASS = 'ct-sidebar__header';
+export const SIDEBAR_HEADER_PRIMARY_CLASS = 'ct-sidebar__header-primary';
+export const SIDEBAR_HEADING_CLASS = 'ct-sidebar__heading';
+export const SIDEBAR_DARK_MODE_CLASS = 'ct-sidebar--is-dark-mode';
+export const SIDEBAR_NOTE_PANE_CLASS = 'ct-note-manage-pane';
+export const SIDEBAR_TOOLTIP_CLASS = 'ddbc-tooltip ddbc-tooltip--dark-mode';
+export const SIDEBAR_SWIPEABLE_CLASS = 'swipeable';
+export const SIDEBAR_MASK_CLASS = 'styles_mask__nuvIu styles_visible__6s+G-';
+export const SIDEBAR_FRAME_CLASS =
+  'styles_sidebar__RrEHr styles_right__e4y1G styles_visible__6s+G-';
+export const SIDEBAR_CONTROLS_CLASS = 'styles_controls__NSnn3';
+export const SIDEBAR_VISIBILITY_CLASS = 'styles_visibility__MJ05x';
+export const SIDEBAR_HIDE_CLASS = 'styles_arrows__182cG';
+export const SIDEBAR_PANE_CLASS = 'styles_pane__AOt0h';
+export const SIDEBAR_BORDER_CLASS = 'styles_border__jHreB';
+export const SIDEBAR_BORDER_BOTTOM_CLASS = 'styles_bottom__De0fd';
+export const SIDEBAR_BORDER_BG_CLASS = 'styles_borderBg__hTiiJ';
+export const SIDEBAR_BORDER_STROKE_CLASS = 'styles_borderStroke__YCw40';
+export const SIDEBAR_BORDER_FILL_CLASS = 'styles_borderFill__xRxpl';
+export const SIDEBAR_GAP_CLASS = 'styles_gap__kuwYv';
+export const SIDEBAR_CONTENT_CLASS = 'styles_content__3knKz';
+export const SIDEBAR_WRAPPER_CLASS = 'styles_wrapper__6NpOy';
+export const SIDEBAR_HEADING_HASH_CLASS = 'styles_heading__j5Lvn';
+export const SIDEBAR_CALLOUT_CLASS = 'styles_callout__Sf-W2';
+export const SIDEBAR_SURFACE_DARK_CLASS = 'styles_dark__6-qrS';
+export const SIDEBAR_NAV_CLASS = 'styles_controls__-K4FO';
+export const SIDEBAR_NAV_BUTTON_CLASS = 'styles_button__pEmHw';
+export const SIDEBAR_NAV_LABEL_CLASS = 'styles_label__qP9gK';
+export const SIDEBAR_TEXTAREA_CLASS = 'styles_textarea__7oQCq';
 
 export const CHARACTER_SHEET_CLASS = 'ct-character-sheet';
 export const CHARACTER_SHEET_SHELL_CLASS = 'ct-character-sheet-shell';
@@ -532,6 +606,10 @@ export const DDB_SELECTORS: readonly DdbSelectorEntry[] = [
   characterPortraitSurface,
   informationSidebar,
   sidebarPortal,
+  sidebarInner,
+  sidebarHeading,
+  sidebarScroll,
+  sidebarNote,
   portraitManager,
   portraitManagerAvatar,
   portraitManagerCustomContent,

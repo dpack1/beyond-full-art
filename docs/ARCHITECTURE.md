@@ -231,17 +231,18 @@ An empty selection shows every note. Manage Notes opens the note panel. That
 is the only create path.
 
 The panel is appended to `document.body` so a sheet `overflow: hidden` cannot
-clip it. The content box is about 340px. Close, and Back when a note was
-opened from another note, sit in a chrome strip outside that box, in the
-same places as the action and notes slide-in. Checked 2026-10-21 against
-character-app `main.73ca5823.js`: `ct-sidebar` is the Information Sidebar
-portal. Its body is a closed switch on the sheet's pane id, rendered only
-while that pane is active, with no children slot. Injected nodes are replaced
-on the next React render, and the edge controls call the sheet's own
-visibility and history handlers. The note panel stays ours. Hashed module
-classes are copied from a live input or neutral button when one is on the
-page. Classes whose name contains `hidden` are not copied. Title and note
-fields are the full width of the content box inside its padding.
+clip it. It is a second copy of the Information Sidebar shell, not a child of
+the sheet's React tree. Checked 2026-10-21 on character 4741434, bundle
+`main.73ca5823.js`: the open dialog is `ct-sidebar` plus the hashed frame
+classes, 340px, absolute under the site nav, with the decorative border, the
+gap, and the scroll body. The note uses `ct-note-manage-pane` and
+`ct-sidebar__heading`. Class strings live in `selectors.ts`. The snapshot is
+`docs/ddb-reference/sidebar.md`. Hide closes the note. Prev and Next walk the
+note history. Lock, overlay, and align are not rendered. The sheet's own
+sidebar body is still a closed switch with no slot for extension content, so
+nothing is mounted into it, and the portrait search skips `.bfa-journal-panel`.
+The extension does not ship D&D Beyond's script. Title and note fields are the
+full width of the content box inside its padding.
 
 The visual source is Matilda Greywolf,
 `https://www.dndbeyond.com/characters/172153137`, captured 2026-10-20 in light

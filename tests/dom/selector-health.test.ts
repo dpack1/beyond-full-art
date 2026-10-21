@@ -27,6 +27,7 @@ import {
   LIVE_CHARACTER_SHEET_TABS_FIXTURE,
 } from '../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../fixtures/portrait-manager';
+import {SIDEBAR_SHELL_FIXTURE} from '../fixtures/sidebar-shell';
 
 const fixtures: Record<string, string> = {
   'campaign-card': CAMPAIGN_CHARACTER_CARD_FIXTURE,
@@ -38,6 +39,7 @@ const fixtures: Record<string, string> = {
   'my-characters-card': MY_CHARACTERS_CARD_FIXTURE,
   'owned-campaign-card': OWNED_CAMPAIGN_CHARACTER_CARD_FIXTURE,
   'portrait-manager': PORTRAIT_MANAGER_FIXTURE,
+  'sidebar-shell': SIDEBAR_SHELL_FIXTURE,
   'sheet-tabs': CHARACTER_SHEET_TABS_FIXTURE,
 };
 

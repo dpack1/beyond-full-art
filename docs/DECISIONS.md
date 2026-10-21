@@ -271,11 +271,12 @@ See the version 2 section in `docs/ARCHITECTURE.md`.
 
 The journal samples the character sheet's appearance. Version 1 mounted in the
 sheet's inner scroll pane. Version 2 does not. The section toolbar is the Extras search row: magnifier, field, funnel, and
-Manage Notes on one line. The note panel's close and back controls sit
-outside the content box, where the action and notes slide-in keeps them.
-`ct-sidebar` is the Information Sidebar. Its body renders only the sheet's
-active pane and has no slot for extension content, so the note panel stays
-ours.
+Manage Notes on one line. The note panel copies the Information Sidebar's
+markup and class names, recorded in `docs/ddb-reference/sidebar.md`, so the
+sheet stylesheet paints it. It does not copy the sheet's script, and it is
+not mounted inside the live sidebar. That body is still a closed switch on
+the sheet's pane id. Hide closes the note. Prev and Next walk note history.
+Lock, overlay, and align are omitted. The portrait search ignores this copy.
 
 Why:
 

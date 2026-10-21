@@ -1,0 +1,137 @@
+{
+  "verified": "2026-10-21",
+  "characterId": "4741434",
+  "url": "https://www.dndbeyond.com/characters/4741434",
+  "bundle": "main.73ca5823.js",
+  "css": "main.875602ca.css",
+  "viewport": "1440x1100",
+  "pane": "SKILL Acrobatics",
+  "optionalClasses": ["ct-sidebar--is-dark-mode", "styles_dark__6-qrS"],
+  "omittedControls": [
+    "Unlocked",
+    "Set to overlay position",
+    "Set to fixed position",
+    "Align Left",
+    "Align Right"
+  ],
+  "nodes": [
+    {
+      "role": "portal",
+      "match": ".ct-sidebar__portal",
+      "className": "ct-sidebar__portal"
+    },
+    {
+      "role": "mask",
+      "match": ".styles_mask__nuvIu",
+      "className": "styles_mask__nuvIu styles_visible__6s+G-"
+    },
+    {
+      "role": "sidebar",
+      "match": ".ct-sidebar",
+      "className": "ct-sidebar styles_sidebar__RrEHr styles_right__e4y1G styles_visible__6s+G-",
+      "styles": {
+        "width": "340px",
+        "position": "absolute",
+        "zIndex": "1",
+        "right": "0px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "boxShadow": "none",
+        "transition": "left 0.15s, right 0.15s, box-shadow 0.15s"
+      }
+    },
+    {
+      "role": "inner",
+      "match": ".ct-sidebar__inner",
+      "className": "ct-sidebar__inner",
+      "styles": {
+        "display": "flex",
+        "flexDirection": "column",
+        "position": "absolute"
+      }
+    },
+    {
+      "role": "controls",
+      "match": ".styles_controls__NSnn3",
+      "className": "styles_controls__NSnn3",
+      "styles": {
+        "display": "flex",
+        "justifyContent": "space-between"
+      }
+    },
+    {
+      "role": "hide",
+      "match": ".styles_arrows__182cG",
+      "className": "styles_arrows__182cG",
+      "svgPath": "M5.21.36h0A2.25,2.25,0,0,1,7.89.53L16,8,7.89,15.47a2.25,2.25,0,0,1-2.68.17h0A1.3,1.3,0,0,1,5,13.52L11,8,5,2.48A1.3,1.3,0,0,1,5.21.36Z"
+    },
+    {
+      "role": "pane",
+      "match": ".styles_pane__AOt0h",
+      "className": "styles_pane__AOt0h",
+      "styles": {
+        "display": "flex",
+        "flexDirection": "column",
+        "position": "relative"
+      }
+    },
+    {
+      "role": "border",
+      "match": ".styles_border__jHreB",
+      "className": "styles_border__jHreB",
+      "styles": {
+        "display": "block",
+        "height": "18px"
+      }
+    },
+    {
+      "role": "gap",
+      "match": ".styles_gap__kuwYv",
+      "className": "styles_gap__kuwYv",
+      "styles": {
+        "height": "10px",
+        "backgroundColor": "rgb(254, 254, 254)",
+        "borderLeftWidth": "3px"
+      }
+    },
+    {
+      "role": "content",
+      "match": ".styles_content__3knKz",
+      "className": "styles_content__3knKz",
+      "styles": {
+        "backgroundColor": "rgb(254, 254, 254)",
+        "padding": "0px 10px 16px",
+        "overflowY": "auto",
+        "borderLeftWidth": "3px"
+      }
+    },
+    {
+      "role": "header",
+      "match": ".ct-sidebar__header",
+      "className": "ct-sidebar__header",
+      "styles": {
+        "marginBottom": "10px"
+      }
+    },
+    {
+      "role": "heading",
+      "match": ".ct-sidebar__heading",
+      "className": "ct-sidebar__heading styles_heading__j5Lvn",
+      "styles": {
+        "fontSize": "18px",
+        "fontWeight": "700",
+        "lineHeight": "21.6px",
+        "letterSpacing": "normal"
+      }
+    },
+    {
+      "role": "nav",
+      "match": ".styles_controls__-K4FO",
+      "className": "styles_controls__-K4FO",
+      "styles": {
+        "display": "flex",
+        "position": "absolute",
+        "justifyContent": "center"
+      }
+    }
+  ]
+}

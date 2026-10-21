@@ -17,6 +17,7 @@ import type {WikiAutocomplete} from './character-journal-autocomplete';
 export interface OpenPanel {
   confirm: PanelConfirmModel['kind'] | 'hide' | null;
   error: string | null;
+  forward: string[];
   history: string[];
   imageError: string | null;
   loadedUpdatedAt: string | null;
@@ -98,7 +99,31 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
 
       const note = state.notes.find((entry) => entry.id === previous);
       if (note !== undefined) {
-        openNote(note, 'read', state.panel.returnFocus, state.panel.history.slice(1));
+        const forward = [state.panel.note.id, ...state.panel.forward];
+        openNote(
+            note,
+            'read',
+            state.panel.returnFocus,
+            state.panel.history.slice(1),
+            forward,
+        );
+      }
+    },
+    onNext: () => {
+      const nextId = state.panel?.forward[0];
+      if (nextId === undefined || state.panel === null) {
+        return;
+      }
+
+      const note = state.notes.find((entry) => entry.id === nextId);
+      if (note !== undefined) {
+        openNote(
+            note,
+            'read',
+            state.panel.returnFocus,
+            [state.panel.note.id, ...state.panel.history],
+            state.panel.forward.slice(1),
+        );
       }
     },
     onCheckbox: (index, checked) => {
@@ -304,6 +329,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       mode: 'edit' | 'read',
       returnFocus: HTMLElement | null,
       history: string[],
+      forward: string[] = [],
   ): void {
     if (state.panel !== null && state.panel.note.id !== note.id) {
       flushScheduledSave();
@@ -311,6 +337,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     state.panel = {
       confirm: null,
       error: null,
+      forward,
       history,
       imageError: null,
       loadedUpdatedAt: state.notes.some((entry) => entry.id === note.id) ? note.updatedAt : null,
@@ -367,6 +394,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     const mentions = mentionCounts([...state.notes.filter((entry) => entry.id !== note.id), note]);
     panel.render({
       back: state.panel.history.length > 0,
+      next: state.panel.forward.length > 0,
       body: state.panel.mode === 'edit'
         ? (panel.textarea?.value ?? state.panel.note.body)
         : note.body,
@@ -401,6 +429,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     });
     const paint = paintJournalSurface(panel.root, state.contentHost ?? list.root, 'panel');
     applyCopiedControlClasses(panel.root, paint);
+    panel.setDark(paint.mode === 'dark');
     panel.root.classList.add('bfa-journal-panel');
   }
 

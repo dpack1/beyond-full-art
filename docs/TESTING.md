@@ -82,6 +82,12 @@ on (Manage, then Character Settings). `BFA_LIVE_STORAGE_STATE` is a Playwright
 [storage state](https://playwright.dev/docs/auth) from a logged-in D&D Beyond
 session. Without it the check hits the sign-in page.
 
+`tests/e2e/sidebar-parity-live.spec.ts` uses the same URL gate. It opens a
+native pane and the journal note on that sheet and reports the element and
+property that drifted from `docs/ddb-reference/sidebar.json`. The DOM test
+`tests/dom/sidebar-parity.test.ts` checks the note panel's class tree against
+that file without a network.
+
 The sheet's layout and the screenshots live in
 [docs/ddb-reference/README.md](ddb-reference/README.md). Read that instead of
 opening the live site for anything other than this check.

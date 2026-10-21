@@ -1,7 +1,9 @@
+import {SIDEBAR_TEXTAREA_CLASS} from '../../platform/dndbeyond/selectors';
 import {trapTabKey} from '../fullscreen-viewer/focus';
 import {applyJournalFormat, type JournalFormatKind} from './character-journal-format';
 import {renderJournalMarkdown} from './character-journal-markdown';
 import {journalTypeLabel} from './character-journal-query';
+import {createJournalSidebar} from './character-journal-sidebar';
 import type {JournalEntryType} from './character-journal-types';
 
 export interface PanelImageModel {
@@ -40,6 +42,7 @@ export interface PanelModel {
   mentions: readonly PanelMentionModel[];
   mismatch: boolean;
   mode: 'edit' | 'read';
+  next: boolean;
   needsDetails: boolean;
   pickerTitle: string | null;
   stale: boolean;
@@ -51,6 +54,7 @@ export interface PanelModel {
 
 export interface PanelHandlers {
   onBack: () => void;
+  onNext: () => void;
   onCheckbox: (index: number, checked: boolean) => void;
   onClose: () => void;
   onConfirm: (accepted: boolean) => void;
@@ -73,6 +77,7 @@ export interface JournalPanelView {
   readDraft(): {body: string; title: string};
   render(model: PanelModel): void;
   root: HTMLElement;
+  setDark(on: boolean): void;
   textarea: HTMLTextAreaElement | null;
   titleField: HTMLInputElement | null;
 }
@@ -83,32 +88,19 @@ export function createJournalPanel(
     imageUrl: (imageId: string) => string | null,
     imagesFor: () => {id: string}[],
 ): JournalPanelView {
-  const root = doc.createElement('div');
-  root.className = 'bfa-journal-panel';
-  root.dataset.bfaJournalPanel = 'true';
-  root.hidden = true;
-  root.setAttribute('role', 'dialog');
-  root.setAttribute('aria-modal', 'true');
-  root.tabIndex = -1;
-
-  const chrome = doc.createElement('div');
-  chrome.className = 'bfa-journal-pane-chrome';
-  chrome.dataset.bfaJournalPaneControl = 'true';
-  const backButton = button(doc, '‹', 'bfa-journal-pane-back');
-  backButton.setAttribute('aria-label', 'Back');
-  backButton.hidden = true;
-  const closeButton = button(doc, '×', 'bfa-journal-close bfa-journal-pane-close');
-  closeButton.setAttribute('aria-label', 'Close');
-  chrome.append(backButton, closeButton);
-
-  const sheet = doc.createElement('div');
-  sheet.className = 'bfa-journal-panel-sheet';
-  const header = doc.createElement('header');
-  header.className = 'bfa-journal-panel-header';
-  const actions = doc.createElement('div');
-  actions.className = 'bfa-journal-panel-actions';
-  const title = doc.createElement('h2');
-  title.className = 'bfa-journal-panel-title';
+  const shell = createJournalSidebar(doc);
+  const {
+    body,
+    callout: actions,
+    closeButton,
+    footer,
+    nav,
+    nextButton,
+    prevButton,
+    root,
+    setDark,
+    title,
+  } = shell;
   const editButton = button(doc, 'Edit', 'bfa-journal-button');
   const tag = doc.createElement('span');
   tag.className = 'bfa-journal-tag';
@@ -144,16 +136,8 @@ export function createJournalPanel(
   const status = doc.createElement('p');
   status.className = 'bfa-journal-status';
   actions.append(editButton, typeSelect, tag, needs, status);
-  header.append(title, actions);
-
-  const body = doc.createElement('div');
-  body.className = 'bfa-journal-panel-body';
-  const footer = doc.createElement('footer');
-  footer.className = 'bfa-journal-panel-footer';
   const deleteButton = button(doc, 'Delete note', 'bfa-journal-button bfa-journal-button-danger');
   footer.append(deleteButton);
-  sheet.append(header, body, footer);
-  root.append(chrome, sheet);
 
   const fileInput = doc.createElement('input');
   fileInput.className = 'bfa-journal-file-input';
@@ -194,7 +178,8 @@ export function createJournalPanel(
   }
 
   closeButton.addEventListener('click', () => handlers.onClose());
-  backButton.addEventListener('click', () => handlers.onBack());
+  prevButton.addEventListener('click', () => handlers.onBack());
+  nextButton.addEventListener('click', () => handlers.onNext());
   editButton.addEventListener('click', () => handlers.onEdit());
   deleteButton.addEventListener('click', () => handlers.onDelete());
   fileInput.addEventListener('change', () => {
@@ -246,8 +231,10 @@ export function createJournalPanel(
     },
     render(model) {
       root.hidden = false;
-      root.setAttribute('aria-label', model.title || 'Journal note');
-      backButton.hidden = !model.back;
+      shell.dialog.setAttribute('aria-label', model.title || 'Journal note');
+      nav.hidden = !model.back && !model.next;
+      prevButton.disabled = !model.back;
+      nextButton.disabled = !model.next;
       tag.hidden = true;
       typeSelect.dataset.bfaJournalType = model.type;
       const unsetOption = typeSelect.querySelector<HTMLOptionElement>('option[value="unset"]');
@@ -316,6 +303,7 @@ export function createJournalPanel(
       }
     },
     root,
+    setDark,
     get textarea() {
       return textarea;
     },
@@ -343,12 +331,20 @@ function appendEditor(
     ['Link', 'link'],
     ['Image', 'image'],
   ];
+  const field = doc.createElement('div');
+  field.className = SIDEBAR_TEXTAREA_CLASS;
+  field.dataset.value = model.body;
   const textarea = doc.createElement('textarea');
   textarea.className = 'bfa-journal-editor';
+  textarea.rows = 1;
   textarea.style.width = '100%';
   textarea.value = model.body;
   textarea.setAttribute('aria-label', 'Note');
-  textarea.addEventListener('input', () => handlers.onInput());
+  textarea.addEventListener('input', () => {
+    field.dataset.value = textarea.value;
+    handlers.onInput();
+  });
+  field.append(textarea);
   for (const [label, kind] of formats) {
     const control = button(doc, label, 'bfa-journal-button bfa-journal-toolbar-button');
     control.addEventListener('click', () => {
@@ -372,7 +368,7 @@ function appendEditor(
   imageError.setAttribute('role', 'alert');
   imageError.hidden = model.imageError === null;
   imageError.textContent = model.imageError ?? '';
-  body.append(toolbar, imageError, textarea);
+  body.append(toolbar, imageError, field);
   return textarea;
 }
 

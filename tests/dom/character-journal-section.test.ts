@@ -31,8 +31,8 @@ describe('character journal section', () => {
     expect(getContentHost().querySelector('.bfa-character-journal-section')).not.toBeNull();
     expect(getNativePanel().hidden).toBe(true);
     expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No notes');
-    expect(document.querySelector('[data-bfa-journal-panel]')).not.toBeNull();
-    expect(document.querySelector('.ct-sidebar')).toBeNull();
+    expect(document.querySelector('[data-bfa-journal-panel]')?.hasAttribute('hidden')).toBe(true);
+    expect(getContentHost().querySelector('.ct-sidebar')).toBeNull();
     const row = document.querySelector('[data-bfa-journal-native-chrome]');
     expect(row?.querySelector('.ct-extras-filter__icon')).not.toBeNull();
     expect(row?.querySelector('.ct-extras-filter__input')).not.toBeNull();
@@ -408,13 +408,12 @@ describe('character journal section', () => {
     ]));
     await showSection(section);
     document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
-    const chrome = document.querySelector('.bfa-journal-pane-chrome');
-    const sheet = document.querySelector('.bfa-journal-panel-sheet');
+    const notePane = document.querySelector('.ct-note-manage-pane');
     const close = document.querySelector('.bfa-journal-close');
-    expect(chrome?.contains(close)).toBe(true);
-    expect(sheet?.contains(close)).toBe(false);
-    expect(sheet?.querySelector('[aria-label="Back"]')).toBeNull();
-    expect(sheet?.querySelector('.bfa-journal-panel-title')).not.toBeNull();
+    expect(document.querySelector('.bfa-journal-panel [data-bfa-journal-native-chrome]')?.contains(close)).toBe(true);
+    expect(notePane?.contains(close)).toBe(false);
+    expect(notePane?.querySelector('[aria-label="Prev"]')).toBeNull();
+    expect(notePane?.querySelector('.bfa-journal-panel-title')).not.toBeNull();
     expect(document.querySelector('.bfa-journal-panel-actions')?.querySelector('.bfa-journal-type'))
         .not.toBeNull();
 
@@ -696,17 +695,17 @@ describe('character journal section', () => {
     expect(read?.querySelector('a')?.getAttribute('href')).toBe('https://example.com/notes');
     expect(read?.querySelector('.bfa-journal-wikilink')?.textContent).toBe('Voss');
     expect(read?.textContent).not.toContain('**');
-    expect(document.querySelector('.bfa-journal-pane-chrome [aria-label="Close"]')).not.toBeNull();
-    expect(document.querySelector('.bfa-journal-panel-sheet [aria-label="Close"]')).toBeNull();
+    expect(document.querySelector('[data-bfa-journal-native-chrome] [aria-label="Close"]')).not.toBeNull();
+    expect(document.querySelector('.ct-note-manage-pane [aria-label="Close"]')).toBeNull();
 
     buttonNamed('Edit')?.click();
     const editor = document.querySelector<HTMLTextAreaElement>('.bfa-journal-editor');
     const title = titleField();
-    const sheet = document.querySelector('.bfa-journal-panel-sheet');
+    const notePane = document.querySelector('.ct-note-manage-pane');
     expect(editor?.style.width).toBe('100%');
     expect(title.style.width).toBe('100%');
-    expect(sheet?.contains(editor)).toBe(true);
-    expect(sheet?.contains(document.querySelector('[aria-label="Close"]'))).toBe(false);
+    expect(notePane?.contains(editor)).toBe(true);
+    expect(notePane?.contains(document.querySelector('[aria-label="Close"]'))).toBe(false);
     section.destroy();
   });
 });

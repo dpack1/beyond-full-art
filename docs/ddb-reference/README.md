@@ -103,7 +103,8 @@ Clicking a row such as Longsword, or a notes section such as Organizations, open
 - The action panel titles the item (Longsword), offers Customize, and lists stats and tags.
 - The notes panel titles the section (Organizations), has a text field ("Enter your notes here!"), and a short prompt under it.
 - Light fill is near white (`#fefefe`). Dark fill is `#12181c`.
-- No class name for this slide-in was captured. Do not guess one. The journal panel does not copy `ct-sidebar`. Its close control, and Back when a note was opened from another note, sit outside the content box, in the same places as the X and the arrows in these captures. **from-screenshot** for the placement, **from-code** for the journal panel.
+
+The open Information Sidebar was recorded on 2026-10-21 from character 4741434 (Acrobatics). The shell, classes, and computed styles are in [sidebar.md](sidebar.md) and [sidebar.json](sidebar.json). The journal note panel uses that markup. It does not run D&D Beyond's script. **from-code**
 
 ### Information sidebar and portrait manager
 
@@ -169,6 +170,10 @@ The map in `src/platform/dndbeyond/selectors.ts` is the list to edit. This table
 | `character-portrait-surface` | `.ddbc-character-avatar__portrait` | code |
 | `information-sidebar` | `[aria-label="Information Sidebar"]` | code |
 | `sidebar-portal` | `.ct-sidebar__portal` | code |
+| `sidebar-inner` | `.ct-sidebar__inner` | code, verified 2026-10-21 |
+| `sidebar-heading` | `.ct-sidebar__heading` | code, verified 2026-10-21 |
+| `sidebar-scroll` | `.ct-sidebar [data-scrollable-container="true"]` | code, open pane |
+| `sidebar-note` | `.ct-note-manage-pane` | code, note pane |
 
 ### Full-art storage, portrait edit panel, portrait crop
 
