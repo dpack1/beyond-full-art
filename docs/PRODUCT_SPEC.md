@@ -215,6 +215,11 @@ a single long native notes field.
   IndexedDB stay there. A new file over 3 MB is resized to a 2048px long edge
   at about 0.85 quality, then stored only if the result is still at or under
   3 MB. The source file can be up to 25 MB.
+- A new photo is inserted at the cursor as `![[img:<id>]]`. Optional caption
+  and width use `![[img:<id>|caption|300]]`. Read mode shows the image there.
+  Photos already on a note but missing from the text get that embed at the
+  end of the body. Removing the embed keeps the blob until a later save, at
+  least 30 seconds after it went missing.
 - The list sits in the same content box as Notes and Extras and hides that
   box's native section while Journal is open. The note panel uses the
   right-hand slide-in's edge controls: close and back sit outside the

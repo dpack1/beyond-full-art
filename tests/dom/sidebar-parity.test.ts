@@ -160,7 +160,7 @@ function handlers(): PanelHandlers {
     onConfirm: () => undefined,
     onDelete: () => undefined,
     onEdit: () => undefined,
-    onImage: () => undefined,
+    onImages: () => undefined,
     onInput: () => undefined,
     onMention: () => undefined,
     onNext: () => undefined,

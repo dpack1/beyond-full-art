@@ -16,12 +16,15 @@ import {
   prepareJournalImageFile,
   type PreparedJournalImage,
 } from './character-journal-image';
+import {
+  embedMissingJournalImages,
+  insertJournalImageEmbed,
+  journalImageEmbed,
+  reconcileJournalImageRecords,
+} from './character-journal-embeds';
 import {journalImageTooLargeMessage} from './character-journal-image-fit';
 import {rewriteUniqueTitle} from './character-journal-links';
-import {
-  journalImageReference,
-  removeJournalImageLine,
-} from './character-journal-markdown';
+import {removeJournalImageLine} from './character-journal-markdown';
 import {
   journalMigrationConfirmed,
   planJournalMigration,
@@ -59,7 +62,11 @@ export type JournalSaveResult =
   | {kind: 'stale'; note: JournalNote};
 
 export interface CharacterJournalService {
-  attachImage(note: JournalNote, file: File): Promise<JournalNote>;
+  attachImage(
+    note: JournalNote,
+    file: File,
+    position?: {end: number; start: number},
+  ): Promise<JournalNote>;
   countUnreadableEntries(characterId: CharacterId): Promise<number>;
   createPlaceholder(characterId: CharacterId, title: string): Promise<JournalNote>;
   deleteEntry(characterId: CharacterId, entryId: string): Promise<void>;
@@ -182,9 +189,28 @@ export function createCharacterJournalService(
 
     return {
       migration,
-      notes: await readNotes(characterId),
+      notes: await repairStoredImages(await readNotes(characterId)),
       unreadableCount: await countUnreadableCharacterJournalEntries(characterId),
     };
+  }
+
+  async function repairStoredImages(notes: JournalNote[]): Promise<JournalNote[]> {
+    let current = notes;
+    for (const note of notes) {
+      const body = embedMissingJournalImages(note.body, note.images);
+      const reconciled = reconcileJournalImageRecords(note.images, body, now());
+      const changed = body !== note.body || journalImagesChanged(note.images, reconciled);
+      if (!changed) {
+        continue;
+      }
+
+      const saved = await save({...note, body}, note.updatedAt);
+      if (saved.kind === 'saved') {
+        current = current.map((item) => item.id === saved.note.id ? saved.note : item);
+      }
+    }
+
+    return current;
   }
 
   async function save(
@@ -203,9 +229,16 @@ export function createCharacterJournalService(
       return {kind: 'stale', note: stored};
     }
 
-    const timestamp = now().toISOString();
+    const clock = now();
+    const timestamp = clock.toISOString();
+    const reconciled = reconcileJournalImageRecords(note.images, note.body, clock);
+    const featuredImageId = reconciled.images.some((image) => image.id === note.featuredImageId)
+      ? note.featuredImageId
+      : reconciled.images[0]?.id ?? null;
     const nextNote: JournalNote = {
       ...note,
+      featuredImageId,
+      images: reconciled.images,
       title: normalizeJournalEntryTitle(note.title),
       updatedAt: timestamp,
     };
@@ -234,10 +267,22 @@ export function createCharacterJournalService(
 
       return next;
     });
+    await Promise.all(reconciled.removed.map(async (image) => {
+      try {
+        await imageStore.deleteImage(image.blobKey);
+      } catch {
+        // The note no longer lists the photo. A leftover blob can be
+        // removed the next time this note is saved.
+      }
+    }));
     return {kind: 'saved', note: nextNote};
   }
 
-  async function attachImage(note: JournalNote, file: File): Promise<JournalNote> {
+  async function attachImage(
+      note: JournalNote,
+      file: File,
+      position?: {end: number; start: number},
+  ): Promise<JournalNote> {
     const validationError = validateJournalImageFile(file);
     if (validationError !== null) {
       throw new Error(validationError);
@@ -274,9 +319,18 @@ export function createCharacterJournalService(
       mimeType,
       width: dimensions.width,
     };
+    const body = position === undefined
+      ? appendImageLine(note.body, journalImageEmbed(imageId, fileName))
+      : insertJournalImageEmbed(
+          note.body,
+          position.start,
+          position.end,
+          imageId,
+          fileName,
+      ).value;
     const withImage: JournalNote = {
       ...note,
-      body: appendImageLine(note.body, journalImageReference(fileName, imageId)),
+      body,
       featuredImageId: note.featuredImageId ?? imageId,
       images: [...note.images, image],
     };
@@ -330,6 +384,19 @@ export function createCharacterJournalService(
 
 function appendImageLine(body: string, line: string): string {
   return body.trim() === '' ? line : `${body.replace(/\s+$/, '')}\n\n${line}`;
+}
+
+function journalImagesChanged(
+    images: readonly JournalImage[],
+    reconciled: {images: JournalImage[]; removed: JournalImage[]},
+): boolean {
+  if (reconciled.removed.length > 0 || reconciled.images.length !== images.length) {
+    return true;
+  }
+
+  return reconciled.images.some((image, index) =>
+    (images[index]?.orphanedAt ?? null) !== (image.orphanedAt ?? null),
+  );
 }
 
 function createExtensionImageStore(): JournalImageStore {

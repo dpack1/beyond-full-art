@@ -11,10 +11,6 @@
   outline-offset: 2px;
 }
 
-[data-bfa-character-journal-tab-item].bfa-character-journal-tab--active:not(.bfa-character-journal-tab) {
-  box-shadow: inset 0 -3px 0 var(--bfa-journal-accent, currentColor);
-}
-
 .bfa-character-journal-section,
 .bfa-character-journal-section * {
   box-sizing: border-box;
@@ -452,9 +448,18 @@
   text-decoration: underline;
 }
 
+.bfa-journal-inline-image-open {
+  background: none;
+  border: 0;
+  display: block;
+  max-width: 100%;
+  padding: 0;
+}
+
 .bfa-journal-read img,
 .bfa-journal-inline-image {
   display: block;
+  height: auto;
   max-width: 100%;
 }
 

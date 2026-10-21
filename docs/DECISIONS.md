@@ -352,3 +352,21 @@ The stored blob must still be at or under 3 MB. A file over 25 MB, or a
 resized blob that is still over 3 MB, is refused. The note shows the size and
 the limit. Photos already in IndexedDB are not rewritten. `unlimitedStorage`
 stays off so Chrome does not ask for a new permission.
+
+## ADR-024: Journal photos are inline embeds
+
+Status: Accepted.
+
+A photo is stored as an IndexedDB blob, the same as before, and the note body
+gains an embed at the cursor: `![[img:<id>]]`. A caption is
+`![[img:<id>|caption]]`. A width in pixels is `![[img:<id>|300]]`, and the two
+combine as `![[img:<id>|caption|300]]`. A whole number from 1 to 4096 is the
+width; any other pipe piece is the caption. Read mode draws that image in
+place, at most the panel width, keeping the aspect ratio.
+
+Older notes may still contain `![name](bfa-journal-image:<id>)`. That syntax
+still renders. A photo record that is not mentioned by either syntax gets
+`![[img:<id>]]` appended when the journal opens, so a picture that used to sit
+under the text is not dropped. Deleting the embed marks the blob orphaned on
+the next save and deletes it on a save at least 30 seconds later, which leaves
+room to undo. Deleting the note deletes its blobs immediately.

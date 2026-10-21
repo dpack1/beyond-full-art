@@ -1,5 +1,6 @@
 import type {CharacterId} from '../character-art/art-types';
 import {restoreFocus} from '../fullscreen-viewer/focus';
+import {journalImageEmbed} from './character-journal-embeds';
 import {journalSaveErrorMessage} from './character-journal-errors';
 import {mentionCounts, resolveWikiTitle, wikiLinkNames} from './character-journal-links';
 import type {JournalListView} from './character-journal-list';
@@ -203,8 +204,8 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       renderPanel();
       watchEditorAutocomplete();
     },
-    onImage: (file) => {
-      void addImage(file);
+    onImages: (files, position) => {
+      void addImages(files, position);
     },
     onInput: () => {
       if (state.panel !== null) {
@@ -612,36 +613,60 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     }
   }
 
-  async function addImage(file: File): Promise<void> {
+  async function addImages(
+      files: readonly File[],
+      position: {end: number; start: number},
+  ): Promise<void> {
     if (state.panel === null) {
       return;
     }
 
-    const validation = imageError(file);
-    if (validation !== null) {
-      state.panel.imageError = validation;
-      renderPanel();
+    let note = draftNote();
+    let cursor = position;
+    let savedNote: JournalNote | null = null;
+    let lastError: string | null = null;
+    for (const file of files) {
+      const validation = imageError(file);
+      if (validation !== null) {
+        lastError = validation;
+        break;
+      }
+
+      try {
+        const saved = await service.attachImage(note, file, cursor);
+        const added = saved.images[saved.images.length - 1];
+        if (added !== undefined) {
+          const embed = journalImageEmbed(added.id, added.fileName);
+          const at = saved.body.indexOf(embed, cursor.start);
+          const next = at === -1 ? saved.body.length : at + embed.length;
+          cursor = {end: next, start: next};
+        }
+        note = saved;
+        savedNote = saved;
+      } catch (error) {
+        lastError = error instanceof Error
+          ? error.message
+          : 'This note could not be saved. Your text is still here.';
+        break;
+      }
+    }
+
+    if (state.panel === null) {
       return;
     }
 
-    try {
-      const saved = await service.attachImage(draftNote(), file);
-      state.panel.note = saved;
-      state.panel.loadedUpdatedAt = saved.updatedAt;
-      state.panel.imageError = null;
-      state.notes = upsert(state.notes, saved);
-      await hydrateImages([saved]);
+    if (savedNote !== null) {
+      state.panel.note = savedNote;
+      state.panel.loadedUpdatedAt = savedNote.updatedAt;
+      state.notes = upsert(state.notes, savedNote);
+      await hydrateImages([savedNote]);
       state.panel.mode = 'edit';
-      renderPanel();
-      renderList();
-    } catch (error) {
-      if (state.panel !== null) {
-        state.panel.imageError = error instanceof Error
-          ? error.message
-          : 'This note could not be saved. Your text is still here.';
-        renderPanel();
-      }
+      panel.replaceEditor(savedNote.body, cursor);
     }
+
+    state.panel.imageError = lastError;
+    renderPanel();
+    renderList();
   }
 
   async function removeImage(imageId: string): Promise<void> {

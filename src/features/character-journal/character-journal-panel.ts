@@ -67,7 +67,7 @@ export interface PanelHandlers {
   onConfirm: (accepted: boolean) => void;
   onDelete: () => void;
   onEdit: () => void;
-  onImage: (file: File) => void;
+  onImages: (files: readonly File[], position: {end: number; start: number}) => void;
   onInput: () => void;
   onMention: (entryId: string) => void;
   onPick: (entryId: string) => void;
@@ -83,6 +83,7 @@ export interface JournalPanelView {
   fileInput: HTMLInputElement;
   place(): void;
   readDraft(): {body: string; title: string};
+  replaceEditor(body: string, selection: {end: number; start: number}): void;
   render(model: PanelModel): void;
   root: HTMLElement;
   setDark(on: boolean): void;
@@ -94,7 +95,7 @@ export function createJournalPanel(
     doc: Document,
     handlers: PanelHandlers,
     imageUrl: (imageId: string) => string | null,
-    imagesFor: () => {id: string}[],
+    imagesFor: () => readonly {altText?: string; fileName?: string; id: string}[],
 ): JournalPanelView {
   const shell = createJournalSidebar(doc);
   const {
@@ -177,8 +178,12 @@ export function createJournalPanel(
     const read = renderJournalMarkdown(model.body, {
       document: doc,
       imageUrl,
-      images: imagesFor(),
+      images: imagesFor().map((image) => ({
+        altText: image.altText || image.fileName || '',
+        id: image.id,
+      })),
       onCheckbox: handlers.onCheckbox,
+      onViewImage: handlers.onViewImage,
       resolveWiki: handlers.resolveWiki,
     });
     bindWikiLinks(read);
@@ -192,10 +197,20 @@ export function createJournalPanel(
   deleteButton.addEventListener('click', () => handlers.onDelete());
   fileInput.addEventListener('change', () => {
     const file = fileInput.files?.[0];
+    const start = Number(fileInput.dataset.bfaInsertStart);
+    const end = Number(fileInput.dataset.bfaInsertEnd);
+    delete fileInput.dataset.bfaInsertStart;
+    delete fileInput.dataset.bfaInsertEnd;
     fileInput.value = '';
-    if (file !== undefined) {
-      handlers.onImage(file);
+    if (file === undefined) {
+      return;
     }
+
+    const length = textarea?.value.length ?? 0;
+    const position = Number.isFinite(start) && Number.isFinite(end)
+      ? {end, start}
+      : {end: length, start: length};
+    handlers.onImages([file], position);
   });
   root.addEventListener('keydown', (event) => {
     if (root.hidden) {
@@ -239,6 +254,19 @@ export function createJournalPanel(
         body: textarea?.value ?? '',
         title: titleField?.value ?? title.textContent ?? '',
       };
+    },
+    replaceEditor(body: string, selection: {end: number; start: number}) {
+      if (textarea === null) {
+        return;
+      }
+
+      textarea.value = body;
+      const host = textarea.parentElement;
+      if (host !== null) {
+        host.dataset.value = body;
+      }
+      textarea.focus();
+      textarea.setSelectionRange(selection.start, selection.end);
     },
     render(model) {
       root.hidden = false;
@@ -290,7 +318,6 @@ export function createJournalPanel(
           textarea = null;
           body.append(readMarkdown(model));
         }
-        appendImages(doc, body, model, handlers);
         appendMentions(doc, body, model, handlers);
         appendPicker(doc, body, model, handlers);
       } else {
@@ -302,14 +329,6 @@ export function createJournalPanel(
         syncImages(body, model);
         body.querySelector('.bfa-journal-picker')?.remove();
         appendPicker(doc, body, model, handlers);
-        const currentImages = [...body.querySelectorAll<HTMLElement>('[data-image-id]')]
-            .map((element) => element.dataset.imageId)
-            .join(',');
-        const nextImages = model.images.map((image) => image.id).join(',');
-        if (currentImages !== nextImages) {
-          body.querySelector('.bfa-journal-strip')?.remove();
-          appendImages(doc, body, model, handlers);
-        }
       }
       if (model.confirm !== null) {
         showConfirm(doc, body, model.confirm, handlers);
@@ -364,11 +383,46 @@ function appendEditor(
     field.dataset.value = textarea.value;
     handlers.onInput();
   });
+  textarea.addEventListener('paste', (event) => {
+    const files = imageFiles(event.clipboardData?.files);
+    if (files.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    handlers.onImages(files, caret(textarea));
+  });
+  textarea.addEventListener('dragover', (event) => {
+    const types = event.dataTransfer?.types;
+    if (types !== undefined && [...types].includes('Files')) {
+      event.preventDefault();
+    }
+  });
+  textarea.addEventListener('drop', (event) => {
+    const files = imageFiles(event.dataTransfer?.files);
+    if (files.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const index = textareaDropIndex(textarea, event.clientX, event.clientY);
+    handlers.onImages(files, {end: index, start: index});
+  });
   field.append(textarea);
+  let pendingInsert: {end: number; start: number} | null = null;
   for (const [label, kind] of formats) {
     const control = iconButton(doc, label, journalIcon(doc, FORMAT_ICONS[kind]));
+    control.addEventListener('mousedown', () => {
+      if (kind === 'image') {
+        pendingInsert = caret(textarea);
+      }
+    });
     control.addEventListener('click', () => {
       if (kind === 'image') {
+        const position = pendingInsert ?? caret(textarea);
+        pendingInsert = null;
+        fileInput.dataset.bfaInsertStart = String(position.start);
+        fileInput.dataset.bfaInsertEnd = String(position.end);
         fileInput.click();
         return;
       }
@@ -422,49 +476,51 @@ function appendBanners(
   }
 }
 
-function appendImages(
-    doc: Document,
-    body: HTMLElement,
-    model: PanelModel,
-    handlers: PanelHandlers,
-): void {
-  if (model.images.length === 0) {
-    return;
+function caret(textarea: HTMLTextAreaElement): {end: number; start: number} {
+  const start = textarea.selectionStart ?? textarea.value.length;
+  return {
+    end: textarea.selectionEnd ?? start,
+    start,
+  };
+}
+
+function imageFiles(list: FileList | undefined): File[] {
+  if (list === undefined) {
+    return [];
   }
 
-  const strip = doc.createElement('div');
-  strip.className = 'bfa-journal-strip';
-  for (const image of model.images) {
-    const tile = doc.createElement('figure');
-    tile.className = 'bfa-journal-strip-tile';
-    tile.dataset.imageId = image.id;
-    if (image.url !== null) {
-      const picture = doc.createElement(model.mode === 'read' ? 'button' : 'div');
-      if (picture instanceof HTMLButtonElement) {
-        picture.type = 'button';
-        picture.className = 'bfa-journal-strip-open';
-        picture.setAttribute('aria-label', `View photo ${image.fileName}`);
-        picture.addEventListener('click', () => {
-          handlers.onViewImage(image.id, picture);
-        });
-      }
-      const img = doc.createElement('img');
-      img.alt = image.fileName;
-      img.src = image.url;
-      picture.append(img);
-      tile.append(picture);
-    }
-    const caption = doc.createElement('figcaption');
-    caption.textContent = image.fileName;
-    tile.append(caption);
-    if (model.mode === 'edit') {
-      const remove = button(doc, 'Remove', 'bfa-journal-button bfa-journal-button-danger bfa-journal-remove');
-      remove.addEventListener('click', () => handlers.onRemoveImage(image.id));
-      tile.append(remove);
-    }
-    strip.append(tile);
+  return [...list].filter((file) =>
+    file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp',
+  );
+}
+
+function textareaDropIndex(textarea: HTMLTextAreaElement, x: number, y: number): number {
+  const doc = textarea.ownerDocument as Document & {
+    caretPositionFromPoint?: (clientX: number, clientY: number) => {
+      offset: number;
+      offsetNode: Node;
+    } | null;
+    caretRangeFromPoint?: (clientX: number, clientY: number) => Range | null;
+  };
+  const position = doc.caretPositionFromPoint?.(x, y);
+  if (position?.offsetNode === textarea) {
+    return clampIndex(position.offset, textarea.value.length);
   }
-  body.append(strip);
+
+  const range = doc.caretRangeFromPoint?.(x, y);
+  if (range?.startContainer === textarea || range?.startContainer.parentNode === textarea) {
+    return clampIndex(range.startOffset, textarea.value.length);
+  }
+
+  return textarea.selectionStart ?? textarea.value.length;
+}
+
+function clampIndex(value: number, length: number): number {
+  if (!Number.isFinite(value)) {
+    return length;
+  }
+
+  return Math.min(Math.max(value, 0), length);
 }
 
 function syncImages(body: HTMLElement, model: PanelModel): void {

@@ -2,7 +2,7 @@ import type {JournalNote} from './character-journal-types';
 
 const CODE_FENCE = /```[\s\S]*?```|~~~[\s\S]*?~~~/g;
 const INLINE_CODE = /`[^`\n]*`/g;
-const WIKI_LINK = /\[\[([^\]\n]{1,200})\]\]/g;
+const WIKI_LINK = /(?<!!)\[\[([^\]\n]{1,200})\]\]/g;
 const TAG = /(^|[^A-Za-z0-9-])#([A-Za-z0-9-]{1,40})(?![A-Za-z0-9-])/g;
 
 export type WikiResolution =

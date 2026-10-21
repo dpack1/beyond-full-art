@@ -218,7 +218,7 @@ describe('character sheet tabs adapter', () => {
       <style>
         menu { color: rgb(180, 180, 180); font-size: 16px; font-weight: 400; letter-spacing: 0.2em; text-transform: none; }
         .styles_tabButton { color: rgb(117, 131, 139); font-size: 14px; font-weight: 700; letter-spacing: normal; text-transform: uppercase; }
-        .styles_tabButton[aria-checked="true"] { color: rgb(18, 24, 28); }
+        .styles_tabButton[aria-checked="true"] { border-bottom: 3px solid rgb(197, 49, 49); color: rgb(18, 24, 28); }
       </style>
       <menu>
         <li><button class="styles_tabButton" type="button" aria-checked="true">Actions</button></li>
@@ -246,8 +246,91 @@ describe('character sheet tabs adapter', () => {
 
     setJournalTabSelected(target.tab, true);
     expect(tabPaint(target.tab)).toEqual(tabPaint(actions));
+    target.tab.classList.add('bfa-character-journal-tab--active');
+    journalTabItem(target.tab)?.classList.add('bfa-character-journal-tab--active');
+    const journalItem = journalTabItem(target.tab);
+    const actionsItem = actions.closest('li');
+    if (journalItem === null || actionsItem === null) {
+      throw new Error('Missing tab item');
+    }
+
+    expect(indicatorCount(actionsItem)).toBe(1);
+    expect(indicatorCount(journalItem)).toBe(indicatorCount(actionsItem));
   });
 });
+
+function indicatorCount(root: HTMLElement): number {
+  const view = root.ownerDocument.defaultView;
+  if (view === null) {
+    return 0;
+  }
+
+  let count = 0;
+  const nodes = [root, ...root.querySelectorAll<HTMLElement>('*')];
+  for (const node of nodes) {
+    count += indicatorLines(view.getComputedStyle(node));
+    count += pseudoIndicators(node);
+  }
+
+  return count;
+}
+
+function pseudoIndicators(node: Element): number {
+  let count = 0;
+  for (const sheet of node.ownerDocument.styleSheets) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+
+    for (const rule of rules) {
+      if (!(rule instanceof CSSStyleRule)) {
+        continue;
+      }
+
+      const selector = rule.selectorText;
+      if (!selector.includes('::before') && !selector.includes('::after')) {
+        continue;
+      }
+
+      const base = selector.replace(/::(?:before|after)/g, '');
+      let matches = false;
+      try {
+        matches = node.matches(base);
+      } catch {
+        matches = false;
+      }
+      if (!matches) {
+        continue;
+      }
+
+      count += indicatorLines(rule.style);
+    }
+  }
+
+  return count;
+}
+
+function indicatorLines(style: CSSStyleDeclaration): number {
+  let count = 0;
+  const width = Number.parseFloat(style.borderBottomWidth);
+  if (
+    Number.isFinite(width)
+    && width >= 2
+    && style.borderBottomStyle !== 'none'
+    && style.borderBottomStyle !== 'hidden'
+  ) {
+    count += 1;
+  }
+
+  if (style.boxShadow !== '' && style.boxShadow !== 'none') {
+    count += 1;
+  }
+
+  return count;
+}
 
 function journalTabItem(tab: HTMLElement | null): HTMLElement | null {
   return tab?.closest<HTMLElement>('[data-bfa-character-journal-tab-item]') ?? null;

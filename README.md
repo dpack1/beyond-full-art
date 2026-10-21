@@ -174,7 +174,7 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 3. Choose **Manage Notes** to create a note in the side panel. Pick its type there.
 4. Read the note in that panel. Markdown renders in read mode. **Edit** changes it. The note saves on its own. **Close**, in the pane chrome, returns to the list.
 5. Search titles, tags, and text. **Filter** selects one or more types. `[[Name]]` links to another note. A missing name stays unresolved until autocomplete creates it.
-6. Use **Image** while editing to add a PNG, JPEG, or WebP photo. A photo over 3 MB is resized to fit. A photo over 25 MB is refused, and the note text stays.
+6. Use **Image**, paste, or drop a PNG, JPEG, or WebP photo while editing. The note gains `![[img:<id>]]` at the cursor. Add `|caption` or `|300` (pixels) inside the brackets to set the caption or width. Cut and paste that embed to move the picture. A photo over 3 MB is resized to fit. A photo over 25 MB is refused, and the note text stays.
 7. Choose a native D&D Beyond tab to return to the sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
 
 ## Developer runbook
@@ -307,7 +307,7 @@ Planned next:
 - Local art is tied to the browser where you installed the extension.
 - Only one active full-art image is stored per character right now.
 - There is not yet a built-in storage dashboard or usage meter beyond the popup inventory summary.
-- Journal photos are one image per add, in PNG, JPEG, or WebP. Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. There is no journal import or export.
+- Journal photos are one image per add, in PNG, JPEG, or WebP. The note body places each one with `![[img:<id>]]` (caption and width optional). Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. There is no journal import or export.
 
 ## Disclaimer
 

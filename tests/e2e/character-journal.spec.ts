@@ -47,7 +47,9 @@ test('uses the journal for notes, photos, and search', async ({
   });
 
   await page.locator('.bfa-journal-file-input').setInputFiles(PHOTO_FIXTURE);
-  await expect(page.getByText('icon-128.png', {exact: true})).toBeVisible();
+  await expect(page.getByRole('textbox', {name: 'Note', exact: true})).toHaveValue(
+      /!\[\[img:[A-Za-z0-9-]+\|icon-128\.png\]\]/,
+  );
   await page.getByRole('button', {name: 'Done editing'}).click();
   await page.addStyleTag({
     content: [
@@ -83,7 +85,7 @@ test('uses the journal for notes, photos, and search', async ({
   await page.getByRole('button', {name: 'Journal'}).click();
   await page.getByRole('button', {name: /The locked door/}).click();
   await expect(page.getByRole('heading', {name: 'The locked door'})).toBeVisible();
-  await expect(page.locator('.bfa-journal-strip img')).toBeVisible();
+  await expect(page.locator('.bfa-journal-read .bfa-journal-inline-image')).toBeVisible();
 
   await page.getByRole('button', {name: 'View photo icon-128.png'}).click();
   await expect(page.getByRole('dialog', {name: 'icon-128.png'})).toBeVisible();

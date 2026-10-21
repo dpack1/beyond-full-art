@@ -1,5 +1,9 @@
 import {describe, expect, it} from 'vitest';
 
+import {
+  embedMissingJournalImages,
+  insertJournalImageEmbed,
+} from '../../src/features/character-journal/character-journal-embeds';
 import {applyJournalFormat} from '../../src/features/character-journal/character-journal-format';
 import {
   journalTagNames,
@@ -50,6 +54,14 @@ describe('journal version 2 model', () => {
       }],
     });
     expect(isJournalNote(full)).toBe(true);
+    expect(isJournalNote({
+      ...full,
+      images: [{...full.images[0], orphanedAt: '2026-10-21T00:00:00.000Z'}],
+    })).toBe(true);
+    expect(isJournalNote({
+      ...full,
+      images: [{...full.images[0], orphanedAt: 5}],
+    })).toBe(false);
     expect(isJournalNote({
       ...full,
       images: [{...full.images[0], blobKey: 'character-art-blob'}],
@@ -114,6 +126,12 @@ describe('journal version 2 model', () => {
         'voss',
     );
     expect(rewritten[1]?.body).toBe('Asked [[Voss the Smith]] twice. [[Voss the Smith]]');
+    const pictured = note({
+      id: 'pictured',
+      body: 'Asked [[Voss]] and ![[img:photo-1|Voss]]',
+    });
+    expect(rewriteUniqueTitle([voss, pictured], 'Voss', 'Voss the Smith', 'voss')[1]?.body)
+        .toBe('Asked [[Voss the Smith]] and ![[img:photo-1|Voss]]');
     expect(rewriteUniqueTitle([twinA, twinB], 'Marcus', 'Marcus Vale', 'a')[1]?.body)
         .toBe('[[Marcus]]');
   });
@@ -203,8 +221,59 @@ describe('journal version 2 model', () => {
     expect(root.querySelector('a')?.getAttribute('href')).toBe('https://example.com/notes');
     expect(root.querySelector('.bfa-journal-wikilink')?.outerHTML).toContain('>Voss</button>');
     expect(root.querySelector('img')?.outerHTML).toContain('src="blob:local"');
+    expect(root.querySelector('img')?.style.maxWidth).toBe('100%');
+    expect(root.querySelector('img')?.style.height).toBe('auto');
     expect(root.innerHTML).not.toContain('**');
     expect(root.textContent).not.toContain('**test**');
+  });
+
+  it('inserts an image embed at the cursor and renders it inline with a width', () => {
+    const inserted = insertJournalImageEmbed('Hello world', 6, 6, 'photo-1', 'door');
+    expect(inserted.value).toBe('Hello ![[img:photo-1|door]]world');
+    expect(inserted.selectionStart).toBe('Hello ![[img:photo-1|door]]'.length);
+    expect(insertJournalImageEmbed('Hello world', 6, 11, 'photo-1').value)
+        .toBe('Hello ![[img:photo-1]]');
+
+    const root = renderJournalMarkdown(
+        'Before ![[img:photo-1|The door|300]] after\n\nSee [[Voss]].',
+        {
+          document,
+          imageUrl: () => 'blob:local',
+          images: [{altText: 'fallback', id: 'photo-1'}],
+          resolveWiki: () => 'one',
+        },
+    );
+    const image = root.querySelector('img');
+    expect(image?.getAttribute('src')).toBe('blob:local');
+    expect(image?.getAttribute('alt')).toBe('The door');
+    expect(image?.style.width).toBe('300px');
+    expect(image?.style.maxWidth).toBe('100%');
+    expect(image?.style.height).toBe('auto');
+    expect(image?.dataset.bfaImageWidth).toBe('300');
+    expect(root.querySelector('.bfa-journal-wikilink')?.textContent).toBe('Voss');
+    expect(root.textContent).not.toContain('img:photo-1');
+
+    const widthOnly = renderJournalMarkdown('![[img:photo-1|300]]', {
+      document,
+      imageUrl: () => 'blob:local',
+      images: [{altText: 'fallback', id: 'photo-1'}],
+      resolveWiki: () => 'missing',
+    });
+    expect(widthOnly.querySelector('img')?.getAttribute('alt')).toBe('fallback');
+    expect(widthOnly.querySelector('img')?.style.width).toBe('300px');
+  });
+
+  it('appends embeds for photos that are not already in the note', () => {
+    expect(embedMissingJournalImages('The door was warm.', [
+      {id: 'photo-1'},
+      {id: 'photo-2', orphanedAt: '2026-10-21T00:00:00.000Z'},
+    ])).toBe('The door was warm.\n\n![[img:photo-1]]');
+    expect(embedMissingJournalImages('![[img:photo-1]]', [{id: 'photo-1'}]))
+        .toBe('![[img:photo-1]]');
+    expect(embedMissingJournalImages(
+        '![door.png](bfa-journal-image:photo-1)',
+        [{id: 'photo-1'}],
+    )).toBe('![door.png](bfa-journal-image:photo-1)');
   });
 
   it('renders a nested list and its nested task', () => {

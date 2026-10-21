@@ -401,8 +401,15 @@ interface JournalNote {
 }
 ```
 
-`body` is markdown the player typed. `images` store the blob key, file name,
-and type. They do not store bytes. Opening a character that still has version 1
+`body` is markdown the player typed. A photo in the body is
+`![[img:<id>]]`, with an optional caption and pixel width
+(`![[img:<id>|caption|300]]`). Older bodies may still use
+`![name](bfa-journal-image:<id>)`, and that still renders. `images` store the
+blob key, file name, and type. They do not store bytes. An image id that the
+body no longer mentions is marked `orphanedAt` on save and its blob is deleted
+on a save at least 30 seconds later. Opening the journal appends
+`![[img:<id>]]` for an image that was never mentioned and is not already
+orphaned. Opening a character that still has version 1
 entries writes `bfa.characterJournal.backup.v1.<characterId>` first, and that
 backup is never overwritten. The version 1 shape is:
 

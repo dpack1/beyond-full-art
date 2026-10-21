@@ -208,6 +208,7 @@ export interface JournalImage {
   height: number | null;
   id: string;
   mimeType: SupportedCharacterArtMimeType;
+  orphanedAt?: string | null;
   width: number | null;
 }
 
@@ -263,7 +264,16 @@ export function isJournalImage(value: unknown): value is JournalImage {
     && isNullableNumber(value.height)
     && typeof value.id === 'string'
     && isSupportedJournalImageMimeTypeValue(value.mimeType)
+    && isOptionalOrphanedAt(value)
     && isNullableNumber(value.width);
+}
+
+function isOptionalOrphanedAt(value: Record<string, unknown>): boolean {
+  if (!Object.prototype.hasOwnProperty.call(value, 'orphanedAt')) {
+    return true;
+  }
+
+  return value.orphanedAt === null || typeof value.orphanedAt === 'string';
 }
 
 export function isJournalEntryType(value: unknown): value is JournalEntryType {

@@ -1,5 +1,10 @@
 import {Lexer, type Token, type Tokens} from 'marked';
 
+import {
+  expandJournalImageEmbeds,
+  journalImageEmbed,
+  journalImageWidth,
+} from './character-journal-embeds';
 import {wikiLinkNames} from './character-journal-links';
 
 const WIKI_PLACEHOLDER = /\uE000WIKI(\d+)\uE001/g;
@@ -7,6 +12,7 @@ const TASK_LINE = /^(\s*(?:[-*+]|\d+[.)])\s+)\[([ xX])\](.*)$/;
 const JOURNAL_IMAGE = /^bfa-journal-image:([A-Za-z0-9-]+)$/;
 
 export interface JournalMarkdownImage {
+  altText?: string;
   id: string;
 }
 
@@ -15,6 +21,7 @@ export interface RenderJournalMarkdownOptions {
   imageUrl: (imageId: string) => string | null;
   images: readonly JournalMarkdownImage[];
   onCheckbox?: (index: number, checked: boolean) => void;
+  onViewImage?: (imageId: string, element: HTMLElement) => void;
   resolveWiki: (name: string) => 'many' | 'missing' | 'one';
 }
 
@@ -100,24 +107,29 @@ export function patchTaskCheckbox(
 }
 
 export function journalImageReference(fileName: string, imageId: string): string {
-  const safeName = fileName.replace(/[\[\]]/g, '').trim() || 'Photo';
-  return `![${safeName}](bfa-journal-image:${imageId})`;
+  const safeName = fileName.replace(/[\[\]|\r\n]/g, '').trim();
+  return journalImageEmbed(imageId, safeName);
 }
 
 export function removeJournalImageLine(body: string, imageId: string): string {
   const escaped = imageId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp(
-      `\\n?!\\[[^\\]]*\\]\\(bfa-journal-image:${escaped}\\)\\n?`,
+  const legacy = new RegExp(
+      `\\n?!\\[[^\\]]*\\]\\(bfa-journal-image:${escaped}(?:\\s+"[^"]*")?\\)\\n?`,
       'g',
   );
-  return body.replace(pattern, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  const embed = new RegExp(
+      `\\n?!\\[\\[img:${escaped}(?:\\|[^\\]\\n]+)*\\]\\]\\n?`,
+      'g',
+  );
+  return body.replace(legacy, '\n').replace(embed, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function prepareJournalMarkdown(body: string): {names: string[]; source: string} {
   const names: string[] = [];
   const shielded = shieldCode(body);
-  const withWiki = shielded.text.replace(
-      /\[\[([^\]\n]{1,200})\]\]/g,
+  const expanded = expandJournalImageEmbeds(shielded.text);
+  const withWiki = expanded.replace(
+      /(?<!!)\[\[([^\]\n]{1,200})\]\]/g,
       (_token, raw: string) => {
         const name = raw.trim();
         if (name === '' || name.length > 200) {
@@ -418,11 +430,33 @@ function appendImage(
     return;
   }
 
+  const stored = options.images.find((item) => item.id === imageId);
   const image = doc.createElement('img');
   image.src = url;
-  image.alt = token.text;
+  image.alt = token.text.trim() !== '' ? token.text : stored?.altText ?? '';
   image.className = 'bfa-journal-inline-image';
-  parent.append(image);
+  image.style.height = 'auto';
+  image.style.maxWidth = '100%';
+  const width = journalImageWidth(token.title);
+  if (width !== null) {
+    image.style.width = `${width}px`;
+    image.dataset.bfaImageWidth = String(width);
+  }
+
+  if (options.onViewImage === undefined) {
+    parent.append(image);
+    return;
+  }
+
+  const button = doc.createElement('button');
+  button.type = 'button';
+  button.className = 'bfa-journal-inline-image-open';
+  button.setAttribute('aria-label', `View photo ${image.alt === '' ? 'photo' : image.alt}`);
+  button.addEventListener('click', () => {
+    options.onViewImage?.(imageId, button);
+  });
+  button.append(image);
+  parent.append(button);
 }
 
 function appendUnknown(

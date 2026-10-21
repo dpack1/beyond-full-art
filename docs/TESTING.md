@@ -163,13 +163,13 @@ sit with Notes and Extras, and the note panel matches that sheet's right pane.
 Switch Appearance under Manage, then Character Settings. Do not judge the
 journal by the operating system's theme.
 
-1. Journal is the uppercase tab after Extras. One pointerdown on the label and on the padding opens it. The previous tab is not underlined, including when the sheet loaded on Actions.
+1. Journal is the uppercase tab after Extras. One pointerdown on the label and on the padding opens it. The previous tab is not underlined, including when the sheet loaded on Actions. Selected Journal has the same single underline as a selected sibling tab.
 2. The list replaces the main pane. It is not inside a nested scroller.
 3. Light and Underdark, including a toggle while Journal is open. The toolbar matches the Extras search row. Fields stay dark in Underdark. Extras content is not visible inside Journal.
 4. Manage Notes creates one note in the sidebar. There is no second File note or New note control. Reload. The note is still there.
 5. Open an entry, read it, edit it, reload. The markdown survived.
 6. Create `[[Someone new]]` from autocomplete. The placeholder shows Needs details and appears under Mentioned in on the note that named them.
-7. Add a PNG under 3 MB. The row thumbnail and the panel both show it. A file over 3 MB is resized and the note text remains. A file over 25 MB shows the size and the limit, and the note text remains.
+7. Add a PNG under 3 MB at the cursor. The editor shows `![[img:<id>]]` there, and read mode shows the image inline. Move that line and the image follows. A file over 3 MB is resized and the note text remains. A file over 25 MB shows the size and the limit, and the note text remains.
 8. Unsaved edit, switch to Spells, choose to keep editing. The confirm was on screen. The draft is still there.
 9. Turn the popup setting off, keep editing, then close. The Journal tab leaves.
 10. If the live sheet can change character without a reload, a note in progress does not appear on the next character.
