@@ -13,7 +13,7 @@ import {
   journalTypeLabel,
   visibleJournalNotes,
 } from './character-journal-query';
-import {applyCopiedControlClasses, copyNativeSearchChrome, paintJournalSurface} from './character-journal-sheet-style';
+import {applyCopiedControlClasses, paintJournalSurface} from './character-journal-sheet-style';
 import type {CharacterJournalService} from './character-journal-service';
 import {applySheetTheme, observeSheetTheme} from './character-journal-theme';
 import type {JournalEntryType, JournalNote} from './character-journal-types';
@@ -409,7 +409,6 @@ export function createCharacterJournalSection(
     const anchor = state.contentHost ?? list.root;
     applySheetTheme(list.root, anchor);
     applyCopiedControlClasses(list.root, paintJournalSurface(list.root, anchor));
-    copyNativeSearchChrome(list.root, anchor);
     if (!notes.panel.root.hidden) {
       applyCopiedControlClasses(
           notes.panel.root,

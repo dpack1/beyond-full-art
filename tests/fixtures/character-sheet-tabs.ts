@@ -70,7 +70,24 @@ export const LIVE_CHARACTER_SHEET_TABS_FIXTURE = `
       <div class="ddbc-tab-list__content" style="height: 320px; overflow: hidden;">
         <div class="ddbc-tab-options__content" data-testid="sheet-scroller" style="height: 100%; overflow: auto;">
           <div class="ct-character-sheet-panel" data-testid="native-character-panel">
-            Native character sheet content
+            <div class="ct-extras-filter__interactions">
+              <div class="ct-extras-filter__box">
+                <div class="ct-extras-filter__primary">
+                  <div class="ct-extras-filter__primary-group ct-extras-filter__primary-group--first">
+                    <div class="ct-extras-filter__icon"></div>
+                  </div>
+                  <div class="ct-extras-filter__field">
+                    <input class="ct-extras-filter__input" type="search" placeholder="Search Names, Types, or Tags">
+                  </div>
+                </div>
+              </div>
+              <div class="ct-extras-filter__advanced">
+                <svg class="ddbc-svg ddbc-filter-svg" viewBox="0 0 29 31.43435" aria-hidden="true"></svg>
+              </div>
+              <div class="ct-extras-filter__callout">
+                <button class="ct-theme-button ct-theme-button--outline ct-button" type="button">Manage Extras</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

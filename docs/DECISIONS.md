@@ -270,11 +270,12 @@ mounts on the content region next to the tab strip, not in a nested scroller.
 See the version 2 section in `docs/ARCHITECTURE.md`.
 
 The journal samples the character sheet's appearance. Version 1 mounted in the
-sheet's inner scroll pane. Version 2 does not. The section toolbar copies the
-sheet's search, Filter, and Manage row. The note panel's close and back
-controls sit outside the content box, where the action and notes slide-in
-keeps them. The slide-in class is still uncaptured, so the panel does not
-reuse the portrait sidebar.
+sheet's inner scroll pane. Version 2 does not. The section toolbar is the Extras search row: magnifier, field, funnel, and
+Manage Notes on one line. The note panel's close and back controls sit
+outside the content box, where the action and notes slide-in keeps them.
+`ct-sidebar` is the Information Sidebar. Its body renders only the sheet's
+active pane and has no slot for extension content, so the note panel stays
+ours.
 
 Why:
 

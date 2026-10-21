@@ -221,22 +221,27 @@ stay on screen inside the journal. Children the sheet inserts later are
 concealed the same way, and the previous display is restored when Journal
 closes.
 
-The section toolbar is the native section row: a search field, Filter, then
-Manage Notes. The search copies its class, and the class of a small parent
-that only wraps that input, from a live section search
-(`SHEET_SECTION_SEARCH_SELECTOR` in `selectors.ts`). Type filters sit in the
-Filter menu and can be combined. An empty selection shows every note. Manage
-Notes opens the sidebar. That is the only create path.
+The section toolbar is the Extras row: magnifier, search field, funnel, then
+Manage Notes, on one line. The markup and classes are the ones observed on
+the Extras filter (`SHEET_SECTION_FILTER_SELECTOR` in `selectors.ts`). A live
+row is cloned when that tab is mounted; otherwise the same markup is built
+from those strings so the sheet stylesheet can paint it. The site header
+search is not used. Type filters sit behind the funnel and can be combined.
+An empty selection shows every note. Manage Notes opens the note panel. That
+is the only create path.
 
 The panel is appended to `document.body` so a sheet `overflow: hidden` cannot
 clip it. The content box is about 340px. Close, and Back when a note was
 opened from another note, sit in a chrome strip outside that box, in the
-same places as the action and notes slide-in. The slide-in class was not
-captured, and `ct-sidebar__portal` is the portrait sidebar, so the notes
-panel does not copy those classes. Hashed module classes are copied from a
-live input or neutral button when one is on the page. Classes whose name
-contains `hidden` are not copied. Title and note fields are the full width
-of the content box inside its padding.
+same places as the action and notes slide-in. Checked 2026-10-21 against
+character-app `main.73ca5823.js`: `ct-sidebar` is the Information Sidebar
+portal. Its body is a closed switch on the sheet's pane id, rendered only
+while that pane is active, with no children slot. Injected nodes are replaced
+on the next React render, and the edge controls call the sheet's own
+visibility and history handlers. The note panel stays ours. Hashed module
+classes are copied from a live input or neutral button when one is on the
+page. Classes whose name contains `hidden` are not copied. Title and note
+fields are the full width of the content box inside its padding.
 
 The visual source is Matilda Greywolf,
 `https://www.dndbeyond.com/characters/172153137`, captured 2026-10-20 in light

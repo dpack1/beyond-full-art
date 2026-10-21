@@ -33,6 +33,13 @@ describe('character journal section', () => {
     expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No notes');
     expect(document.querySelector('[data-bfa-journal-panel]')).not.toBeNull();
     expect(document.querySelector('.ct-sidebar')).toBeNull();
+    const row = document.querySelector('[data-bfa-journal-native-chrome]');
+    expect(row?.querySelector('.ct-extras-filter__icon')).not.toBeNull();
+    expect(row?.querySelector('.ct-extras-filter__input')).not.toBeNull();
+    expect(row?.querySelector('.ddbc-filter-svg')).not.toBeNull();
+    expect(row?.querySelector('[aria-label="Filter"]')?.textContent?.trim()).toBe('');
+    expect(row?.querySelector('.bfa-journal-manage')?.textContent).toBe('Manage Notes');
+    expect(row?.contains(document.querySelector('.bfa-journal-filter'))).toBe(false);
 
     section.hide();
     expect(getNativePanel().hidden).toBe(false);
@@ -607,15 +614,29 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('copies the native section search and filters by more than one type', async () => {
-    const shell = document.createElement('div');
-    shell.className = 'sheet-search-shell';
-    const nativeSearch = document.createElement('input');
-    nativeSearch.className = 'sheet-search-input';
-    nativeSearch.type = 'search';
-    nativeSearch.placeholder = 'Search Names, Types, or Tags';
-    shell.append(nativeSearch);
-    document.querySelector('.ct-character-sheet')?.append(shell);
+  it('uses the extras search row and filters by more than one type', async () => {
+    const decoy = document.createElement('input');
+    decoy.className = 'site-header-search';
+    decoy.type = 'search';
+    decoy.placeholder = 'Search D&D Beyond';
+    document.body.prepend(decoy);
+
+    const live = document.createElement('div');
+    live.className = 'ct-extras-filter__interactions';
+    live.innerHTML = `
+      <div class="ct-extras-filter__box live-search-box">
+        <div class="ct-extras-filter__primary">
+          <div class="ct-extras-filter__primary-group ct-extras-filter__primary-group--first">
+            <div class="ct-extras-filter__icon"></div>
+          </div>
+          <div class="ct-extras-filter__field">
+            <input class="ct-extras-filter__input live-search-input" type="search" placeholder="Search Names, Types, or Tags">
+          </div>
+        </div>
+      </div>
+      <div class="ct-extras-filter__advanced"><svg class="ddbc-filter-svg" viewBox="0 0 29 31"></svg></div>
+    `;
+    document.querySelector('.ct-character-sheet')?.append(live);
 
     const section = createCharacterJournalSection(createFakeService([
       note({id: 'door', title: 'Locked door', type: 'session'}),
@@ -624,13 +645,19 @@ describe('character journal section', () => {
     ]));
     await showSection(section);
 
-    const search = document.querySelector<HTMLInputElement>('.bfa-journal-search');
-    expect(search?.classList.contains('sheet-search-input')).toBe(true);
-    expect(search?.getAttribute('data-bfa-journal-input-class')).toBe('sheet-search-input');
-    expect(search?.parentElement?.classList.contains('sheet-search-shell')).toBe(true);
+    const row = document.querySelector('[data-bfa-journal-native-chrome]');
+    const search = row?.querySelector<HTMLInputElement>('.bfa-journal-search');
+    expect(search?.classList.contains('live-search-input')).toBe(true);
+    expect(search?.classList.contains('site-header-search')).toBe(false);
+    expect(row?.querySelector('.ct-extras-filter__icon')).not.toBeNull();
+    expect(row?.querySelector('.live-search-box')).not.toBeNull();
+    expect(row?.querySelector('svg')).not.toBeNull();
+    expect(row?.querySelector('.bfa-journal-manage')?.textContent).toBe('Manage Notes');
+    expect(row?.contains(document.querySelector('.bfa-journal-filter'))).toBe(false);
     expect(document.querySelector('.bfa-journal-quick-note')).toBeNull();
+    expect(live.querySelector('button')?.textContent ?? '').not.toBe('Manage Notes');
 
-    buttonNamed('Filter')?.click();
+    document.querySelector<HTMLElement>('[aria-label="Filter"]')?.click();
     const boxes = document.querySelectorAll<HTMLInputElement>('.bfa-journal-filter input');
     expect(boxes.length).toBe(6);
     const npc = Array.from(boxes).find((box) => box.value === 'npc');

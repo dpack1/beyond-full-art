@@ -150,7 +150,7 @@ Current implementation slice (version 2, not shipped until Dylan approves it):
 - local markdown notes keyed by D&D Beyond character ID, schema version 2,
 - one-way migration from version 1 with a backup that is not overwritten,
 - image bytes in extension-origin IndexedDB,
-- search copied from the sheet's section search, a multi-select Filter button, Manage Notes, `[[Name]]` links, and autosave,
+- the Extras search row (magnifier, field, funnel, Manage Notes) on one line, `[[Name]]` links, and autosave,
 - unit, DOM fixture, and Playwright coverage.
 
 Remaining work:

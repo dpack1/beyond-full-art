@@ -379,13 +379,48 @@ export const SHEET_TAB_NAV_ITEM_SELECTOR = '.ddbc-tab-list__nav-item';
 export const SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR =
   '.ddbc-tab-list__nav-item--is-active';
 export const SHEET_TAB_CONTENT_SELECTOR = '.ddbc-tab-list__content';
-// Structural lookup for a section search (Inventory, Spells, Extras). The
-// class string is copied from the live input. It is not hardcoded here.
-export const SHEET_SECTION_SEARCH_SELECTOR = [
-  'input[type="search"]',
-  'input[placeholder*="Search" i]',
-  'input[aria-label*="Search" i]',
+// Extras / Inventory / Spells filter row, observed 2026-10-21 on the public
+// sheet character 4741434 (character-app main.73ca5823.js). The row is
+// search box, funnel, then the Manage button. Inactive tabs unmount it, so
+// the journal also rebuilds this markup from these strings. The site header
+// search is a different input and is not this row.
+export const SHEET_SECTION_FILTER_SELECTOR = [
+  '.ct-extras-filter__interactions',
+  '.ct-inventory-filter__interactions',
+  '.ct-spells-filter__interactions',
 ].join(', ');
+export const SHEET_SECTION_FILTER_BUTTON_SELECTOR = [
+  '.ct-extras-filter__advanced',
+  '.ct-inventory-filter__advanced',
+  '.ct-spells-filter__advanced',
+].join(', ');
+export const SHEET_SECTION_FILTER_ROW_CLASS = 'ct-extras-filter__interactions';
+export const SHEET_SECTION_FILTER_BOX_CLASS = 'ct-extras-filter__box';
+export const SHEET_SECTION_FILTER_PRIMARY_CLASS = 'ct-extras-filter__primary';
+export const SHEET_SECTION_FILTER_ICON_GROUP_CLASS =
+  'ct-extras-filter__primary-group ct-extras-filter__primary-group--first';
+export const SHEET_SECTION_FILTER_ICON_CLASS = 'ct-extras-filter__icon';
+export const SHEET_SECTION_FILTER_FIELD_CLASS = 'ct-extras-filter__field';
+export const SHEET_SECTION_FILTER_INPUT_CLASS = 'ct-extras-filter__input';
+export const SHEET_SECTION_FILTER_BUTTON_CLASS = 'ct-extras-filter__advanced';
+export const SHEET_SECTION_FILTER_CALLOUT_CLASS = 'ct-extras-filter__callout';
+export const SHEET_MANAGE_BUTTON_SELECTOR = 'button.ct-theme-button';
+export const SHEET_MANAGE_BUTTON_CLASS = [
+  'ct-theme-button',
+  'ct-theme-button--outline',
+  'ct-theme-button--interactive',
+  'ct-button',
+  'character-button',
+  'character-button-medium',
+  'character-button-outline',
+  'ddbc-button',
+].join(' ');
+export const SHEET_MANAGE_BUTTON_CONTENT_CLASS = 'ct-button__content';
+export const SHEET_FILTER_SVG_MARKUP = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 31.43435" class="ddbc-svg ddbc-filter-svg" aria-hidden="true">',
+  '<path fill="currentColor" d="M10,18,.38675,3.58013A2.30282,2.30282,0,0,1,0,2.30278H0A2.30278,2.30278,0,0,1,2.30277,0H26.69723A2.30278,2.30278,0,0,1,29,2.30277h0a2.30282,2.30282,0,0,1-.38675,1.27735L19,18V30.78071a.65255.65255,0,0,1-1.01451.543L10.44556,26.297A1.00058,1.00058,0,0,1,10,25.46451Z"></path>',
+  '</svg>',
+].join('');
 export const PRIMARY_BOX_SELECTOR = '.ct-primary-box';
 export const THEME_DARK_CLASS = 'ct-theme-dark';
 export const THEME_DARK_SELECTOR = `.${THEME_DARK_CLASS}`;
@@ -423,6 +458,33 @@ const sheetTabNavItemActive = selector({
   lookFor: 'The selected tab. This entry looks for ddbc-tab-list__nav-item--is-active on the tab item. On Matilda\'s screenshots the selected main tab is Actions, Notes, or Extras depending on the capture. Its underline is the character theme color.',
   selector: SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR,
   targets: 'The active sheet tab item.',
+});
+
+const sheetSectionFilter = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
+  id: 'sheet-section-filter',
+  lookFor: 'The Extras, Inventory, or Spells toolbar row: a search box with a magnifier, then the funnel. On the classic sheet the row is ct-extras-filter__interactions (Inventory and Spells use the same pieces with their own prefix). It is mounted only while that tab is open. The site header search is not this row.',
+  selector: SHEET_SECTION_FILTER_SELECTOR,
+  targets: 'Section search and filter row.',
+});
+
+const sheetSectionFilterButton = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
+  id: 'sheet-section-filter-button',
+  lookFor: 'The funnel control beside the section search. Extras uses ct-extras-filter__advanced and an svg.ddbc-filter-svg. It is not a text button.',
+  selector: SHEET_SECTION_FILTER_BUTTON_SELECTOR,
+  targets: 'Section filter funnel.',
+});
+
+const sheetManageButton = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
+  id: 'sheet-manage-button',
+  lookFor: 'The outline Manage button at the end of a section toolbar, class ct-theme-button. Extras labels it Manage Extras. A read-only public sheet omits it; an owned sheet renders it.',
+  selector: SHEET_MANAGE_BUTTON_SELECTOR,
+  targets: 'Section Manage button.',
 });
 
 const sheetTabContent = selector({
@@ -492,6 +554,9 @@ export const DDB_SELECTORS: readonly DdbSelectorEntry[] = [
   characterSheet,
   sheetTabNavItem,
   sheetTabNavItemActive,
+  sheetSectionFilter,
+  sheetSectionFilterButton,
+  sheetManageButton,
   sheetTabContent,
   primaryBox,
   themeDark,

@@ -82,7 +82,7 @@ The selector map asks the live check for these tab classes. They are not readabl
 | `ddbc-tab-list__nav-item` | One tab item, main row or secondary row |
 | `ddbc-tab-list__nav-item--is-active` | The selected tab item |
 
-The journal queries `ddbc-tab-list__nav-item` and the active class when it samples the theme color and copies the active tab's underline. It still finds Extras by its label, inserts a Journal button after that item, and mounts on the next sibling of the tab row. On the live-shaped fixture that sibling is `ddbc-tab-list__content`. While Journal is open, the other children of that region are concealed. The section toolbar copies a live section search input (`input[type="search"]`, or an input whose placeholder or accessible name contains "Search") and, when that input's parent only wraps the field, that parent's classes. Filter and Manage Notes follow the Extras row: search, then filter, then Manage. **from-code**
+The journal queries `ddbc-tab-list__nav-item` and the active class when it samples the theme color and copies the active tab's underline. It still finds Extras by its label, inserts a Journal button after that item, and mounts on the next sibling of the tab row. On the live-shaped fixture that sibling is `ddbc-tab-list__content`. While Journal is open, the other children of that region are concealed. The section toolbar uses the Extras filter row, verified 2026-10-21 on character `4741434`: `ct-extras-filter__interactions` is a nowrap flex line with the bordered search box (magnifier `ct-extras-filter__icon`, input `ct-extras-filter__input`), the funnel `ct-extras-filter__advanced`, and the Manage button. Inventory and Spells use the same pieces with their own prefix. That row is mounted only while its tab is open. The journal clones it when it is present and otherwise rebuilds it from the selector map so the sheet CSS can paint it. The site header search is a different control. **from-code**
 
 In light mode the inactive main-tab labels read as gray (about `#75838b`) and the active label is near-black (about `#13191d`). The secondary row sits on a light gray track (about `#eceeef`). **from-screenshot**
 
@@ -207,7 +207,9 @@ The map in `src/platform/dndbeyond/selectors.ts` is the list to edit. This table
 | `sheet-tab-nav-item` | `.ddbc-tab-list__nav-item` | code |
 | `sheet-tab-nav-item-active` | `.ddbc-tab-list__nav-item--is-active` | code |
 | `sheet-tab-content` | `.ddbc-tab-list__content` | code, fixture only |
-| section search | `input[type="search"]`, or an input whose placeholder or accessible name contains `Search` | code. The journal copies the live element's classes. It does not hardcode a search class. |
+| `sheet-section-filter` | `.ct-extras-filter__interactions`, and the Inventory and Spells equivalents | code, verified 2026-10-21 on character 4741434 |
+| `sheet-section-filter-button` | `.ct-extras-filter__advanced` and the Inventory and Spells equivalents | code |
+| `sheet-manage-button` | `button.ct-theme-button` | code |
 
 ### Sheet structure and theme (live check)
 

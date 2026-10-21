@@ -3,7 +3,6 @@ import {
   CHARACTER_SHEET_SELECTOR,
   NATIVE_BUTTON_CLASS_PATTERN,
   PRIMARY_BOX_SELECTOR,
-  SHEET_SECTION_SEARCH_SELECTOR,
   SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR,
   SHEET_TAB_NAV_ITEM_SELECTOR,
 } from '../../platform/dndbeyond/selectors';
@@ -124,42 +123,6 @@ export function applyCopiedControlClasses(
   replaceMarkedClass(root, 'button', 'data-bfa-journal-button-class', paint.buttonClass);
 }
 
-export function copyNativeSearchChrome(root: HTMLElement, anchor: HTMLElement): void {
-  const field = root.querySelector<HTMLInputElement>('.bfa-journal-search');
-  const native = field === null ? null : findNativeSectionSearch(anchor.ownerDocument);
-  if (field === null || native === null) {
-    return;
-  }
-
-  replaceElementClasses(field, copiedClassName(native), 'bfa-journal-search');
-  const shell = field.parentElement;
-  const parent = native.parentElement;
-  if (
-    shell === null
-    || parent === null
-    || !isSearchShell(parent, native)
-  ) {
-    return;
-  }
-
-  replaceElementClasses(shell, copiedClassName(parent), 'bfa-journal-search-shell');
-  if (shell.dataset.bfaSearchChrome === 'copied') {
-    return;
-  }
-
-  for (const child of [...parent.children]) {
-    if (child === native || !(child instanceof HTMLElement)) {
-      continue;
-    }
-    const clone = child.cloneNode(true);
-    if (clone instanceof HTMLElement) {
-      clone.setAttribute('aria-hidden', 'true');
-      shell.prepend(clone);
-    }
-  }
-  shell.dataset.bfaSearchChrome = 'copied';
-}
-
 function replaceMarkedClass(
     root: HTMLElement,
     selector: string,
@@ -168,7 +131,9 @@ function replaceMarkedClass(
 ): void {
   const next = className.split(/\s+/).filter((name) => name !== '' && !/hidden/i.test(name));
   for (const element of root.querySelectorAll<HTMLElement>(selector)) {
-    if (element.closest('[data-bfa-journal-pane-control]') !== null) {
+    if (
+      element.closest('[data-bfa-journal-pane-control], [data-bfa-journal-native-chrome]') !== null
+    ) {
       continue;
     }
     const previous = element.getAttribute(attribute)?.split(/\s+/) ?? [];
@@ -187,57 +152,6 @@ function replaceMarkedClass(
     } else {
       element.setAttribute(attribute, next.join(' '));
     }
-  }
-}
-
-function findNativeSectionSearch(doc: Document): HTMLInputElement | null {
-  const fields = doc.querySelectorAll<HTMLElement>(SHEET_SECTION_SEARCH_SELECTOR);
-  for (const field of fields) {
-    if (!(field instanceof HTMLInputElement)) {
-      continue;
-    }
-    if (field.closest('.bfa-character-journal-section, .bfa-journal-panel') !== null) {
-      continue;
-    }
-    return field;
-  }
-
-  return null;
-}
-
-function isSearchShell(parent: HTMLElement, input: HTMLInputElement): boolean {
-  if (parent.closest('.bfa-character-journal-section, .bfa-journal-panel') !== null) {
-    return false;
-  }
-  if (!parent.contains(input) || parent.childElementCount > 4) {
-    return false;
-  }
-  if (parent.querySelector('button, select') !== null) {
-    return false;
-  }
-  return parent.querySelectorAll('input, textarea').length === 1;
-}
-
-function replaceElementClasses(
-    element: HTMLElement,
-    className: string,
-    keep: string,
-): void {
-  const next = className.split(/\s+/).filter((name) => name !== '' && !/hidden/i.test(name));
-  const previous = element.getAttribute('data-bfa-journal-input-class')?.split(/\s+/) ?? [];
-  for (const name of previous) {
-    if (name !== keep && !next.includes(name)) {
-      element.classList.remove(name);
-    }
-  }
-  for (const name of next) {
-    element.classList.add(name);
-  }
-  element.classList.add(keep);
-  if (next.length === 0) {
-    element.removeAttribute('data-bfa-journal-input-class');
-  } else {
-    element.setAttribute('data-bfa-journal-input-class', next.join(' '));
   }
 }
 

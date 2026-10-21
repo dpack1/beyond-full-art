@@ -350,6 +350,103 @@ function wrapDocument(body: string): string {
             box-shadow: inset 0 -3px 0 #c5312d;
             color: #c5312d;
           }
+
+          .ct-extras-filter__interactions,
+          .ct-inventory-filter__interactions,
+          .ct-spells-filter__interactions {
+            align-items: center;
+            display: flex;
+            flex-wrap: nowrap;
+            margin-bottom: 12px;
+          }
+
+          .ct-extras-filter__box,
+          .ct-inventory-filter__box,
+          .ct-spells-filter__box {
+            border: 1px solid #a2acb2;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.07);
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 5px 10px;
+          }
+
+          .ct-extras-filter__primary,
+          .ct-extras-filter__primary-group,
+          .ct-inventory-filter__primary,
+          .ct-inventory-filter__primary-group,
+          .ct-spells-filter__primary,
+          .ct-spells-filter__primary-group {
+            align-items: center;
+            display: flex;
+            min-width: 0;
+          }
+
+          .ct-extras-filter__field,
+          .ct-inventory-filter__field,
+          .ct-spells-filter__field {
+            flex: 1 1 auto;
+            min-width: 0;
+          }
+
+          .ct-extras-filter__icon,
+          .ct-inventory-filter__icon,
+          .ct-spells-filter__icon {
+            background: transparent 50% url(https://www.dndbeyond.com/Content/Skins/Waterdeep/images/icons/search-grey.svg) no-repeat;
+            background-size: 14px 14px;
+            flex: 0 0 auto;
+            height: 14px;
+            margin-right: 10px;
+            width: 14px;
+          }
+
+          .ct-extras-filter__input,
+          .ct-inventory-filter__input,
+          .ct-spells-filter__input {
+            background: transparent;
+            border: 0;
+            color: inherit;
+            font: inherit;
+            font-size: 13px;
+            line-height: 24px;
+            min-height: 0;
+            padding: 0;
+            width: 100%;
+          }
+
+          .ct-extras-filter__advanced,
+          .ct-inventory-filter__advanced,
+          .ct-spells-filter__advanced {
+            flex: 0 0 auto;
+            height: 14px;
+            margin-left: 10px;
+            width: 14px;
+          }
+
+          .ct-extras-filter__advanced svg,
+          .ct-inventory-filter__advanced svg,
+          .ct-spells-filter__advanced svg {
+            display: block;
+            height: 100%;
+            width: 100%;
+          }
+
+          .ct-extras-filter__callout {
+            flex: 0 0 auto;
+            padding-left: 10px;
+          }
+
+          .ct-theme-button.ct-button {
+            background: #fff;
+            border: 1px solid #c53131;
+            border-radius: 3px;
+            color: #c53131;
+            font-family: "Roboto Condensed", Roboto, Helvetica, sans-serif;
+            font-size: 10px;
+            line-height: 1;
+            padding: 6px 10px;
+            text-transform: uppercase;
+          }
         </style>
       </head>
       <body>${body}</body>

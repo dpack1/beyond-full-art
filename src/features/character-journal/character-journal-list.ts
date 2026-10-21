@@ -1,4 +1,5 @@
 import {journalCategoryLabel, type JournalCategory} from './character-journal-query';
+import {createSectionToolbar} from './character-journal-toolbar';
 import type {JournalEntryType} from './character-journal-types';
 
 type JournalFilterType = Exclude<JournalCategory, 'all'>;
@@ -51,22 +52,8 @@ export function createJournalList(
 
   const toolbar = doc.createElement('div');
   toolbar.className = 'bfa-journal-section-toolbar';
-
-  const searchShell = doc.createElement('div');
-  searchShell.className = 'bfa-journal-search-shell';
-  const searchField = doc.createElement('input');
-  searchField.className = 'bfa-journal-search';
-  searchField.type = 'search';
-  searchField.placeholder = 'Search';
-  searchField.setAttribute('aria-label', 'Search notes');
-  searchShell.append(searchField);
-
-  const filterButton = button(doc, 'Filter', 'bfa-journal-filter-button');
-  filterButton.setAttribute('aria-haspopup', 'true');
-  filterButton.setAttribute('aria-expanded', 'false');
-  filterButton.setAttribute('aria-controls', 'bfa-journal-filter');
-
-  const manageButton = button(doc, 'Manage Notes', 'bfa-journal-manage');
+  const chrome = createSectionToolbar(doc);
+  const {filterButton, manageButton, row, searchField} = chrome;
 
   const filter = doc.createElement('div');
   filter.className = 'bfa-journal-filter';
@@ -89,7 +76,7 @@ export function createJournalList(
     filter.append(option);
   }
 
-  toolbar.append(searchShell, filterButton, manageButton, filter);
+  toolbar.append(row, filter);
 
   const alert = doc.createElement('p');
   alert.className = 'bfa-journal-alert';
@@ -127,6 +114,13 @@ export function createJournalList(
     if (open) {
       filter.querySelector('input')?.focus();
     }
+  });
+  filterButton.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    filterButton.click();
   });
   filter.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
@@ -250,12 +244,4 @@ function previewJournal(preview: string): string {
     ? Array.from(new Intl.Segmenter(undefined, {granularity: 'grapheme'}).segment(preview), (part) => part.segment)
     : Array.from(preview);
   return clusters.length <= 90 ? preview : `${clusters.slice(0, 89).join('')}…`;
-}
-
-function button(doc: Document, label: string, className: string): HTMLButtonElement {
-  const element = doc.createElement('button');
-  element.type = 'button';
-  element.className = className;
-  element.textContent = label;
-  return element;
 }
