@@ -335,3 +335,20 @@ Why:
 - Matilda Greywolf (`https://www.dndbeyond.com/characters/172153137`) is the reference sheet and the live-QA character as of 2026-10-20.
 - Fixture tests prove the code selectors still match saved DOM. The Playwright live check is opt-in so CI does not need a logged-in session.
 - This decision landed on main as ADR-019 before the journal photo and sheet-pane decisions were in that history. On this branch those keep ADR-019 and ADR-020, and the selector map is ADR-022.
+
+## ADR-023: Large journal photos are resized before IndexedDB
+
+Status: Accepted.
+
+Journal photo bytes stay in extension-origin IndexedDB. The 3 MB check Dylan
+hit is the extension's stored-blob ceiling, not a `chrome.storage.local` cap
+and not base64 in that store. The runtime message uses base64 because Chromium
+does not deliver an `ArrayBuffer` intact. The worker decodes it and writes a
+`Blob`.
+
+A new file over 3 MB and at or under 25 MB is resized to a 2048px long edge
+and re-encoded (WebP, then JPEG, quality about 0.85) in the content script.
+The stored blob must still be at or under 3 MB. A file over 25 MB, or a
+resized blob that is still over 3 MB, is refused. The note shows the size and
+the limit. Photos already in IndexedDB are not rewritten. `unlimitedStorage`
+stays off so Chrome does not ask for a new permission.

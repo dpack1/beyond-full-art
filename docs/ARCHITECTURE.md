@@ -361,6 +361,12 @@ Journal note text is stored in `chrome.storage.local`. Photo bytes are stored
 in the same extension-origin IndexedDB database as full art, under blob keys
 prefixed with `bfa.journal.image.`. The content script sends those bytes
 through a validated runtime message. The service worker is the only writer.
+The 3 MB ceiling is on the stored blob, not on `chrome.storage.local`. A new
+file larger than that, up to 25 MB, is drawn down to a 2048px long edge and
+re-encoded before the message. Photos already stored are read unchanged.
+`unlimitedStorage` is not requested. The extension origin still shares the
+browser's extension storage quota, about 10 MB, and a full quota is reported
+on the note with the image size.
 
 ```text
 bfa.preferences.characterJournalEnabled

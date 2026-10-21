@@ -1,13 +1,5 @@
 .bfa-character-journal-tab {
-  appearance: none;
-  background: transparent;
-  color: inherit;
   cursor: pointer;
-  font: inherit;
-  font-weight: inherit;
-  letter-spacing: inherit;
-  line-height: inherit;
-  text-transform: uppercase;
 }
 
 .bfa-character-journal-tab:focus {
@@ -17,18 +9,6 @@
 .bfa-character-journal-tab:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
-}
-
-/* The live sheet tab is a padded div. The inner button must not add its own
-   border, background, or icon box on top of that label. */
-[data-bfa-character-journal-tab-item] > .bfa-character-journal-tab {
-  border: 0;
-  box-shadow: none;
-  display: inline;
-  margin: 0;
-  min-height: 0;
-  padding: 0;
-  width: auto;
 }
 
 [data-bfa-character-journal-tab-item].bfa-character-journal-tab--active:not(.bfa-character-journal-tab) {

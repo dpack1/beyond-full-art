@@ -764,20 +764,7 @@ function upsert(notes: readonly JournalNote[], note: JournalNote): JournalNote[]
 }
 
 function imageError(file: File): string | null {
-  const validation = validateJournalImageFile(file);
-  if (validation === null) {
-    return null;
-  }
-
-  if (file.size > 3 * 1024 * 1024) {
-    return 'That image is over 3 MB. The note was not changed.';
-  }
-
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-    return 'Use a PNG, JPEG, or WebP image.';
-  }
-
-  return validation;
+  return validateJournalImageFile(file);
 }
 
 function shortDate(value: string): string {

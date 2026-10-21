@@ -12,6 +12,11 @@ import {
   restoreJournalV1Backup,
   updateJournalNoteRecords,
 } from '../../platform/chrome/storage';
+import {
+  prepareJournalImageFile,
+  type PreparedJournalImage,
+} from './character-journal-image';
+import {journalImageTooLargeMessage} from './character-journal-image-fit';
 import {rewriteUniqueTitle} from './character-journal-links';
 import {
   journalImageReference,
@@ -26,6 +31,7 @@ import {mergeJournalRecord} from './character-journal-records';
 import type {JournalImage, JournalNote} from './character-journal-types';
 import {
   JOURNAL_IMAGE_BLOB_KEY_PREFIX,
+  MAX_JOURNAL_IMAGE_STORED_BYTES,
   isJournalNote,
   normalizeJournalEntryTitle,
   normalizeJournalImageFileName,
@@ -68,6 +74,7 @@ interface CharacterJournalServiceOptions {
   createId?: () => string;
   imageStore?: JournalImageStore;
   now?: () => Date;
+  prepareImage?: (file: File) => Promise<PreparedJournalImage>;
 }
 
 export function createCharacterJournalService(
@@ -76,6 +83,7 @@ export function createCharacterJournalService(
   const createId = options.createId ?? createRandomId;
   const imageStore = options.imageStore ?? createExtensionImageStore();
   const now = options.now ?? (() => new Date());
+  const prepareImage = options.prepareImage ?? prepareJournalImageFile;
 
   return {
     attachImage,
@@ -235,20 +243,31 @@ export function createCharacterJournalService(
       throw new Error(validationError);
     }
 
-    const mimeType = file.type as JournalImage['mimeType'];
+    const prepared = await prepareImage(file);
+    if (prepared.byteSize > MAX_JOURNAL_IMAGE_STORED_BYTES) {
+      throw new Error(journalImageTooLargeMessage(
+          prepared.byteSize,
+          MAX_JOURNAL_IMAGE_STORED_BYTES,
+          true,
+      ));
+    }
+
+    const mimeType = prepared.mimeType;
     const imageId = createId();
     const blobKey = `${JOURNAL_IMAGE_BLOB_KEY_PREFIX}${imageId}`;
-    const dimensions = await readImageDimensions(file);
+    const dimensions = prepared.width === null
+      ? await readImageDimensions(file)
+      : {height: prepared.height, width: prepared.width};
     await imageStore.putImage({
       blobKey,
-      byteBuffer: await readFileBytes(file),
+      byteBuffer: prepared.byteBuffer,
       mimeType,
     });
     const fileName = normalizeJournalImageFileName(file.name);
     const image: JournalImage = {
       altText: fileName,
       blobKey,
-      byteSize: file.size,
+      byteSize: prepared.byteSize,
       fileName,
       height: dimensions.height,
       id: imageId,
@@ -327,24 +346,6 @@ function createRandomId(): string {
   }
 
   return `journal-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function readFileBytes(file: Blob): Promise<ArrayBuffer> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener('error', () => {
-      reject(new Error('Photo bytes could not be read.'));
-    });
-    reader.addEventListener('load', () => {
-      if (reader.result instanceof ArrayBuffer) {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error('Photo bytes could not be read.'));
-    });
-    reader.readAsArrayBuffer(file);
-  });
 }
 
 const MAX_JOURNAL_BITMAP_DIMENSION = 4096;

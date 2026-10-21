@@ -169,7 +169,7 @@ journal by the operating system's theme.
 4. Manage Notes creates one note in the sidebar. There is no second File note or New note control. Reload. The note is still there.
 5. Open an entry, read it, edit it, reload. The markdown survived.
 6. Create `[[Someone new]]` from autocomplete. The placeholder shows Needs details and appears under Mentioned in on the note that named them.
-7. Add a PNG under 3 MB. The row thumbnail and the panel both show it. A file over 3 MB is rejected and the note text remains.
+7. Add a PNG under 3 MB. The row thumbnail and the panel both show it. A file over 3 MB is resized and the note text remains. A file over 25 MB shows the size and the limit, and the note text remains.
 8. Unsaved edit, switch to Spells, choose to keep editing. The confirm was on screen. The draft is still there.
 9. Turn the popup setting off, keep editing, then close. The Journal tab leaves.
 10. If the live sheet can change character without a reload, a note in progress does not appear on the next character.

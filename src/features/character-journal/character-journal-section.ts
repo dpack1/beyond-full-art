@@ -17,7 +17,10 @@ import {applyCopiedControlClasses, paintJournalSurface} from './character-journa
 import type {CharacterJournalService} from './character-journal-service';
 import {applySheetTheme, observeSheetTheme} from './character-journal-theme';
 import type {JournalEntryType, JournalNote} from './character-journal-types';
-import {restoreNativeTabAfterJournal} from '../../platform/dndbeyond/character-sheet-tabs-adapter';
+import {
+  restoreNativeTabAfterJournal,
+  setJournalTabSelected,
+} from '../../platform/dndbeyond/character-sheet-tabs-adapter';
 
 export interface CharacterJournalSection {
   destroy(): void;
@@ -488,6 +491,7 @@ function setTabActive(tab: HTMLElement, isActive: boolean): void {
     hitTarget.classList.toggle(nativeActiveClass, isActive);
   }
 
+  setJournalTabSelected(tab, isActive);
   tab.style.color = '';
   tab.style.borderBottom = '';
   tab.style.boxShadow = '';
@@ -498,7 +502,9 @@ function setTabActive(tab: HTMLElement, isActive: boolean): void {
   } else {
     hitTarget.style.removeProperty('--bfa-journal-accent');
   }
-  if (isActive && (nativeActiveClass === undefined || nativeActiveClass === '') && chrome !== undefined) {
+  const sheetPaintsSelection = tab.hasAttribute('aria-checked')
+    || (nativeActiveClass !== undefined && nativeActiveClass !== '');
+  if (isActive && !sheetPaintsSelection && chrome !== undefined) {
     const [color, borderBottom, boxShadow] = chrome.split('|');
     if (color !== undefined) {
       tab.style.color = color;
@@ -513,9 +519,5 @@ function setTabActive(tab: HTMLElement, isActive: boolean): void {
 
   if (!isActive) {
     restoreNativeTabAfterJournal(tab);
-  }
-
-  if (tab.getAttribute('role') === 'tab') {
-    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
   }
 }

@@ -54,7 +54,7 @@ On campaign pages and `https://www.dndbeyond.com/characters`, enabled card portr
 
 ### Character journal
 
-On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. It is a local player wiki for that character: categories, search, `[[Name]]` links, and a right-hand note panel. The tab, the list, and the panel follow the sheet's light and Underdark appearance. A note can hold PNG, JPEG, or WebP photos up to 3 MB. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. Nothing is written to D&D Beyond notes, backstory, or extras. The journal is not shipped until Dylan approves it.
+On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. It is a local player wiki for that character: categories, search, `[[Name]]` links, and a right-hand note panel. The tab, the list, and the panel follow the sheet's light and Underdark appearance. A note can hold PNG, JPEG, or WebP photos. Files over 3 MB are resized (longest edge 2048px) and stored under 3 MB. A file over 25 MB is refused, and the panel says the size and the limit. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. Existing photos are not rewritten. Nothing is written to D&D Beyond notes, backstory, or extras. The journal is not shipped until Dylan approves it.
 
 ### Not built yet
 
@@ -174,7 +174,7 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 3. Choose **Manage Notes** to create a note in the side panel. Pick its type there.
 4. Read the note in that panel. Markdown renders in read mode. **Edit** changes it. The note saves on its own. **Close**, in the pane chrome, returns to the list.
 5. Search titles, tags, and text. **Filter** selects one or more types. `[[Name]]` links to another note. A missing name stays unresolved until autocomplete creates it.
-6. Use **Image** while editing to add a PNG, JPEG, or WebP photo under 3 MB.
+6. Use **Image** while editing to add a PNG, JPEG, or WebP photo. A photo over 3 MB is resized to fit. A photo over 25 MB is refused, and the note text stays.
 7. Choose a native D&D Beyond tab to return to the sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
 
 ## Developer runbook
@@ -307,7 +307,7 @@ Planned next:
 - Local art is tied to the browser where you installed the extension.
 - Only one active full-art image is stored per character right now.
 - There is not yet a built-in storage dashboard or usage meter beyond the popup inventory summary.
-- Journal photos are one image per add, up to 3 MB, in PNG, JPEG, or WebP. There is no journal import or export.
+- Journal photos are one image per add, in PNG, JPEG, or WebP. Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. There is no journal import or export.
 
 ## Disclaimer
 

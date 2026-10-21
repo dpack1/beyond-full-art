@@ -1,4 +1,5 @@
 import type {SupportedCharacterArtMimeType} from '../../features/character-art/art-types';
+import {journalImageTooLargeMessage} from '../../features/character-journal/character-journal-image-fit';
 import {
   MAX_JOURNAL_IMAGE_BYTES,
   isJournalImageBlobKey,
@@ -117,6 +118,19 @@ export function asJournalImageRequest(
     default:
       return null;
   }
+}
+
+export function describeRejectedJournalImage(value: unknown): string | null {
+  if (!isRecord(value) || value.type !== 'journal:put-image') {
+    return null;
+  }
+
+  const byteBuffer = readByteBuffer(value);
+  if (byteBuffer !== null && byteBuffer.byteLength > MAX_JOURNAL_IMAGE_BYTES) {
+    return journalImageTooLargeMessage(byteBuffer.byteLength, MAX_JOURNAL_IMAGE_BYTES);
+  }
+
+  return null;
 }
 
 export function isMalformedJournalImageMessage(

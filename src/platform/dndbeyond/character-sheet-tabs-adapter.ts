@@ -22,7 +22,7 @@ export interface CharacterSheetJournalTabTarget {
   cleanup: Cleanup;
   contentHost: HTMLElement;
   nativeTabs: HTMLElement[];
-  tab: HTMLButtonElement;
+  tab: HTMLElement;
 }
 
 export function observeJournalTabTargets(
@@ -110,7 +110,7 @@ export function removeStaleJournalUi(doc: Document): void {
 export function findOrCreateJournalTab(
     root: ParentNode,
 ): CharacterSheetJournalTabTarget | null {
-  const existingTab = root.querySelector<HTMLButtonElement>(
+  const existingTab = root.querySelector<HTMLElement>(
       `[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}="true"]`,
   );
   if (existingTab !== null) {
@@ -140,8 +140,10 @@ export function findOrCreateJournalTab(
     return null;
   }
 
-  const journalTab = createJournalTab(extrasTab);
-  const journalItem = createInsertionItem(insertionElement, journalTab);
+  const journalItem = cloneJournalTab(extrasTab, insertionElement);
+  const journalTab = journalItem.querySelector<HTMLElement>(
+      `[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}="true"]`,
+  ) ?? journalItem;
   insertionElement.after(journalItem);
 
   return {
@@ -158,6 +160,16 @@ export function getJournalTabHitTarget(tab: HTMLElement): HTMLElement {
   return tab.closest<HTMLElement>(
       `[${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}]`,
   ) ?? tab;
+}
+
+export function setJournalTabSelected(tab: HTMLElement, isActive: boolean): void {
+  if (tab.hasAttribute('aria-checked')) {
+    tab.setAttribute('aria-checked', isActive ? 'true' : 'false');
+  }
+
+  if (tab.getAttribute('role') === 'tab') {
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  }
 }
 
 export function clearNativeTabSelection(
@@ -357,45 +369,116 @@ function findContentHost(extrasTab: HTMLElement): HTMLElement | null {
   return null;
 }
 
-function createInsertionItem(
-    referenceElement: HTMLElement,
-    journalTab: HTMLButtonElement,
+function cloneJournalTab(
+    extrasTab: HTMLElement,
+    insertionElement: HTMLElement,
 ): HTMLElement {
-  if (!referenceElement.matches(SHEET_TAB_CONTROL_SELECTOR)) {
-    const item = referenceElement.ownerDocument.createElement(
-        referenceElement.tagName,
-    );
-    item.className = stripActiveTabClasses(referenceElement.className);
-    item.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
-    rememberNativeActiveClass(referenceElement, item);
-    journalTab.className = CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME;
-    item.append(journalTab);
-    return item;
+  const item = insertionElement.cloneNode(true);
+  if (!(item instanceof HTMLElement)) {
+    throw new Error('Journal tab clone was not an element.');
   }
 
-  journalTab.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
-  rememberNativeActiveClass(referenceElement, journalTab);
-  return journalTab;
+  const tab = clonedControl(insertionElement, extrasTab, item) ?? item;
+  stripCloneIdentity(item);
+  deactivateClone(item);
+  replaceDirectLabel(tab, 'Journal');
+  tab.classList.add(CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME);
+  tab.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME, 'true');
+  item.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME, 'true');
+  if (tab instanceof HTMLButtonElement) {
+    tab.type = 'button';
+  } else if (!tab.hasAttribute('tabindex') && tab.getAttribute('role') !== 'tab') {
+    tab.tabIndex = 0;
+    if (!tab.hasAttribute('role')) {
+      tab.setAttribute('role', 'button');
+    }
+  }
+
+  rememberNativeActiveClass(extrasTab, item);
+  return item;
 }
 
-function createJournalTab(referenceTab: HTMLElement): HTMLButtonElement {
-  const doc = referenceTab.ownerDocument;
-  const tab = doc.createElement('button');
-
-  tab.className = [
-    stripActiveTabClasses(referenceTab.className),
-    CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME,
-  ].filter(Boolean).join(' ');
-  tab.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME, 'true');
-  tab.textContent = 'Journal';
-  tab.type = 'button';
-
-  if (referenceTab.getAttribute('role') === 'tab') {
-    tab.setAttribute('aria-selected', 'false');
-    tab.setAttribute('role', 'tab');
+function clonedControl(
+    insertionElement: HTMLElement,
+    extrasTab: HTMLElement,
+    clone: HTMLElement,
+): HTMLElement | null {
+  const path = pathFromAncestor(insertionElement, extrasTab);
+  if (path === null) {
+    return null;
   }
 
-  return tab;
+  return elementAtPath(clone, path);
+}
+
+function pathFromAncestor(ancestor: HTMLElement, target: HTMLElement): number[] | null {
+  const path: number[] = [];
+  let current: HTMLElement | null = target;
+  while (current !== null && current !== ancestor) {
+    const parent: HTMLElement | null = current.parentElement;
+    if (parent === null) {
+      return null;
+    }
+
+    path.unshift(Array.prototype.indexOf.call(parent.children, current));
+    current = parent;
+  }
+
+  return current === ancestor ? path : null;
+}
+
+function elementAtPath(root: HTMLElement, path: readonly number[]): HTMLElement | null {
+  let current: HTMLElement = root;
+  for (const index of path) {
+    const child = current.children.item(index);
+    if (!(child instanceof HTMLElement)) {
+      return null;
+    }
+
+    current = child;
+  }
+
+  return current;
+}
+
+function replaceDirectLabel(element: HTMLElement, label: string): void {
+  const textNodes = Array.from(element.childNodes)
+      .filter((node) => node.nodeType === Node.TEXT_NODE);
+  const first = textNodes[0];
+  if (first === undefined) {
+    element.textContent = label;
+    return;
+  }
+
+  first.textContent = label;
+  for (const extra of textNodes.slice(1)) {
+    extra.textContent = '';
+  }
+}
+
+function stripCloneIdentity(root: HTMLElement): void {
+  root.removeAttribute('id');
+  for (const element of root.querySelectorAll<HTMLElement>('[id]')) {
+    element.removeAttribute('id');
+  }
+}
+
+function deactivateClone(root: HTMLElement): void {
+  for (const element of [root, ...root.querySelectorAll<HTMLElement>('*')]) {
+    for (const className of [...element.classList]) {
+      if (isActiveTabClass(className)) {
+        element.classList.remove(className);
+      }
+    }
+
+    if (element.getAttribute('aria-selected') === 'true') {
+      element.setAttribute('aria-selected', 'false');
+    }
+
+    if (element.getAttribute('aria-checked') === 'true') {
+      element.setAttribute('aria-checked', 'false');
+    }
+  }
 }
 
 function rememberNativeActiveClass(
@@ -497,13 +580,6 @@ function isJournalTabPiece(element: HTMLElement): boolean {
   ) !== null;
 }
 
-function stripActiveTabClasses(className: string): string {
-  return className
-      .split(/\s+/)
-      .filter((name) => name !== '' && !isActiveTabClass(name))
-      .join(' ');
-}
-
 function isActiveTabClass(className: string): boolean {
   if (className.startsWith('bfa-')) {
     return false;
@@ -512,7 +588,7 @@ function isActiveTabClass(className: string): boolean {
   return /(?:^|[-_])(?:is-)?active$/i.test(className);
 }
 
-function removeJournalTab(tab: HTMLButtonElement): void {
+function removeJournalTab(tab: HTMLElement): void {
   const insertedItem = tab.closest<HTMLElement>(
       `[${CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME}="true"]`,
   );

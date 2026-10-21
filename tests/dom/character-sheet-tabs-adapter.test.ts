@@ -1,11 +1,13 @@
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 
+import journalStyles from '../../src/features/character-journal/character-journal.css?raw';
 import {
   clearNativeTabSelection,
   findOrCreateJournalTab,
   markNextNativeTab,
   observeJournalTabTargets,
   restoreNativeTabAfterJournal,
+  setJournalTabSelected,
 } from '../../src/platform/dndbeyond/character-sheet-tabs-adapter';
 import {
   CHARACTER_SHEET_TABS_FIXTURE,
@@ -19,6 +21,7 @@ describe('character sheet tabs adapter', () => {
   });
 
   afterEach(() => {
+    document.head.replaceChildren();
     document.body.innerHTML = '';
   });
 
@@ -122,11 +125,12 @@ describe('character sheet tabs adapter', () => {
     expect(target?.contentHost).toBe(
         document.querySelector('.ddbc-tab-list__content'),
     );
-    expect(target?.tab.parentElement?.className ?? '')
+    const journalItem = journalTabItem(target?.tab ?? null);
+    expect(journalItem?.className ?? '')
         .not.toContain('is-active');
     expect(target?.tab.querySelector('svg')).toBeNull();
     expect(target?.tab.textContent).toBe('Journal');
-    expect(target?.tab.parentElement?.dataset.bfaNativeActiveClass)
+    expect(journalItem?.dataset.bfaNativeActiveClass)
         .toBe('ddbc-tab-list__nav-item--is-active');
     expect(target?.nativeTabs.some((tab) => tab.textContent?.includes('Journal')))
         .toBe(false);
@@ -141,8 +145,8 @@ describe('character sheet tabs adapter', () => {
     spells?.classList.add('ddbc-tab-list__nav-item--is-active');
 
     const target = findOrCreateJournalTab(document);
-    const journalItem = target?.tab.parentElement;
-    if (target === null || spells === undefined || actions === undefined || journalItem === null || journalItem === undefined) {
+    const journalItem = journalTabItem(target?.tab ?? null);
+    if (target === null || spells === undefined || actions === undefined || journalItem === null) {
       throw new Error('Missing tab target');
     }
 
@@ -205,10 +209,66 @@ describe('character sheet tabs adapter', () => {
     clearNativeTabSelection(target.nativeTabs, target.tab);
     expect(nested.classList.contains('ddbc-tab-list__nav-item--is-active'))
         .toBe(false);
-    expect(target.tab.parentElement?.dataset.bfaNativeActiveClass)
+    expect(journalTabItem(target.tab)?.dataset.bfaNativeActiveClass)
         .toBe('ddbc-tab-list__nav-item--is-active');
   });
+
+  it('copies a sibling tab so Journal matches its computed type', () => {
+    document.body.innerHTML = `
+      <style>
+        menu { color: rgb(180, 180, 180); font-size: 16px; font-weight: 400; letter-spacing: 0.2em; text-transform: none; }
+        .styles_tabButton { color: rgb(117, 131, 139); font-size: 14px; font-weight: 700; letter-spacing: normal; text-transform: uppercase; }
+        .styles_tabButton[aria-checked="true"] { color: rgb(18, 24, 28); }
+      </style>
+      <menu>
+        <li><button class="styles_tabButton" type="button" aria-checked="true">Actions</button></li>
+        <li><button class="styles_tabButton" type="button" aria-checked="false">Spells</button></li>
+        <li><button class="styles_tabButton" type="button" aria-checked="false">Inventory</button></li>
+        <li><button class="styles_tabButton" type="button" aria-checked="false">Features &amp; Traits</button></li>
+        <li><button class="styles_tabButton" type="button" aria-checked="false">Extras</button></li>
+      </menu>
+      <section></section>
+    `;
+    const extensionStyles = document.createElement('style');
+    extensionStyles.textContent = journalStyles;
+    document.head.append(extensionStyles);
+
+    const target = findOrCreateJournalTab(document);
+    const extras = document.querySelector<HTMLElement>('button.styles_tabButton[aria-checked="false"]');
+    const actions = document.querySelector<HTMLElement>('button.styles_tabButton[aria-checked="true"]');
+    if (target === null || extras === null || actions === null) {
+      throw new Error('Missing tab target');
+    }
+
+    expect(target.tab.className).toContain('styles_tabButton');
+    expect(target.tab.getAttribute('aria-checked')).toBe('false');
+    expect(tabPaint(target.tab)).toEqual(tabPaint(extras));
+
+    setJournalTabSelected(target.tab, true);
+    expect(tabPaint(target.tab)).toEqual(tabPaint(actions));
+  });
 });
+
+function journalTabItem(tab: HTMLElement | null): HTMLElement | null {
+  return tab?.closest<HTMLElement>('[data-bfa-character-journal-tab-item]') ?? null;
+}
+
+function tabPaint(tab: HTMLElement): {
+  color: string;
+  fontSize: string;
+  fontWeight: string;
+  letterSpacing: string;
+  textTransform: string;
+} {
+  const style = tab.ownerDocument.defaultView?.getComputedStyle(tab);
+  return {
+    color: style?.color ?? '',
+    fontSize: style?.fontSize ?? '',
+    fontWeight: style?.fontWeight ?? '',
+    letterSpacing: style?.letterSpacing ?? '',
+    textTransform: style?.textTransform ?? '',
+  };
+}
 
 function tabItem(label: string): HTMLElement | undefined {
   return Array.from(document.querySelectorAll<HTMLElement>('.ddbc-tab-list__nav-item'))

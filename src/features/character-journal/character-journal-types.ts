@@ -3,10 +3,13 @@ import {
   type CharacterId,
   type SupportedCharacterArtMimeType,
 } from '../character-art/art-types';
+import {journalImageTooLargeMessage} from './character-journal-image-fit';
 
 export const CHARACTER_JOURNAL_SCHEMA_VERSION = 1 as const;
 export const JOURNAL_IMAGE_BLOB_KEY_PREFIX = 'bfa.journal.image.';
-export const MAX_JOURNAL_IMAGE_BYTES = 3 * 1024 * 1024;
+export const MAX_JOURNAL_IMAGE_STORED_BYTES = 3 * 1024 * 1024;
+export const MAX_JOURNAL_IMAGE_SOURCE_BYTES = 25 * 1024 * 1024;
+export const MAX_JOURNAL_IMAGE_BYTES = MAX_JOURNAL_IMAGE_STORED_BYTES;
 export const UNTITLED_JOURNAL_ENTRY_TITLE = 'Untitled entry';
 
 export interface CharacterJournalEntry {
@@ -119,8 +122,8 @@ export function validateJournalImageFile(file: JournalImageFileInfo): string | n
     return 'The selected photo is empty.';
   }
 
-  if (file.size > MAX_JOURNAL_IMAGE_BYTES) {
-    return 'That image is over 3 MB. The note was not changed.';
+  if (file.size > MAX_JOURNAL_IMAGE_SOURCE_BYTES) {
+    return journalImageTooLargeMessage(file.size, MAX_JOURNAL_IMAGE_SOURCE_BYTES);
   }
 
   return null;

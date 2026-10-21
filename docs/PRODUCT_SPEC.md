@@ -185,7 +185,8 @@ a single long native notes field.
 - Restore the native D&D Beyond sheet section when the user selects another
   native tab.
 - Include photos on a journal note: add, view, and remove PNG, JPEG, and WebP
-  images up to 3 MB.
+  images. A file over 3 MB is resized before it is stored. A file over 25 MB
+  is refused, with the size and the limit shown on the note.
 - Store journal entries locally by D&D Beyond character ID.
 - Support creating, editing, listing, saving, and deleting text entries.
 - Let the user search titles, `#tags`, note text, and photo file names.
@@ -210,7 +211,10 @@ a single long native notes field.
 - New notes are markdown plus an image list (schema version 2). Version 1
   block entries migrate once per character, after a backup that is not
   overwritten.
-- Photos are PNG, JPEG, or WebP, up to 3 MB, and belong to one note.
+- Photos are PNG, JPEG, or WebP and belong to one note. Bytes already in
+  IndexedDB stay there. A new file over 3 MB is resized to a 2048px long edge
+  at about 0.85 quality, then stored only if the result is still at or under
+  3 MB. The source file can be up to 25 MB.
 - The list sits in the same content box as Notes and Extras and hides that
   box's native section while Journal is open. The note panel uses the
   right-hand slide-in's edge controls: close and back sit outside the

@@ -1,9 +1,11 @@
+import {journalImageStorageFullMessage} from '../features/character-journal/character-journal-image-fit';
 import {
   asJournalImageRequest,
   createDeleteJournalImageSuccessResponse,
   createGetJournalImageSuccessResponse,
   createJournalImageErrorResponse,
   createPutJournalImageSuccessResponse,
+  describeRejectedJournalImage,
   isMalformedJournalImageMessage,
   type JournalImageRequest,
   type StoredJournalImage,
@@ -21,7 +23,8 @@ export function installJournalImageMessageHandler(): void {
       if (isMalformedJournalImageMessage(rawMessage)) {
         sendResponse(createJournalImageErrorResponse(
             rawMessage.type,
-            'Received an invalid journal photo request.',
+            describeRejectedJournalImage(rawMessage)
+              ?? 'Received an invalid journal photo request.',
         ));
         return true;
       }
@@ -59,10 +62,18 @@ async function handleJournalImageRequest(request: JournalImageRequest) {
         throw new Error('Journal photo save request was missing binary data.');
       }
 
-      await putStoredCharacterArtBlob(
-          request.blobKey,
-          new Blob([byteBuffer], {type: request.mimeType}),
-      );
+      try {
+        await putStoredCharacterArtBlob(
+            request.blobKey,
+            new Blob([byteBuffer], {type: request.mimeType}),
+        );
+      } catch (error) {
+        if (isQuotaError(error)) {
+          throw new Error(journalImageStorageFullMessage(request.byteSize));
+        }
+
+        throw error;
+      }
       return createPutJournalImageSuccessResponse();
     }
   }
@@ -84,6 +95,16 @@ async function readJournalImage(
     byteBuffer: await blob.arrayBuffer(),
     mimeType: blob.type,
   };
+}
+
+function isQuotaError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const name = 'name' in error && typeof error.name === 'string' ? error.name : '';
+  const message = error instanceof Error ? error.message : '';
+  return name === 'QuotaExceededError' || /quota/i.test(message);
 }
 
 function isSupportedMimeType(
