@@ -184,30 +184,52 @@ a single long native notes field.
   area from the `Journal` tab.
 - Restore the native D&D Beyond sheet section when the user selects another
   native tab.
-- Include an images area with small thumbnail slots so image support has a
-  natural place to land later.
+- Include photos on a journal note: add, view, and remove PNG, JPEG, and WebP
+  images. A file over 3 MB is resized before it is stored. A file over 25 MB
+  is refused, with the size and the limit shown on the note.
 - Store journal entries locally by D&D Beyond character ID.
 - Support creating, editing, listing, saving, and deleting text entries.
+- Let the user search titles, `#tags`, note text, and photo file names.
+- Filter the list from a Filter button. Sessions, NPCs, Places, Items,
+  Quests, and Backstory can be selected together. An empty selection shows
+  every note. Manage Notes is the only way to create a note.
+- Keep one local journal per character. There is no character cap.
+- Link notes with `[[Name]]`. A unique title opens that note. A missing title
+  can become a placeholder. Duplicate titles ask which note to open.
 - Keep journal data separate from D&D Beyond notes, backstory, and extras.
 - Preserve unsaved editor text when a save fails.
 - Preserve entries when a delete fails.
+- Follow the character sheet's light and Underdark appearance, including a
+  change made while Journal is open.
 
 ### Current implementation defaults
 
-- Journal entries are stored in `chrome.storage.local`.
+- Journal note text is stored in `chrome.storage.local`.
+- Journal photo bytes are stored in extension-origin IndexedDB.
 - The Character Journal tab is enabled by default and controlled by
   `bfa.preferences.characterJournalEnabled` in `chrome.storage.local`.
-- Entries are text-only in the first slice.
-- The images area ships as a local section placeholder; image upload and
-  thumbnail persistence are deferred.
-- The stored entry schema uses text blocks so image blocks can be added later.
-- There is no cloud sync and no D&D Beyond field sync.
+- New notes are markdown plus an image list (schema version 2). Version 1
+  block entries migrate once per character, after a backup that is not
+  overwritten.
+- Photos are PNG, JPEG, or WebP and belong to one note. Bytes already in
+  IndexedDB stay there. A new file over 3 MB is resized to a 2048px long edge
+  at about 0.85 quality, then stored only if the result is still at or under
+  3 MB. The source file can be up to 25 MB.
+- A new photo is inserted at the cursor as `![[img:<id>]]`. Optional caption
+  and width use `![[img:<id>|caption|300]]`. Read mode shows the image there.
+  Photos already on a note but missing from the text get that embed at the
+  end of the body. Removing the embed keeps the blob until a later save, at
+  least 30 seconds after it went missing.
+- The list sits in the same content box as Notes and Extras and hides that
+  box's native section while Journal is open. The note panel uses the
+  right-hand slide-in's edge controls: close and back sit outside the
+  content box.
+- There is no cloud sync, no GM view, and no D&D Beyond field sync.
 
 ### Deferred product decisions
 
-- Image upload and image blocks inside journal entries.
 - Importing or exporting journals.
-- Search, tags, categories, or timelines.
+- A quest-status control. The field is stored as null.
 - Optional future sync to D&D Beyond fields.
 
 ## Non-goals for early phases

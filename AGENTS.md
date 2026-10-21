@@ -20,8 +20,10 @@ Before changing behavior, read:
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/DECISIONS.md`
 - `docs/ddb-reference/README.md` when the change touches the D&D Beyond page
+- `.agent/FEATURES.md` for features that have already shipped
+- `.agent/PLANS.md` and the matching ExecPlan under `.agent/plans/` for work that has not shipped
 
-For deletion-related work, also read `docs/NETWORK_DELETE_RESEARCH.md`. The observed request screenshots are in `docs/reference/`. Deletion cleanup is specified and still unbuilt. Add modules for it when that phase has real behavior.
+For deletion-related work, also read `docs/NETWORK_DELETE_RESEARCH.md` and `.agent/plans/future-feature-character-deletion-cleanup.md`. The observed request screenshots are in `docs/reference/`. Deletion cleanup is specified and still unbuilt. Add modules for it when that phase has real behavior.
 
 ## Where things live
 
@@ -92,7 +94,7 @@ src/
   features/
     campaign-card-portraits/            sharper card avatars
     character-art/                      save, status, and portrait edit panel
-    character-journal/                  local Journal tab and entries
+    character-journal/                  local notes, photos, and search
     crop-workflow/                      square portrait crop dialog
     fullscreen-viewer/                  accessible fullscreen overlay
   platform/chrome/                      storage, IndexedDB, runtime messages
@@ -114,7 +116,7 @@ scripts/build.mjs                       esbuild bundle into dist/
 
 Preserve these boundaries:
 
-- D&D Beyond selectors live in `src/platform/dndbeyond/selectors.ts`. URL parsing and DOM adapters live next to that map.
+- D&D Beyond selectors live in `src/platform/dndbeyond/selectors.ts`. The journal entries are the Character journal group in that map. URL parsing and DOM adapters live next to it.
 - Chrome API access lives behind `src/platform/chrome/` where tests need a seam.
 - UI components own their markup, behavior, and styles.
 - Storage code stays separate from DOM integration.
@@ -145,7 +147,7 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 
 ### D&D Beyond integration
 
-- Never spread raw D&D Beyond CSS selectors through feature code. Add them to `src/platform/dndbeyond/selectors.ts`. The selector health test scans other `.ts` and `.css` files under `src/` and fails when a line matches `ddbc-`, `ct-decoration`, `ct-sidebar`, `ct-character`, `ct-theme`, `ct-primary`, `ddb-campaigns-`, `character-manage-pane`, `Information Sidebar`, `user-selected-avatar`, or `/avatars/`.
+- Never spread raw D&D Beyond CSS selectors through feature code. Add them to `src/platform/dndbeyond/selectors.ts`. The selector health test scans other `.ts` and `.css` files under `src/` and fails when a line matches `ddbc-`, `ct-decoration`, `ct-sidebar`, `ct-character`, `ct-theme`, `ct-primary`, `ddb-campaigns-`, `character-manage-pane`, `Information Sidebar`, `user-selected-avatar`, or `/avatars/`. Do not hardcode hashed `styles_` classes.
 - Treat D&D Beyond DOM structure and private endpoints as unstable external contracts.
 - Do not guess a selector or request payload when it can be verified on the live site.
 - When an assumption is verified, document the date and the observed behavior.
@@ -160,7 +162,7 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - Do not request `webRequest`, `unlimitedStorage`, or `downloads` before the feature that needs them is implemented.
 - Do not execute remote code.
 - Keep stored artwork local unless a product decision explicitly adds cloud sync.
-- Store preferences, metadata, and journal text in `chrome.storage.local`.
+- Store preferences, metadata, and journal note text in `chrome.storage.local`.
 - Store full image bytes in extension-origin IndexedDB.
 - Do not use page-origin localStorage or IndexedDB from a content script for extension data.
 - Treat the service worker as ephemeral. Persist state instead of relying on global memory.
@@ -184,10 +186,12 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - Supported uploads are `image/png`, `image/jpeg`, and `image/webp`, up to 3 MB. The generated crop is a 512×512 PNG.
 - Popup styles are injected by `src/popup/settings.ts` from `settings.css?raw`. `settings.html` has no stylesheet link. The build copies the HTML and bundles the script to `dist/popup/settings.js`.
 - Both popup toggles default to enabled when the preference key is missing.
-- Journal image tiles are a placeholder. Do not store image bytes in `chrome.storage.local`.
+- Journal photos are image records on a note. Their bytes live in IndexedDB under keys prefixed `bfa.journal.image.`. Do not store image bytes in `chrome.storage.local`. The body places a photo with `![[img:<id>]]`, optionally `![[img:<id>|caption|300]]`. A file over 3 MB is resized to a 2048px long edge before it is stored. The source file can be up to 25 MB. Stored bytes stay at or under 3 MB. Photos already in IndexedDB are left as they are. Deleting the embed marks the blob orphaned; a later save, at least 30 seconds on, deletes it.
+- The journal follows the sheet's light or dark appearance and scrolls inside the sheet's content pane. Opening it claims the whole tab hit target, including padding, on pointerdown. It conceals the sheet section with `display: none !important` while Journal is open. The note panel's close and back controls sit outside the content box. Do not copy `ct-sidebar` onto that panel.
+- Playwright journal screenshots are written to `/opt/cursor/artifacts/journal/` by `tests/e2e/character-journal.spec.ts` and `tests/e2e/character-journal-sheet.spec.ts`. The suite loads the unpacked `dist/` extension against local character-sheet fixtures, not the live site.
 - `assets/icons/icon-source.png` is the icon master. The build copies only `icon-16.png`, `icon-32.png`, `icon-48.png`, and `icon-128.png`.
 - README diagrams under `assets/readme/svg/` are the labeled screenshots. Do not commit generated `dist/` or `test-results/`.
-- `.agent/` is tracked. `FEATURES.md` lists shipped features. `PLANS.md` and `plans/` hold work that has not shipped. Update them when a feature ships or a plan changes. Shared design decisions go in `docs/DECISIONS.md`. Phase status goes in `docs/IMPLEMENTATION_PLAN.md`.
+- `.agent/` is tracked. `FEATURES.md` lists shipped features. `PLANS.md` and `plans/` hold work that has not shipped. The character journal stays there until Dylan approves it. Update them when a feature ships or a plan changes. Shared design decisions go in `docs/DECISIONS.md`. Phase status goes in `docs/IMPLEMENTATION_PLAN.md`.
 
 ## Validation
 

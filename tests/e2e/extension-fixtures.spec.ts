@@ -122,22 +122,22 @@ test('adds a local character journal tab with persisted entries', async ({
   await page.getByRole('button', {name: 'Journal'}).click();
   await expect(page.locator('.bfa-character-journal-section')).toBeVisible();
   await expect(page.locator('[data-testid="native-character-panel"]')).toBeHidden();
-  await expect(page.locator('.bfa-character-journal-images')).toBeVisible();
+  await expect(page.getByRole('searchbox', {name: 'Search notes'})).toBeVisible();
 
-  await page.getByLabel('Journal entry title').fill('Session note');
-  await page.getByLabel('Journal entry body').fill('Matilda wrote this locally.');
-  await page.getByRole('button', {name: 'Save'}).click();
-  await expect(
-      page.locator('.bfa-character-journal-editor > .bfa-character-journal-status'),
-  ).toHaveText('Saved.');
+  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('textbox', {name: 'Title'}).fill('Session note');
+  await page.getByRole('textbox', {name: 'Note', exact: true}).fill('Matilda wrote this locally.');
+  await expect(page.getByText('Saved', {exact: true})).toBeVisible();
+  await page.getByRole('button', {name: 'Close', exact: true}).click();
 
   await page.reload();
   await waitForContentScript(page);
   await page.getByRole('button', {name: 'Journal'}).click();
+  await page.getByRole('button', {name: /Session note/}).click();
 
-  await expect(page.getByLabel('Journal entry title')).toHaveValue('Session note');
-  await expect(page.getByLabel('Journal entry body'))
-      .toHaveValue('Matilda wrote this locally.');
+  await expect(page.getByRole('heading', {name: 'Session note'})).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('Matilda wrote this locally.')).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
 
   await page.getByRole('button', {name: 'Actions'}).click();
   await expect(page.locator('.bfa-character-journal-section')).toBeHidden();
@@ -168,13 +168,11 @@ test('keeps the character journal reachable across viewport sizes', async ({
 
     await expect(page.locator('.bfa-character-journal-section'), viewport.name)
         .toBeVisible();
-    await expect(page.getByLabel('Journal entry title'), viewport.name)
+    await expect(page.getByRole('searchbox', {name: 'Search notes'}), viewport.name)
         .toBeVisible();
-    await expect(page.getByLabel('Journal entry body'), viewport.name)
+    await expect(page.getByRole('button', {name: 'Manage Notes'}), viewport.name)
         .toBeVisible();
-    await expect(page.getByRole('button', {name: 'Save'}), viewport.name)
-        .toBeVisible();
-    await expect(page.getByRole('button', {name: 'New entry'}), viewport.name)
+    await expect(page.getByRole('button', {name: 'Filter'}), viewport.name)
         .toBeVisible();
 
     const hasPageOverflow = await page.evaluate(() =>

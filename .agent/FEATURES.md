@@ -2,7 +2,7 @@
 
 This file tracks completed, user-facing features that are already part of the extension. The human runbook is `README.md`. Agent instructions are `AGENTS.md`. The D&D Beyond sheet reference is `docs/ddb-reference/`.
 
-Future work belongs in `.agent/plans/` until it ships.
+Future work belongs in `.agent/plans/` until it ships. The character journal is not in the shipped list. Version 2 is implemented on the journal branch and stays here until Dylan approves it.
 
 ## Shipped Features
 

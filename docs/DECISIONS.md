@@ -230,7 +230,7 @@ Why:
 
 ## ADR-018: Journal entries use text blocks from the first slice
 
-Status: Accepted
+Status: Superseded for new writes by ADR-021. Version 1 records still load and migrate.
 
 Store journal entries as block-based records even though the first shipped block
 type is text.
@@ -246,7 +246,83 @@ Why:
 Future image bytes should use extension-origin IndexedDB rather than
 `chrome.storage.local`, matching the full-art storage boundary.
 
-## ADR-019: One selector map and a sheet reference
+## ADR-019: Journal photos are image blocks in IndexedDB
+
+Status: Superseded for new writes by ADR-021. Photo bytes stay in IndexedDB.
+
+Store each journal photo as an image block on the note. Keep the note record,
+including the block metadata, in `chrome.storage.local`. Keep the photo bytes
+in extension-origin IndexedDB under a `bfa.journal.image.` blob key.
+
+Why:
+
+- The block schema from ADR-018 can grow an image block without rewriting
+  existing text entries, so schema version stays 1.
+- Photo bytes can be large enough to crowd `chrome.storage.local`.
+- A dedicated key prefix keeps journal deletes from touching stored full art
+  in the same object store.
+- Search can use the file name stored on the block without reading the bytes.
+
+## ADR-020: Journal follows the sheet pane
+
+Status: Accepted. The version 1 mount sentence below is historical. Version 2
+mounts on the content region next to the tab strip, not in a nested scroller.
+See the version 2 section in `docs/ARCHITECTURE.md`.
+
+The journal samples the character sheet's appearance. Version 1 mounted in the
+sheet's inner scroll pane. Version 2 does not. The section toolbar is the Extras search row: magnifier, field, funnel, and
+Manage Notes on one line. The note panel copies the Information Sidebar's
+markup and class names, recorded in `docs/ddb-reference/sidebar.md`, so the
+sheet stylesheet paints it. It does not copy the sheet's script, and it is
+not mounted inside the live sidebar. The dialog is `position: fixed` on the
+viewport, because the native sidebar's absolute box only lands on the right
+when `body` is the containing block. Opening a note closes an open native
+sidebar. That body is still a closed switch on
+the sheet's pane id. Hide closes the note. Prev and Next walk note history.
+Lock, overlay, and align are omitted. The portrait search ignores this copy.
+
+Why:
+
+- Hardcoded light colors are unreadable on the sheet's dark appearance.
+- The sheet's content region clips overflow. Version 1 put the journal in
+  that inner pane and limited its height. Version 2 mounts on the content
+  region beside the tab strip instead, which is the fix for that nested
+  scroller.
+- Opening Journal has to claim the whole tab hit target on pointerdown. A
+  bubble-phase click on the inner button misses the first click.
+- Character journal writes merge by entry id and keep unrecognized records so
+  one window or one invalid block cannot delete another note.
+
+## ADR-021: Journal notes are markdown with an image list
+
+Status: Accepted
+
+New journal writes use schema version 2: a markdown body plus an image list.
+Version 1 block entries migrate once, after a backup of the version 1 array.
+The note is rendered by walking `marked`'s lexer and creating DOM nodes. Note
+text is not assigned with `innerHTML`.
+
+Why:
+
+- The player wiki needs headings, lists, links, and checkboxes in one body.
+  A block array made that editing model harder without protecting the text.
+- Image bytes are still too large for `chrome.storage.local`. The image list
+  stores metadata and a blob key. The bytes stay in extension-origin IndexedDB
+  under `bfa.journal.image.`.
+- A backup written before the live key changes, and never overwritten, is the
+  way back to the version 1 notes. Edits made after migration exist only in
+  the version 2 records.
+- Rendering through DOM nodes avoids an HTML sanitizer for as long as no HTML
+  string is produced. Add one before any path assigns parsed markdown through
+  `innerHTML`.
+- ADR-017 still holds: the journal is extension-owned and local. ADR-020 still
+  holds: the journal follows the sheet. The look is sampled from the sheet
+  Dylan uses, Matilda Greywolf (`172153137`), including the Notes and Extras
+  tab strip and the right-hand pane. The red frames and the active-tab
+  underline are that character's theme color, sampled at runtime. They are
+  not a fixed red. Mockup colors are not the source.
+
+## ADR-022: One selector map and a sheet reference
 
 Status: Accepted
 
@@ -258,3 +334,39 @@ Why:
 - Agents should read the reference doc instead of scraping the live site. The live site stays the place for the QA check.
 - Matilda Greywolf (`https://www.dndbeyond.com/characters/172153137`) is the reference sheet and the live-QA character as of 2026-10-20.
 - Fixture tests prove the code selectors still match saved DOM. The Playwright live check is opt-in so CI does not need a logged-in session.
+- This decision landed on main as ADR-019 before the journal photo and sheet-pane decisions were in that history. On this branch those keep ADR-019 and ADR-020, and the selector map is ADR-022.
+
+## ADR-023: Large journal photos are resized before IndexedDB
+
+Status: Accepted.
+
+Journal photo bytes stay in extension-origin IndexedDB. The 3 MB check Dylan
+hit is the extension's stored-blob ceiling, not a `chrome.storage.local` cap
+and not base64 in that store. The runtime message uses base64 because Chromium
+does not deliver an `ArrayBuffer` intact. The worker decodes it and writes a
+`Blob`.
+
+A new file over 3 MB and at or under 25 MB is resized to a 2048px long edge
+and re-encoded (WebP, then JPEG, quality about 0.85) in the content script.
+The stored blob must still be at or under 3 MB. A file over 25 MB, or a
+resized blob that is still over 3 MB, is refused. The note shows the size and
+the limit. Photos already in IndexedDB are not rewritten. `unlimitedStorage`
+stays off so Chrome does not ask for a new permission.
+
+## ADR-024: Journal photos are inline embeds
+
+Status: Accepted.
+
+A photo is stored as an IndexedDB blob, the same as before, and the note body
+gains an embed at the cursor: `![[img:<id>]]`. A caption is
+`![[img:<id>|caption]]`. A width in pixels is `![[img:<id>|300]]`, and the two
+combine as `![[img:<id>|caption|300]]`. A whole number from 1 to 4096 is the
+width; any other pipe piece is the caption. Read mode draws that image in
+place, at most the panel width, keeping the aspect ratio.
+
+Older notes may still contain `![name](bfa-journal-image:<id>)`. That syntax
+still renders. A photo record that is not mentioned by either syntax gets
+`![[img:<id>]]` appended when the journal opens, so a picture that used to sit
+under the text is not dropped. Deleting the embed marks the blob orphaned on
+the next save and deletes it on a save at least 30 seconds later, which leaves
+room to undo. Deleting the note deletes its blobs immediately.

@@ -73,7 +73,7 @@ function findSearchRoot(root: ParentNode): ParentNode {
     return root;
   }
 
-  const sidebarPortal = root.querySelector(SIDEBAR_PORTAL_SELECTOR);
+  const sidebarPortal = firstOutsideJournal(root, SIDEBAR_PORTAL_SELECTOR);
   if (sidebarPortal !== null) {
     return sidebarPortal;
   }
@@ -82,18 +82,32 @@ function findSearchRoot(root: ParentNode): ParentNode {
 }
 
 function findPanelRoot(root: ParentNode): HTMLElement | null {
-  const legacyPanel = root.querySelector(CHARACTER_MANAGE_PANE_SELECTOR);
-  if (isHtmlElement(legacyPanel)) {
+  const legacyPanel = firstOutsideJournal(root, CHARACTER_MANAGE_PANE_SELECTOR);
+  if (legacyPanel !== null) {
     return legacyPanel;
   }
 
-  const informationSidebar = root.querySelector(INFORMATION_SIDEBAR_SELECTOR);
-  if (isHtmlElement(informationSidebar)) {
+  const informationSidebar = firstOutsideJournal(root, INFORMATION_SIDEBAR_SELECTOR);
+  if (informationSidebar !== null) {
     return informationSidebar;
   }
 
   if (root instanceof HTMLElement && findPortraitSurface(root) !== null) {
     return root;
+  }
+
+  return null;
+}
+
+function firstOutsideJournal(root: ParentNode, selector: string): HTMLElement | null {
+  for (const candidate of root.querySelectorAll(selector)) {
+    if (!(candidate instanceof HTMLElement)) {
+      continue;
+    }
+    if (candidate.closest('.bfa-journal-panel') !== null) {
+      continue;
+    }
+    return candidate;
   }
 
   return null;

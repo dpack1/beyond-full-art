@@ -6,7 +6,10 @@ import {
   CURRENT_INFORMATION_SIDEBAR_FIXTURE,
 } from '../../fixtures/character-manage-pane';
 import {MY_CHARACTERS_CARD_FIXTURE} from '../../fixtures/campaign-character-cards';
-import {CHARACTER_SHEET_TABS_FIXTURE} from '../../fixtures/character-sheet-tabs';
+import {
+  CHARACTER_SHEET_TABS_FIXTURE,
+  LIVE_CHARACTER_SHEET_TABS_FIXTURE,
+} from '../../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../../fixtures/portrait-manager';
 
 export const CHARACTER_ID = '169418374';
@@ -40,6 +43,12 @@ export const characterSheetTabsFixture: RoutedFixture = {
   body: CHARACTER_SHEET_TABS_FIXTURE,
   name: 'character-sheet-tabs',
   url: `${BASE_CHARACTER_URL}?bfaFixture=character-sheet-tabs`,
+};
+
+export const liveCharacterSheetFixture: RoutedFixture = {
+  body: LIVE_CHARACTER_SHEET_TABS_FIXTURE,
+  name: 'live-character-sheet',
+  url: `${BASE_CHARACTER_URL}?bfaFixture=live-character-sheet`,
 };
 
 export const currentDecorationsWithoutUploadFixture: RoutedFixture = {
@@ -151,8 +160,9 @@ function wrapDocument(body: string): string {
         <title>D&D Beyond Fixture</title>
         <style>
           body {
+            background: #e7e3dc;
             color: #242527;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
             margin: 0;
             min-height: 100vh;
           }
@@ -162,7 +172,58 @@ function wrapDocument(body: string): string {
             margin: 0 auto;
             max-width: 1180px;
             min-width: 0;
-            padding: 16px;
+            padding: 28px 16px 40px;
+          }
+
+          .ct-character-sheet-shell {
+            background: #ffffff;
+            box-shadow: 0 1px 2px rgba(36, 37, 39, 0.08), 0 8px 24px rgba(36, 37, 39, 0.06);
+            margin: 0 auto;
+            max-width: 1040px;
+          }
+
+          .ct-character-header {
+            align-items: center;
+            display: flex;
+            gap: 16px;
+            padding: 18px 18px 8px;
+          }
+
+          .ct-character-header__portrait {
+            background:
+              radial-gradient(circle at 35% 30%, #f3d2b0 0 28%, transparent 29%),
+              linear-gradient(160deg, #8d3b32 0%, #2d211c 70%);
+            border-radius: 4px;
+            flex: 0 0 auto;
+            height: 72px;
+            width: 72px;
+          }
+
+          .ct-character-header__eyebrow,
+          .ct-character-header__meta,
+          .ct-character-header__name {
+            margin: 0;
+          }
+
+          .ct-character-header__eyebrow {
+            color: #8a8680;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+
+          .ct-character-header__name {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 0;
+            line-height: 1.15;
+          }
+
+          .ct-character-header__meta {
+            color: #5c5852;
+            font-size: 14px;
+            margin-top: 4px;
           }
 
           .ct-character-sheet-tabs {
@@ -197,7 +258,12 @@ function wrapDocument(body: string): string {
             text-transform: uppercase;
           }
 
-          .ct-character-sheet-tab.bfa-character-journal-tab--active {
+          .ct-character-sheet-tab:hover {
+            color: #121212;
+          }
+
+          .ct-character-sheet-tab.bfa-character-journal-tab--active,
+          .ct-character-sheet-tab.bfa-character-journal-tab--active:hover {
             border-bottom-color: #c5312d;
             color: #c5312d;
           }
@@ -209,7 +275,14 @@ function wrapDocument(body: string): string {
 
           .ct-character-sheet-panel {
             box-sizing: border-box;
-            padding: 18px 16px;
+            padding: 18px 16px 28px;
+          }
+
+          .ct-character-sheet-panel h2 {
+            font-size: 15px;
+            letter-spacing: 0.06em;
+            margin: 0 0 8px;
+            text-transform: uppercase;
           }
 
           @media (max-width: 420px) {
@@ -238,6 +311,141 @@ function wrapDocument(body: string): string {
             background-position: center;
             background-size: cover;
             display: block;
+          }
+
+          main[data-fixture-name="live-character-sheet"] .ct-character-sheet--dark-mode {
+            background: #1c1b1a;
+            color: #f3efe6;
+          }
+
+          main[data-fixture-name="live-character-sheet"] .ct-character-sheet:not(.ct-character-sheet--dark-mode) {
+            background: #f7f4ef;
+            color: #242527;
+          }
+
+          .ddbc-tab-list__nav {
+            display: flex;
+            flex-wrap: wrap;
+          }
+
+          .ddbc-tab-list__nav-item {
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            padding: 12px 14px;
+            text-transform: uppercase;
+          }
+
+          main[data-fixture-name="live-character-sheet"] .ct-character-sheet--dark-mode .ddbc-tab-list__nav-item:hover {
+            color: #ffffff;
+          }
+
+          main[data-fixture-name="live-character-sheet"] .ct-character-sheet:not(.ct-character-sheet--dark-mode) .ddbc-tab-list__nav-item:hover {
+            color: #121212;
+          }
+
+          .ddbc-tab-list__nav-item--is-active,
+          .ddbc-tab-list__nav-item--is-active:hover {
+            box-shadow: inset 0 -3px 0 #c5312d;
+            color: #c5312d;
+          }
+
+          .ct-extras-filter__interactions,
+          .ct-inventory-filter__interactions,
+          .ct-spells-filter__interactions {
+            align-items: center;
+            display: flex;
+            flex-wrap: nowrap;
+            margin-bottom: 12px;
+          }
+
+          .ct-extras-filter__box,
+          .ct-inventory-filter__box,
+          .ct-spells-filter__box {
+            border: 1px solid #a2acb2;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.07);
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 5px 10px;
+          }
+
+          .ct-extras-filter__primary,
+          .ct-extras-filter__primary-group,
+          .ct-inventory-filter__primary,
+          .ct-inventory-filter__primary-group,
+          .ct-spells-filter__primary,
+          .ct-spells-filter__primary-group {
+            align-items: center;
+            display: flex;
+            min-width: 0;
+          }
+
+          .ct-extras-filter__field,
+          .ct-inventory-filter__field,
+          .ct-spells-filter__field {
+            flex: 1 1 auto;
+            min-width: 0;
+          }
+
+          .ct-extras-filter__icon,
+          .ct-inventory-filter__icon,
+          .ct-spells-filter__icon {
+            background: transparent 50% url(https://www.dndbeyond.com/Content/Skins/Waterdeep/images/icons/search-grey.svg) no-repeat;
+            background-size: 14px 14px;
+            flex: 0 0 auto;
+            height: 14px;
+            margin-right: 10px;
+            width: 14px;
+          }
+
+          .ct-extras-filter__input,
+          .ct-inventory-filter__input,
+          .ct-spells-filter__input {
+            background: transparent;
+            border: 0;
+            color: inherit;
+            font: inherit;
+            font-size: 13px;
+            line-height: 24px;
+            min-height: 0;
+            padding: 0;
+            width: 100%;
+          }
+
+          .ct-extras-filter__advanced,
+          .ct-inventory-filter__advanced,
+          .ct-spells-filter__advanced {
+            flex: 0 0 auto;
+            height: 14px;
+            margin-left: 10px;
+            width: 14px;
+          }
+
+          .ct-extras-filter__advanced svg,
+          .ct-inventory-filter__advanced svg,
+          .ct-spells-filter__advanced svg {
+            display: block;
+            height: 100%;
+            width: 100%;
+          }
+
+          .ct-extras-filter__callout {
+            flex: 0 0 auto;
+            padding-left: 10px;
+          }
+
+          .ct-theme-button.ct-button {
+            background: #fff;
+            border: 1px solid #c53131;
+            border-radius: 3px;
+            color: #c53131;
+            font-family: "Roboto Condensed", Roboto, Helvetica, sans-serif;
+            font-size: 10px;
+            line-height: 1;
+            padding: 6px 10px;
+            text-transform: uppercase;
           }
         </style>
       </head>

@@ -82,6 +82,12 @@ on (Manage, then Character Settings). `BFA_LIVE_STORAGE_STATE` is a Playwright
 [storage state](https://playwright.dev/docs/auth) from a logged-in D&D Beyond
 session. Without it the check hits the sign-in page.
 
+`tests/e2e/sidebar-parity-live.spec.ts` uses the same URL gate. It opens a
+native pane and the journal note on that sheet and reports the element and
+property that drifted from `docs/ddb-reference/sidebar.json`. The DOM test
+`tests/dom/sidebar-parity.test.ts` checks the note panel's class tree against
+that file without a network.
+
 The sheet's layout and the screenshots live in
 [docs/ddb-reference/README.md](ddb-reference/README.md). Read that instead of
 opening the live site for anything other than this check.
@@ -147,6 +153,31 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 7. If a card needs diagnosis, inspect its `data-bfa-card-portrait-state` and `data-bfa-card-portrait-reason` attributes; skipped cards should not keep a visible outline during normal use.
 8. Disable the popup setting and refresh both pages.
 9. Confirm the card portraits remain at D&D Beyond's original small image URLs.
+
+## Character journal manual checklist
+
+Build the extension, reload it in `chrome://extensions`, and check these on a
+live sheet. The visual source is Matilda Greywolf,
+`https://www.dndbeyond.com/characters/172153137`: the Journal tab and section
+sit with Notes and Extras, and the note panel matches that sheet's right pane.
+Switch Appearance under Manage, then Character Settings. Do not judge the
+journal by the operating system's theme.
+
+1. Journal is the uppercase tab after Extras. One pointerdown on the label and on the padding opens it. The previous tab is not underlined, including when the sheet loaded on Actions. Selected Journal has the same single underline as a selected sibling tab.
+2. The list replaces the main pane. It is not inside a nested scroller.
+3. Light and Underdark, including a toggle while Journal is open. The toolbar matches the Extras search row. Fields stay dark in Underdark. Extras content is not visible inside Journal.
+4. Manage Notes creates one note in the sidebar. There is no second File note or New note control. Reload. The note is still there.
+5. Open an entry, read it, edit it, reload. The markdown survived.
+6. Create `[[Someone new]]` from autocomplete. The placeholder shows Needs details and appears under Mentioned in on the note that named them.
+7. Add a PNG under 3 MB at the cursor. The editor shows `![[img:<id>]]` there, and read mode shows the image inline. Move that line and the image follows. A file over 3 MB is resized and the note text remains. A file over 25 MB shows the size and the limit, and the note text remains.
+8. Unsaved edit, switch to Spells, choose to keep editing. The confirm was on screen. The draft is still there.
+9. Turn the popup setting off, keep editing, then close. The Journal tab leaves.
+10. If the live sheet can change character without a reload, a note in progress does not appear on the next character.
+11. A narrow window: the toolbar stays one row, the panel covers the screen, and Close in the pane chrome returns to the list.
+12. Keyboard only: open Journal, open a row, Edit, Close. Focus returns to the row. Tab never lands on an invisible file input.
+13. A version 1 note and photo created before the upgrade are present once, with the text intact.
+
+Automated coverage for the simple fixture is `tests/e2e/character-journal.spec.ts`. The live-shaped sheet, first click, theme, and scroll coverage is `tests/e2e/character-journal-sheet.spec.ts`. Build screenshots are `tests/e2e/character-journal-build-shots.spec.ts`. None of them open the live site.
 
 ## Delete cleanup manual checklist
 

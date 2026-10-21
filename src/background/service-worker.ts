@@ -1,3 +1,4 @@
+import {installJournalImageMessageHandler} from './journal-image-handler';
 import type {
   CharacterArtMetadata,
   CharacterPortraitCropMetadata,
@@ -35,6 +36,8 @@ import {
   setStoredCharacterArtMetadata,
   setStoredCharacterPortraitCropMetadata,
 } from '../platform/chrome/storage';
+
+installJournalImageMessageHandler();
 
 chrome.runtime.onMessage.addListener((rawMessage, _sender, sendResponse) => {
   const request = asCharacterArtRequest(rawMessage);

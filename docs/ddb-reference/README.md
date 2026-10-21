@@ -82,7 +82,7 @@ The selector map asks the live check for these tab classes. They are not readabl
 | `ddbc-tab-list__nav-item` | One tab item, main row or secondary row |
 | `ddbc-tab-list__nav-item--is-active` | The selected tab item |
 
-The journal does not query those classes yet. It finds an element whose text is Extras, inserts a Journal button after that item, and treats the next sibling of the tab row as the content host. On this wide layout that sibling is the body under the tabs. **from-code**
+The journal queries `ddbc-tab-list__nav-item` and the active class when it samples the theme color and copies the active tab's underline. It still finds Extras by its label, inserts a Journal button after that item, and mounts on the next sibling of the tab row. On the live-shaped fixture that sibling is `ddbc-tab-list__content`. While Journal is open, the other children of that region are concealed. The section toolbar uses the Extras filter row, verified 2026-10-21 on character `4741434`: `ct-extras-filter__interactions` is a nowrap flex line with the bordered search box (magnifier `ct-extras-filter__icon`, input `ct-extras-filter__input`), the funnel `ct-extras-filter__advanced`, and the Manage button. Inventory and Spells use the same pieces with their own prefix. That row is mounted only while its tab is open. The journal clones it when it is present and otherwise rebuilds it from the selector map so the sheet CSS can paint it. The site header search is a different control. **from-code**
 
 In light mode the inactive main-tab labels read as gray (about `#75838b`) and the active label is near-black (about `#13191d`). The secondary row sits on a light gray track (about `#eceeef`). **from-screenshot**
 
@@ -103,7 +103,8 @@ Clicking a row such as Longsword, or a notes section such as Organizations, open
 - The action panel titles the item (Longsword), offers Customize, and lists stats and tags.
 - The notes panel titles the section (Organizations), has a text field ("Enter your notes here!"), and a short prompt under it.
 - Light fill is near white (`#fefefe`). Dark fill is `#12181c`.
-- No class name for this slide-in was captured. Do not guess one.
+
+The open Information Sidebar was recorded on 2026-10-21 from character 4741434 (Acrobatics). The shell, classes, and computed styles are in [sidebar.md](sidebar.md) and [sidebar.json](sidebar.json). The journal note panel uses that markup. It does not run D&D Beyond's script. **from-code**
 
 ### Information sidebar and portrait manager
 
@@ -131,7 +132,7 @@ Class strings the live check looks for while dark mode is on:
 | Class | What it marks | Tag |
 | --- | --- | --- |
 | `ct-theme-dark` | Dark theme is on. The live check looks for the class anywhere in the document. | from-code |
-| `ct-character-sheet--dark-mode` | Candidate class for the sheet root in dark mode. Not in the fixtures, and no adapter uses it. | unverified |
+| `ct-character-sheet--dark-mode` | Sheet root while Underdark is on. The live-shaped fixture has it. The journal treats a class ending in `dark-mode` as dark. | from-code |
 
 The live selector-health check is how both get verified. Run it as described in [docs/TESTING.md](../TESTING.md#selector-health).
 
@@ -169,6 +170,10 @@ The map in `src/platform/dndbeyond/selectors.ts` is the list to edit. This table
 | `character-portrait-surface` | `.ddbc-character-avatar__portrait` | code |
 | `information-sidebar` | `[aria-label="Information Sidebar"]` | code |
 | `sidebar-portal` | `.ct-sidebar__portal` | code |
+| `sidebar-inner` | `.ct-sidebar__inner` | code, verified 2026-10-21 |
+| `sidebar-heading` | `.ct-sidebar__heading` | code, verified 2026-10-21 |
+| `sidebar-scroll` | `.ct-sidebar [data-scrollable-container="true"]` | code, open pane |
+| `sidebar-note` | `.ct-note-manage-pane` | code, note pane |
 
 ### Full-art storage, portrait edit panel, portrait crop
 
@@ -202,9 +207,14 @@ The map in `src/platform/dndbeyond/selectors.ts` is the list to edit. This table
 | --- | --- | --- |
 | `sheet-tab-extras-control` | interactive control (`a`, `button`, `label`, tab, radio) whose text is `extras` | code |
 | `sheet-tab-labels` | the same kind of element, one per sheet tab label | code |
-| `sheet-tab-list` | `[role="tablist"]`, `[role="list"]`, `ul`, `ol`, or `nav` | code |
-| `sheet-tab-nav-item` | `.ddbc-tab-list__nav-item` | live |
-| `sheet-tab-nav-item-active` | `.ddbc-tab-list__nav-item--is-active` | live |
+| `sheet-tab-list` | `[role="tablist"]`, `[role="list"]`, `ul`, `ol`, `nav`, or `menu` | code |
+| `character-sheet` | `.ct-character-sheet`, `.ct-character-sheet-shell` | code |
+| `sheet-tab-nav-item` | `.ddbc-tab-list__nav-item` | code |
+| `sheet-tab-nav-item-active` | `.ddbc-tab-list__nav-item--is-active` | code |
+| `sheet-tab-content` | `.ddbc-tab-list__content` | code, fixture only |
+| `sheet-section-filter` | `.ct-extras-filter__interactions`, and the Inventory and Spells equivalents | code, verified 2026-10-21 on character 4741434 |
+| `sheet-section-filter-button` | `.ct-extras-filter__advanced` and the Inventory and Spells equivalents | code |
+| `sheet-manage-button` | `button.ct-theme-button` | code |
 
 ### Sheet structure and theme (live check)
 
@@ -212,7 +222,7 @@ The map in `src/platform/dndbeyond/selectors.ts` is the list to edit. This table
 | --- | --- | --- |
 | `primary-box` | `.ct-primary-box` | live |
 | `theme-dark` | `.ct-theme-dark` | live, dark theme only |
-| `character-sheet-dark-mode` | `.ct-character-sheet--dark-mode` | unverified; live check only |
+| `character-sheet-dark-mode` | `.ct-character-sheet--dark-mode` | code, dark theme only |
 
 ## How to refresh this doc
 

@@ -10,8 +10,9 @@
  * saved fixtures. `source: 'live'` entries are class strings the Playwright
  * check looks for. No sheet HTML was saved, and the screenshots do not show
  * class names, so those strings are not verified until that check passes.
- * `ct-character-sheet--dark-mode` is unverified: it is not in the fixtures
- * and no adapter uses it. See docs/ddb-reference/README.md and docs/TESTING.md.
+ * The journal reads the sheet root, the classic tab item, and a class ending
+ * in `dark-mode`. `ct-primary-box` and `ct-theme-dark` stay live-only.
+ * See docs/ddb-reference/README.md and docs/TESTING.md.
  *
  * When a health test names an entry, change that one selector. A renamed
  * class is usually the whole fix.
@@ -126,6 +127,42 @@ const sidebarPortal = selector({
   lookFor: 'The sidebar portal root, class ct-sidebar__portal, that wraps the right-side panel when the sheet renders it.',
   selector: '.ct-sidebar__portal',
   targets: 'Sidebar portal root used to scope the portrait search.',
+});
+
+const sidebarInner = selector({
+  features: [CHARACTER_JOURNAL, FULLSCREEN_VIEWER],
+  fixtures: ['sidebar-shell'],
+  id: 'sidebar-inner',
+  lookFor: 'The open Information Sidebar column, class ct-sidebar__inner. It is inside the dialog the sheet labels Information Sidebar. The collapsed sidebar still has this node. Verified 2026-10-21 on character 4741434.',
+  selector: '.ct-sidebar__inner',
+  targets: 'Information Sidebar inner column.',
+});
+
+const sidebarHeading = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['sidebar-shell'],
+  id: 'sidebar-heading',
+  lookFor: 'The pane title, class ct-sidebar__heading, inside the open sidebar. A skill pane and a note pane both use it. Verified 2026-10-21.',
+  selector: '.ct-sidebar__heading',
+  targets: 'Information Sidebar pane title.',
+});
+
+const sidebarScroll = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['sidebar-shell'],
+  id: 'sidebar-scroll',
+  lookFor: 'The sidebar body scroller. The open pane marks it with data-scrollable-container="true" on the content node inside .ct-sidebar. It is absent while the sidebar is collapsed.',
+  selector: '.ct-sidebar [data-scrollable-container="true"]',
+  targets: 'Information Sidebar scroll container.',
+});
+
+const sidebarNote = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['sidebar-shell'],
+  id: 'sidebar-note',
+  lookFor: 'The notes pane body, class ct-note-manage-pane. The sheet mounts it only for a character note (Organizations and the other note keys). A skill pane does not have it.',
+  selector: '.ct-note-manage-pane',
+  targets: 'Character note pane inside the Information Sidebar.',
 });
 
 // --- Portrait manager: full-art storage, edit panel, crop ---
@@ -319,6 +356,7 @@ export const SHEET_TAB_LIST_SELECTOR = [
   'ul',
   'ol',
   'nav',
+  'menu',
 ].join(',');
 
 export const SHEET_TAB_LABELS = [
@@ -356,44 +394,180 @@ const sheetTabList = selector({
   features: [CHARACTER_JOURNAL],
   fixtures: ['sheet-tabs'],
   id: 'sheet-tab-list',
-  lookFor: 'The tab-row ancestor: a tablist, list, ul, ol, or nav that contains Extras. The current live row is not always one of those roles; the label fallback covers that case.',
+  lookFor: 'The tab-row ancestor: a tablist, list, ul, ol, nav, or menu that contains Extras. The current live row is not always one of those roles; the label fallback covers that case.',
   selector: SHEET_TAB_LIST_SELECTOR,
   targets: 'Semantic tab-list ancestor around the sheet tabs.',
 });
 
-// --- Live sheet candidates ---
+// --- Character journal: sheet root, tab classes, and theme ---
 //
-// The extension does not query these yet. The live health check watches them
-// so a renamed class shows up before a feature is retargeted. No page HTML
-// was saved. ct-character-sheet--dark-mode is unverified. See
-// docs/ddb-reference/README.md.
+// The journal queries these. Classes that are on the live-shaped fixture are
+// source: code. ct-primary-box and ct-theme-dark stay live checks: no saved
+// HTML showed them, and the reference says not to invent inner BEM names.
+// The note panel mirrors the open Information Sidebar. Class strings from
+// that shell, including hashed styles_* names verified 2026-10-21, live in
+// the constants below. The portrait search skips .bfa-journal-panel so this
+// copy does not take the portrait portal. See docs/ddb-reference/sidebar.md.
 
+// Information Sidebar shell, verified 2026-10-21 on character 4741434.
+// Bundle main.73ca5823.js, stylesheet main.875602ca.css. Hashes change when
+// that bundle changes. docs/ddb-reference/sidebar.json is the snapshot.
+export const SIDEBAR_PORTAL_CLASS = 'ct-sidebar__portal';
+export const SIDEBAR_CLASS = 'ct-sidebar';
+export const SIDEBAR_INNER_CLASS = 'ct-sidebar__inner';
+export const SIDEBAR_HEADER_CLASS = 'ct-sidebar__header';
+export const SIDEBAR_HEADER_PRIMARY_CLASS = 'ct-sidebar__header-primary';
+export const SIDEBAR_HEADING_CLASS = 'ct-sidebar__heading';
+export const SIDEBAR_DARK_MODE_CLASS = 'ct-sidebar--is-dark-mode';
+export const SIDEBAR_NOTE_PANE_CLASS = 'ct-note-manage-pane';
+export const SIDEBAR_TOOLTIP_CLASS = 'ddbc-tooltip ddbc-tooltip--dark-mode';
+export const SIDEBAR_SWIPEABLE_CLASS = 'swipeable';
+export const SIDEBAR_MASK_CLASS = 'styles_mask__nuvIu styles_visible__6s+G-';
+export const SIDEBAR_FRAME_CLASS =
+  'styles_sidebar__RrEHr styles_right__e4y1G styles_visible__6s+G-';
+export const SIDEBAR_CONTROLS_CLASS = 'styles_controls__NSnn3';
+export const SIDEBAR_VISIBILITY_CLASS = 'styles_visibility__MJ05x';
+export const SIDEBAR_HIDE_CLASS = 'styles_arrows__182cG';
+export const SIDEBAR_PANE_CLASS = 'styles_pane__AOt0h';
+export const SIDEBAR_BORDER_CLASS = 'styles_border__jHreB';
+export const SIDEBAR_BORDER_BOTTOM_CLASS = 'styles_bottom__De0fd';
+export const SIDEBAR_BORDER_BG_CLASS = 'styles_borderBg__hTiiJ';
+export const SIDEBAR_BORDER_STROKE_CLASS = 'styles_borderStroke__YCw40';
+export const SIDEBAR_BORDER_FILL_CLASS = 'styles_borderFill__xRxpl';
+export const SIDEBAR_GAP_CLASS = 'styles_gap__kuwYv';
+export const SIDEBAR_CONTENT_CLASS = 'styles_content__3knKz';
+export const SIDEBAR_WRAPPER_CLASS = 'styles_wrapper__6NpOy';
+export const SIDEBAR_HEADING_HASH_CLASS = 'styles_heading__j5Lvn';
+export const SIDEBAR_CALLOUT_CLASS = 'styles_callout__Sf-W2';
+export const SIDEBAR_SURFACE_DARK_CLASS = 'styles_dark__6-qrS';
+export const SIDEBAR_NAV_CLASS = 'styles_controls__-K4FO';
+export const SIDEBAR_NAV_BUTTON_CLASS = 'styles_button__pEmHw';
+export const SIDEBAR_NAV_LABEL_CLASS = 'styles_label__qP9gK';
+export const SIDEBAR_TEXTAREA_CLASS = 'styles_textarea__7oQCq';
+
+export const CHARACTER_SHEET_CLASS = 'ct-character-sheet';
+export const CHARACTER_SHEET_SHELL_CLASS = 'ct-character-sheet-shell';
+export const CHARACTER_SHEET_SELECTOR =
+  `.${CHARACTER_SHEET_CLASS}, .${CHARACTER_SHEET_SHELL_CLASS}`;
 export const SHEET_TAB_NAV_ITEM_SELECTOR = '.ddbc-tab-list__nav-item';
 export const SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR =
   '.ddbc-tab-list__nav-item--is-active';
+export const SHEET_TAB_CONTENT_SELECTOR = '.ddbc-tab-list__content';
+// Extras / Inventory / Spells filter row, observed 2026-10-21 on the public
+// sheet character 4741434 (character-app main.73ca5823.js). The row is
+// search box, funnel, then the Manage button. Inactive tabs unmount it, so
+// the journal also rebuilds this markup from these strings. The site header
+// search is a different input and is not this row.
+export const SHEET_SECTION_FILTER_SELECTOR = [
+  '.ct-extras-filter__interactions',
+  '.ct-inventory-filter__interactions',
+  '.ct-spells-filter__interactions',
+].join(', ');
+export const SHEET_SECTION_FILTER_BUTTON_SELECTOR = [
+  '.ct-extras-filter__advanced',
+  '.ct-inventory-filter__advanced',
+  '.ct-spells-filter__advanced',
+].join(', ');
+export const SHEET_SECTION_FILTER_ROW_CLASS = 'ct-extras-filter__interactions';
+export const SHEET_SECTION_FILTER_BOX_CLASS = 'ct-extras-filter__box';
+export const SHEET_SECTION_FILTER_PRIMARY_CLASS = 'ct-extras-filter__primary';
+export const SHEET_SECTION_FILTER_ICON_GROUP_CLASS =
+  'ct-extras-filter__primary-group ct-extras-filter__primary-group--first';
+export const SHEET_SECTION_FILTER_ICON_CLASS = 'ct-extras-filter__icon';
+export const SHEET_SECTION_FILTER_FIELD_CLASS = 'ct-extras-filter__field';
+export const SHEET_SECTION_FILTER_INPUT_CLASS = 'ct-extras-filter__input';
+export const SHEET_SECTION_FILTER_BUTTON_CLASS = 'ct-extras-filter__advanced';
+export const SHEET_SECTION_FILTER_CALLOUT_CLASS = 'ct-extras-filter__callout';
+export const SHEET_MANAGE_BUTTON_SELECTOR = 'button.ct-theme-button';
+export const SHEET_MANAGE_BUTTON_CLASS = [
+  'ct-theme-button',
+  'ct-theme-button--outline',
+  'ct-theme-button--interactive',
+  'ct-button',
+  'character-button',
+  'character-button-medium',
+  'character-button-outline',
+  'ddbc-button',
+].join(' ');
+export const SHEET_MANAGE_BUTTON_CONTENT_CLASS = 'ct-button__content';
+export const SHEET_FILTER_SVG_MARKUP = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 31.43435" class="ddbc-svg ddbc-filter-svg" aria-hidden="true">',
+  '<path fill="currentColor" d="M10,18,.38675,3.58013A2.30282,2.30282,0,0,1,0,2.30278H0A2.30278,2.30278,0,0,1,2.30277,0H26.69723A2.30278,2.30278,0,0,1,29,2.30277h0a2.30282,2.30282,0,0,1-.38675,1.27735L19,18V30.78071a.65255.65255,0,0,1-1.01451.543L10.44556,26.297A1.00058,1.00058,0,0,1,10,25.46451Z"></path>',
+  '</svg>',
+].join('');
 export const PRIMARY_BOX_SELECTOR = '.ct-primary-box';
-export const THEME_DARK_SELECTOR = '.ct-theme-dark';
+export const THEME_DARK_CLASS = 'ct-theme-dark';
+export const THEME_DARK_SELECTOR = `.${THEME_DARK_CLASS}`;
+export const CHARACTER_SHEET_DARK_MODE_CLASS = 'ct-character-sheet--dark-mode';
 export const CHARACTER_SHEET_DARK_MODE_SELECTOR =
-  '.ct-character-sheet--dark-mode';
+  `.${CHARACTER_SHEET_DARK_MODE_CLASS}`;
+export const NATIVE_BUTTON_CLASS_PATTERN =
+  /ddbc-button|ct-button|Button_button|ButtonVariants_/;
+
+const characterSheet = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['sheet-tabs', 'current-sheet-tabs', 'live-sheet-tabs'],
+  id: 'character-sheet',
+  liveSheet: true,
+  lookFor: 'The sheet root, class ct-character-sheet, or the shell ct-character-sheet-shell. The journal watches this node for tab changes and samples its theme color from the frames inside it.',
+  selector: CHARACTER_SHEET_SELECTOR,
+  targets: 'Character sheet root the journal observes.',
+});
 
 const sheetTabNavItem = selector({
   features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
   id: 'sheet-tab-nav-item',
   liveSheet: true,
-  lookFor: 'A tab item in the row at the top of the right-hand content box (Actions through Extras) or in the secondary row under it (All, Attack, and the rest). This entry looks for ddbc-tab-list__nav-item. The class is not verified until the live selector-health check passes. The journal still finds Extras by its label, so update this entry when the class changes and retarget the adapter only if the label match also fails.',
+  lookFor: 'A tab item in the row at the top of the right-hand content box (Actions through Extras) or in the secondary row under it (All, Attack, and the rest). This entry looks for ddbc-tab-list__nav-item. The journal still finds Extras by its label, so update this entry when the class changes and retarget the adapter only if the label match also fails.',
   selector: SHEET_TAB_NAV_ITEM_SELECTOR,
-  source: 'live',
   targets: 'One item in a sheet tab list.',
 });
 
 const sheetTabNavItemActive = selector({
   features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
   id: 'sheet-tab-nav-item-active',
   liveSheet: true,
-  lookFor: 'The selected tab. This entry looks for ddbc-tab-list__nav-item--is-active on the tab item. The class is not verified until the live selector-health check passes. On Matilda\'s screenshots the selected main tab is Actions, Notes, or Extras depending on the capture.',
+  lookFor: 'The selected tab. This entry looks for ddbc-tab-list__nav-item--is-active on the tab item. On Matilda\'s screenshots the selected main tab is Actions, Notes, or Extras depending on the capture. Its underline is the character theme color.',
   selector: SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR,
-  source: 'live',
   targets: 'The active sheet tab item.',
+});
+
+const sheetSectionFilter = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
+  id: 'sheet-section-filter',
+  lookFor: 'The Extras, Inventory, or Spells toolbar row: a search box with a magnifier, then the funnel. On the classic sheet the row is ct-extras-filter__interactions (Inventory and Spells use the same pieces with their own prefix). It is mounted only while that tab is open. The site header search is not this row.',
+  selector: SHEET_SECTION_FILTER_SELECTOR,
+  targets: 'Section search and filter row.',
+});
+
+const sheetSectionFilterButton = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
+  id: 'sheet-section-filter-button',
+  lookFor: 'The funnel control beside the section search. Extras uses ct-extras-filter__advanced and an svg.ddbc-filter-svg. It is not a text button.',
+  selector: SHEET_SECTION_FILTER_BUTTON_SELECTOR,
+  targets: 'Section filter funnel.',
+});
+
+const sheetManageButton = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
+  id: 'sheet-manage-button',
+  lookFor: 'The outline Manage button at the end of a section toolbar, class ct-theme-button. Extras labels it Manage Extras. A read-only public sheet omits it; an owned sheet renders it.',
+  selector: SHEET_MANAGE_BUTTON_SELECTOR,
+  targets: 'Section Manage button.',
+});
+
+const sheetTabContent = selector({
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
+  id: 'sheet-tab-content',
+  lookFor: 'The content region under the tab row, class ddbc-tab-list__content, on the live-shaped fixture. The journal list mounts on the tab row\'s next sibling, which is this region in that fixture. No page HTML was saved, so the live check does not require this class until it is confirmed on Matilda\'s sheet.',
+  selector: SHEET_TAB_CONTENT_SELECTOR,
+  targets: 'Sheet tab content region on the live-shaped fixture.',
 });
 
 const primaryBox = selector({
@@ -418,11 +592,11 @@ const themeDark = selector({
 
 const characterSheetDarkMode = selector({
   darkThemeOnly: true,
-  features: [PORTRAIT_EDIT_PANEL, FULLSCREEN_VIEWER],
+  features: [CHARACTER_JOURNAL],
+  fixtures: ['live-sheet-tabs'],
   id: 'character-sheet-dark-mode',
-  lookFor: 'An unverified candidate for the sheet root while Underdark Mode is on: ct-character-sheet--dark-mode. It is not in the fixtures and no adapter uses it. The live selector-health check is what verifies or rejects it.',
+  lookFor: 'The sheet root while Underdark Mode is on: ct-character-sheet--dark-mode. The journal treats a class ending in dark-mode as dark, then data-theme, then the background luminance. The live-shaped fixture includes this class. The live selector-health check still confirms it on Matilda\'s sheet.',
   selector: CHARACTER_SHEET_DARK_MODE_SELECTOR,
-  source: 'live',
   targets: 'Dark-mode class on the character sheet.',
 });
 
@@ -432,6 +606,10 @@ export const DDB_SELECTORS: readonly DdbSelectorEntry[] = [
   characterPortraitSurface,
   informationSidebar,
   sidebarPortal,
+  sidebarInner,
+  sidebarHeading,
+  sidebarScroll,
+  sidebarNote,
   portraitManager,
   portraitManagerAvatar,
   portraitManagerCustomContent,
@@ -451,8 +629,13 @@ export const DDB_SELECTORS: readonly DdbSelectorEntry[] = [
   sheetTabExtrasControl,
   sheetTabLabels,
   sheetTabList,
+  characterSheet,
   sheetTabNavItem,
   sheetTabNavItemActive,
+  sheetSectionFilter,
+  sheetSectionFilterButton,
+  sheetManageButton,
+  sheetTabContent,
   primaryBox,
   themeDark,
   characterSheetDarkMode,
@@ -506,5 +689,7 @@ export const CARD_PORTRAIT_UPGRADE_STYLE_ATTRIBUTE_NAME =
   'data-bfa-card-portrait-upgrade-styles';
 export const CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME =
   'data-bfa-character-journal-tab';
+export const CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME =
+  'data-bfa-character-journal-tab-item';
 export const CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME =
   'bfa-character-journal-tab';

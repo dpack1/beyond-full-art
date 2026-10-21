@@ -1,5 +1,9 @@
 # Character Journal
 
+Version 2 is specified in `.agent/plans/character-journal-v2.md` and
+`.agent/plans/character-journal-v2-design.md`. This file remains the spec for
+the unmerged version 1 slice. New journal behavior follows the version 2 plan.
+
 ## Goal
 
 Add an extension-owned character journal to D&D Beyond character sheets.
@@ -9,20 +13,27 @@ after D&D Beyond's `Extras` tab, create and manage local journal entries for
 the current character, refresh the page, and keep writing without syncing or
 modifying D&D Beyond's own notes, backstory, or character data.
 
-The first implementation should be useful on its own, while keeping a clear
-path for image blocks in a later slice.
+The journal includes notes and photos, and a way to find them. It stays out of
+`.agent/FEATURES.md` until the owner approves it and it ships.
 
 ## Scope
 
 Included:
 
 - Add a `Journal` tab immediately after D&D Beyond's `Extras` tab.
-- Use a book or journal icon for the tab.
+- Make that tab look and behave like a native sheet tab: an uppercase label,
+  no extra border or icon, the sheet's active underline, and the sheet's hover.
+  A focus ring shows only for keyboard `:focus-visible`.
 - Show an extension-owned journal section from that tab inside the sheet content
   area.
 - Store journal entries locally by D&D Beyond character ID.
-- List, create, edit, save, and delete text journal entries.
-- Use a block-based entry model so image blocks can be added later.
+- List, create, edit, save, and delete notes.
+- Add, view, and remove photos on a note. Supported files are PNG, JPEG, and
+  WebP up to 3 MB. Photo bytes live in extension-origin IndexedDB. Note text
+  and photo metadata live in `chrome.storage.local`.
+- Find notes with search (title, text, and photo file name), an all-notes or
+  with-photos filter, and newest or oldest ordering.
+- Use a block-based entry model for the text and image blocks.
 - Preserve unsaved editor text when local storage operations fail.
 - Make the journal surface keyboard accessible.
 - Add unit tests, DOM fixture tests, and local Playwright fixture tests.
@@ -34,31 +45,56 @@ Excluded:
 - Importing existing D&D Beyond notes or backstory.
 - Sharing journal entries with other users.
 - Cloud sync.
-- Image upload or insertion.
 - Rich text formatting.
-- Search, tags, categories, or timeline features.
-- A popup inventory view for journals.
+- Tags, categories, or a timeline.
 - Replacing or modifying D&D Beyond's native notes UI.
+
+Popup access, export, a versioned journal file format, and import are later
+work. They are not part of this pull request. See Deferred follow-up.
+
+## Deferred follow-up
+
+Later work, not part of this pull request:
+
+The journal should also be reachable from the extension popup, with export and
+download of one character's journal entries and photos. Players need a way to
+get their notes even if a D&D Beyond UI change breaks the in-sheet Journal tab.
+
+Once export exists, define a documented, versioned journal file format in a
+format doc. The same file must be importable later so a player can restore a
+journal, move it to another browser, or bring notes in. Import is future work
+too, and it is not in this pull request.
+
+This slice does not add popup journal UI, an export or download action, the
+format doc, or import.
 
 ## Current State
 
-The extension already has:
+The character journal is implemented on `cursor/character-journal-cade` and is
+not shipped. `.agent/FEATURES.md` does not list it.
 
-- `src/content/character-sheet-entry.ts` as the D&D Beyond character-sheet
-  content-script entrypoint.
-- `src/content/character-sheet.ts` as the character-sheet composition layer for
-  portrait enhancement, full-art controls, crop workflow, and viewer wiring.
-- D&D Beyond adapters under `src/platform/dndbeyond/`.
-- URL parsing for character pages in `src/platform/dndbeyond/urls.ts`.
-- Chrome storage helpers in `src/platform/chrome/storage.ts`.
-- Runtime message contracts in `src/platform/chrome/messages.ts`.
-- Extension-owned UI patterns in `src/features/fullscreen-viewer/` and
-  `src/features/crop-workflow/`.
-- Existing DOM tests under `tests/dom/`.
-- Existing Playwright fixture tests under `tests/e2e/`.
+What the branch does now:
 
-There is no journal tab adapter, journal storage, journal UI, or journal test
-fixture yet.
+- Inserts a Journal tab immediately after Extras. The label is uppercase and
+  uses the sheet tab's active underline and hover.
+- Mounts an extension-owned section in the sheet content pane.
+- Stores text in `chrome.storage.local` and photo bytes in extension-origin
+  IndexedDB.
+- Lists, creates, edits, saves, and deletes notes. Delete asks first.
+- Search, an all-notes or with-photos filter, and newest/oldest ordering are
+  part of the feature. The owner confirmed notes and photos, including finding
+  them, on 2026-10-20.
+- Photos can be added, viewed, and removed for PNG, JPEG, and WebP up to 3 MB.
+- A Close control and a native tab both leave the journal. Unsaved text asks
+  for confirmation before it is discarded.
+- The section samples the sheet's light or dark appearance and scrolls inside
+  the sheet pane.
+- Popup setting `bfa.preferences.characterJournalEnabled` hides the tab without
+  deleting notes.
+
+The first text slice from this plan is in place. Live DOM capture is still
+incomplete; the 2026-10-20 owner session is modeled in
+`LIVE_CHARACTER_SHEET_TABS_FIXTURE`.
 
 ## External Assumptions
 
@@ -86,6 +122,21 @@ Verification approach:
 - Record the observed hooks and verification date in `docs/ARCHITECTURE.md`.
 - Centralize all selectors and tab-insertion behavior under
   `src/platform/dndbeyond/`.
+
+Observed on the owner's live sheet on 2026-10-20, and modeled in
+`tests/fixtures/character-sheet-tabs.ts` as `LIVE_CHARACTER_SHEET_TABS_FIXTURE`:
+
+- Tab items are plain `div.ddbc-tab-list__nav-item` elements. The active item
+  uses `ddbc-tab-list__nav-item--is-active`. The sheet can act on pointerdown
+  for the whole item, including padding, before a click reaches an inserted
+  button. Unknown labels can replace the pane contents.
+- Dark appearance is `ct-character-sheet--dark-mode` with `data-theme="dark"`.
+- The content region is height-constrained with `overflow: hidden`. The
+  scrolling element is the inner pane (`ddbc-tab-options__content`,
+  `overflow: auto`).
+
+A saved copy of the live DOM is still outstanding. The fixture records the
+structure those three bugs require.
 
 ## Approach
 
@@ -416,7 +467,8 @@ Update docs in the same implementation PR:
 
 ## Milestones
 
-- [ ] Inspect live D&D Beyond character-sheet tab DOM around `Extras`.
+- [ ] Save a copy of the live character-sheet tab DOM around `Extras`. The
+      2026-10-20 owner session is modeled, but the raw DOM is not in the repo.
 - [x] Capture a minimal character-sheet tab fixture.
 - [x] Document current journal-tab hooks and manual-verification gap in
       `docs/ARCHITECTURE.md`.
@@ -433,6 +485,14 @@ Update docs in the same implementation PR:
 - [x] Add selector-health reporting for the journal tab hook.
 - [x] Update product, architecture, implementation, and decision docs.
 - [x] Run full validation and record manual verification notes.
+- [x] Open Journal on the first pointerdown of the tab label and its padding,
+      and clear the native active underline.
+- [x] Follow the sheet light and dark appearance, including a change while the
+      journal is open.
+- [x] Scroll the journal inside the sheet pane so Save and Delete stay reachable.
+- [x] Keep unsaved text until the user confirms discarding it.
+- [x] Run a confirmed delete after an in-flight save instead of dropping it.
+- [x] Merge journal writes by entry id and keep unreadable records in storage.
 
 ## Validation
 
@@ -518,6 +578,31 @@ Rollback:
   section with an images area and note editor/list. Implementation updated to
   mount inside the tab content area and restore native content on native tab
   activation.
+- 2026-10-13: Notes, photo blocks, and search landed on the journal branch.
+  Codex review notes for delete confirmation, photo URL revocation, and viewer
+  focus were fixed.
+- 2026-10-20: Owner testing on the live dark sheet found three bugs: the first
+  Journal click did nothing while Extras stayed active, journal text and inputs
+  stayed light-on-dark, and the section was clipped with no scroll. The same
+  review pass reported unsaved text being wiped on reopen and a confirmed
+  delete being ignored while a save was in flight.
+- 2026-10-20: Those failures are fixed on the branch. The live-shaped fixture
+  covers first-click activation, dark and light appearance, and scrolling.
+  Playwright screenshots: `journal-dark.png`, `journal-light.png`, and
+  `journal-dark-scrolled.png`. Merged `.agent/` plan docs from `main`.
+- 2026-10-20: Owner confirmed photos and search are in scope. The Journal tab
+  is restyled to match native uppercase labels. The separate book icon and
+  button border are removed. Tab screenshots: `journal-tab-dark.png` and
+  `journal-tab-light.png`.
+- 2026-10-20: Owner asked for a later popup path that can export and download a
+  character's notes and photos, plus a versioned journal file format so that
+  file can be imported later. Recorded as a deferred follow-up. No popup
+  journal UI, export, format doc, or import is in this pull request.
+- 2026-10-20: The active tab class is learned from whichever native tab is
+  selected, not only from Extras. Closing Journal restores that tab, unless
+  the user chose a different one. The journal mounts in the sheet's first
+  scrolling pane, not a nested scroller. Cancelling the popup disable prompt
+  turns the preference back on so the tab stays with the setting.
 
 ## Decision Log
 
@@ -533,3 +618,42 @@ Rollback:
 - 2026-10-12: Prefer an extension-owned inline section opened from the inserted
   Journal tab. This keeps the feature in the expected tab content area while
   preserving reversible ownership over the DOM the extension hides and restores.
+- 2026-10-13: Photo bytes are image blocks in extension-origin IndexedDB
+  (ADR-019), with search, a photo filter, and newest/oldest sort.
+- 2026-10-20: The owner confirmed that adding, editing, and finding notes and
+  photos is in scope. Photos and search stay. The journal is still not listed
+  in `.agent/FEATURES.md`.
+- 2026-10-20: The Journal tab matches the native sheet tabs. It is an uppercase
+  text label with the sheet's active underline and hover. The earlier book
+  icon is removed because it rendered as a red square and the button's default
+  border drew a box around the label. A focus ring is limited to
+  `:focus-visible`.
+- 2026-10-20: Defer a popup path for the journal. The owner wants players to
+  open, export, and download a character's entries and photos from the
+  extension popup so the notes survive a D&D Beyond tab-markup change. Once
+  export exists, write a format doc for a versioned journal file that a later
+  import can read back to restore, move to another browser, or bring notes in.
+  Import is future work. None of this is in the current pull request.
+- 2026-10-20: Claim Journal on capture-phase pointerdown for the whole tab
+  item, including padding, and clear the native active class. A bubble-phase
+  click on the inner button was too late for the live tab row.
+- 2026-10-20: Sample the sheet appearance (`ct-character-sheet--dark-mode`,
+  `data-theme`, or computed background) instead of `prefers-color-scheme`.
+  Mount in the inner scroll pane and limit the section to that pane's height.
+- 2026-10-20: Do not reload an open journal, and ask before discarding unsaved
+  text when the user leaves. Queue a confirmed delete until the current save
+  finishes.
+- 2026-10-20: Journal writes re-read and merge by entry id. Unreadable records
+  stay in storage and are omitted from the list, with a count in the section.
+  The plan's "ignore corrupt entries" rule still applies to display. It no
+  longer deletes them on the next save.
+- 2026-10-20: Keep the base64 photo payload. In current Chromium,
+  `chrome.runtime.sendMessage` delivers an `ArrayBuffer` as a plain object, so
+  a buffer-only put is rejected. Deferred: export, session dates, clipboard
+  paste, a session template, and undo-delete. Also deferred: splitting the
+  journal controller further than the elements, theme, pane, and record
+  modules. The section still owns render and save because they share one
+  editor state. A character change re-reads the URL; an unsaved note stays
+  bound to the previous character until the user discards it. The body-wide
+  tab observer narrows to the sheet shell after the shell exists, and stops
+  reinserting the tab after repeated strip/insert cycles.

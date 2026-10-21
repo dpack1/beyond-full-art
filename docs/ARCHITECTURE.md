@@ -189,6 +189,84 @@ the journal under the `Extras` tab container and left the native sheet panel
 visible. The refined adapter is covered by a live-shaped fixture with
 non-semantic tab text nodes and a sibling content panel.
 
+Owner testing on a dark character sheet on 2026-10-20 showed three further
+behaviors, modeled in `LIVE_CHARACTER_SHEET_TABS_FIXTURE`:
+
+- Tab items are plain `div.ddbc-tab-list__nav-item` elements. The active item
+  uses `ddbc-tab-list__nav-item--is-active`. A pointerdown on the tab row can
+  select a native tab before a click reaches an inserted button, and a click
+  on the item padding hits the wrapper rather than the inner button. The
+  content script claims that hit target in the capture phase and clears the
+  native active class.
+- Dark appearance is `ct-character-sheet--dark-mode` and `data-theme="dark"`.
+  The journal samples that appearance, and the computed background when no
+  explicit appearance is set, then sets color variables on the section.
+- Version 1 mounted the list in the first `overflow: auto` pane inside the
+  content region. That nested search is the bug version 2 removed. The current
+  mount is the content region next to the tab strip, described under
+  Character journal version 2 below.
+
+A fresh capture of the live DOM is still the owner's check. The fixture records
+the structure those bugs require, not a full copy of the sheet.
+
+### Character journal version 2, checked 2026-10-20
+
+Version 2 keeps the Journal tab and moves the note into a right-hand panel.
+The list mounts on the content region next to the tab strip
+(`.ddbc-tab-list__content` on the classic sheet). It does not search scrolling
+descendants for a mount. While Journal is open, every other child of that
+region is concealed with `display: none !important`. The `hidden` attribute
+alone loses to the sheet's own `display` rule, which is why Extras used to
+stay on screen inside the journal. Children the sheet inserts later are
+concealed the same way, and the previous display is restored when Journal
+closes.
+
+The section toolbar is the Extras row: magnifier, search field, funnel, then
+Manage Notes, on one line. The markup and classes are the ones observed on
+the Extras filter (`SHEET_SECTION_FILTER_SELECTOR` in `selectors.ts`). A live
+row is cloned when that tab is mounted; otherwise the same markup is built
+from those strings so the sheet stylesheet can paint it. The site header
+search is not used. Type filters sit behind the funnel and can be combined.
+An empty selection shows every note. Manage Notes opens the note panel. That
+is the only create path.
+
+The panel is appended to `document.body`, beside the native sidebar portal, so
+a sheet `overflow: hidden` cannot clip it. It is a second copy of the
+Information Sidebar shell, not a child of the sheet's React tree. Checked
+2026-10-21 on character 4741434, bundle `main.73ca5823.js`: the open dialog is
+`ct-sidebar` plus the hashed frame classes, 340px, with the decorative border,
+the gap, and the scroll body. The note uses `ct-note-manage-pane` and
+`ct-sidebar__heading`. The note dialog is `position: fixed` at `right: 0` and
+`z-index: 10001`. Its top follows the open native sidebar, and its height is
+the viewport minus that top. Opening a note hides an open native sidebar.
+Class strings live in `selectors.ts`. The snapshot is
+`docs/ddb-reference/sidebar.md`. Hide closes the note. Prev and Next walk the
+note history. Lock, overlay, and align are not rendered. The sheet's own
+sidebar body is still a closed switch with no slot for extension content, so
+nothing is mounted into it, and the portrait search skips `.bfa-journal-panel`.
+The extension does not ship D&D Beyond's script. Title and note fields are the
+full width of the content box inside its padding.
+
+The visual source is Matilda Greywolf,
+`https://www.dndbeyond.com/characters/172153137`, captured 2026-10-20 in light
+and Underdark. The screenshots are in `docs/ddb-reference/`. A public light
+sheet, `https://www.dndbeyond.com/characters/4741434` ("Book"), was loaded the
+same day. It is the 2024 five-tab sheet (Actions, Spells, Inventory, Features
+& Traits, Extras) and is saved at
+`.agent/design/journal-v2/reference/live-sheet-light.png`. The tab matcher
+accepts that shorter label set and the classic seven-tab set.
+
+Theme comes from the sheet: `ct-theme-dark`, a class ending in `dark-mode`,
+`data-theme` or `data-appearance`, then background luminance. The journal does
+not read `prefers-color-scheme`. Accent, border, and the active-tab underline
+come from the computed style of an existing frame or the active tab. Fallback
+tokens are used when a sample is missing. A white input is not treated as an
+Underdark field.
+
+Journal D&D Beyond selectors live in the Character journal group of
+`src/platform/dndbeyond/selectors.ts`. `tests/dom/selector-health.test.ts`
+names the selector and the feature that breaks when a fixture no longer matches.
+
 ### Phase 1 DOM hooks observed on 2026-10-10
 
 From live D&D Beyond character sheet inspection, the right-side sheet panel may no longer expose `[data-testid="character-manage-pane"]`, and the displayed portrait may be a `div.ddbc-character-avatar__portrait` with the image URL in CSS `background-image` rather than an `img`.
@@ -279,16 +357,61 @@ use a temporary same-page anchor with a Blob URL and do not require Chrome's
 The character journal is extension-local and does not write to D&D Beyond
 notes, backstory, or page-origin storage.
 
-The first journal slice stores text entries in `chrome.storage.local`:
+Journal note text is stored in `chrome.storage.local`. Photo bytes are stored
+in the same extension-origin IndexedDB database as full art, under blob keys
+prefixed with `bfa.journal.image.`. The content script sends those bytes
+through a validated runtime message. The service worker is the only writer.
+The 3 MB ceiling is on the stored blob, not on `chrome.storage.local`. A new
+file larger than that, up to 25 MB, is drawn down to a 2048px long edge and
+re-encoded before the message. Photos already stored are read unchanged.
+`unlimitedStorage` is not requested. The extension origin still shares the
+browser's extension storage quota, about 10 MB, and a full quota is reported
+on the note with the image size.
 
 ```text
 bfa.preferences.characterJournalEnabled
 bfa.characterJournal.schemaVersion
 bfa.characterJournal.entries.<characterId>
+bfa.characterJournal.backup.v1.<characterId>
 ```
 
-Each character key stores an array of entries sorted by most recent update. Each
-entry uses a block-based schema:
+Each character key stores an array of notes. Writes re-read that array and
+merge by id, keeping the newer `updatedAt`, so a stale snapshot does not erase
+another window's note. A save whose loaded `updatedAt` is older than the stored
+copy is refused. Records that fail validation stay in the array and are omitted
+from the list, with a count shown in the journal.
+
+New notes are schema version 2:
+
+```ts
+interface JournalNote {
+  id: string;
+  characterId: string;
+  title: string;
+  body: string;
+  type: 'session' | 'npc' | 'place' | 'item' | 'quest' | 'backstory' | 'unset';
+  images: JournalImage[];
+  needsDetails: boolean;
+  questStatus: null;
+  sessionDate: string | null;
+  featuredImageId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  schemaVersion: 2;
+}
+```
+
+`body` is markdown the player typed. A photo in the body is
+`![[img:<id>]]`, with an optional caption and pixel width
+(`![[img:<id>|caption|300]]`). Older bodies may still use
+`![name](bfa-journal-image:<id>)`, and that still renders. `images` store the
+blob key, file name, and type. They do not store bytes. An image id that the
+body no longer mentions is marked `orphanedAt` on save and its blob is deleted
+on a save at least 30 seconds later. Opening the journal appends
+`![[img:<id>]]` for an image that was never mentioned and is not already
+orphaned. Opening a character that still has version 1
+entries writes `bfa.characterJournal.backup.v1.<characterId>` first, and that
+backup is never overwritten. The version 1 shape is:
 
 ```ts
 interface CharacterJournalEntry {
@@ -302,9 +425,10 @@ interface CharacterJournalEntry {
 }
 ```
 
-Only text blocks ship in the first slice. Future image bytes should use
-extension-origin IndexedDB, matching the full-art storage boundary, rather than
-`chrome.storage.local`.
+An entry can contain one text block and any number of image blocks. Image
+blocks store the blob key, file name, MIME type, byte size, and dimensions.
+They do not store image bytes. Schema version remains 1 so text-only entries
+saved before photos shipped still load.
 
 ### Phase 3 implementation direction chosen on 2026-08-06
 

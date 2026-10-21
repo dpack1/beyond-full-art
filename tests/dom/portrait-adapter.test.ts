@@ -28,6 +28,21 @@ describe('portrait adapter', () => {
     expect(target?.clickSurface).toBe(target?.image);
   });
 
+  it('ignores the journal copy of the sidebar portal', () => {
+    document.body.innerHTML = `
+      <div class="bfa-journal-panel ct-sidebar__portal">
+        <div role="dialog" aria-label="Information Sidebar"></div>
+      </div>
+      ${CURRENT_INFORMATION_SIDEBAR_FIXTURE}
+    `;
+
+    const target = findPanelPortrait(document);
+
+    expect(target).not.toBeNull();
+    expect(target?.panel.closest('.bfa-journal-panel')).toBeNull();
+    expect(target?.panel.getAttribute('aria-label')).toBe('Information Sidebar');
+  });
+
   it('finds the current information-sidebar background portrait', () => {
     document.body.innerHTML = CURRENT_INFORMATION_SIDEBAR_FIXTURE;
 

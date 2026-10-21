@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 const storageMocks = vi.hoisted(() => ({
+  CHARACTER_JOURNAL_ENABLED_KEY: 'bfa.preferences.characterJournalEnabled',
   getCampaignCardPortraitUpgradeEnabled: vi.fn(),
   getCharacterJournalEnabled: vi.fn(),
   setCampaignCardPortraitUpgradeEnabled: vi.fn(),
@@ -162,6 +163,44 @@ describe('popup settings', () => {
     expect(storageMocks.setCharacterJournalEnabled).toHaveBeenCalledWith(true);
     expect(document.querySelector('#character-journal-status')?.textContent)
         .toBe('Character Journal tab enabled.');
+  });
+
+  it('checks the journal box again when the preference turns back on', async () => {
+    const listeners = new Set<
+      (changes: Record<string, {newValue?: unknown}>, areaName: string) => void
+    >();
+    (globalThis as {chrome?: unknown}).chrome = {
+      storage: {
+        onChanged: {
+          addListener(listener: (changes: Record<string, {newValue?: unknown}>, areaName: string) => void) {
+            listeners.add(listener);
+          },
+          removeListener(listener: (changes: Record<string, {newValue?: unknown}>, areaName: string) => void) {
+            listeners.delete(listener);
+          },
+        },
+      },
+    };
+
+    await initializePopup(document);
+    const checkbox = document.querySelector<HTMLInputElement>(
+        '#character-journal-enabled',
+    );
+    if (checkbox === null) {
+      throw new Error('Missing journal checkbox');
+    }
+    checkbox.checked = false;
+
+    for (const listener of listeners) {
+      listener({
+        'bfa.preferences.characterJournalEnabled': {newValue: true},
+      }, 'local');
+    }
+
+    expect(checkbox.checked).toBe(true);
+    expect(document.querySelector('#character-journal-status')?.textContent)
+        .toBe('Character Journal tab enabled.');
+    delete (globalThis as {chrome?: unknown}).chrome;
   });
 });
 

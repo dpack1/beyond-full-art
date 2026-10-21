@@ -20,6 +20,7 @@ import {
 import {
   CHARACTER_SHEET_TABS_FIXTURE,
   CURRENT_CHARACTER_SHEET_TABS_FIXTURE,
+  LIVE_CHARACTER_SHEET_TABS_FIXTURE,
 } from '../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../fixtures/portrait-manager';
 
@@ -292,6 +293,151 @@ describe('character sheet enhancement', () => {
     cleanup();
   });
 
+  it('opens Journal from the tab padding before the sheet handles pointerdown', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
+    let sheetSawPointer = 0;
+    document.querySelector('.ddbc-tab-list__nav')?.addEventListener(
+        'pointerdown',
+        () => {
+          sheetSawPointer += 1;
+        },
+    );
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLElement>(
+        '[data-bfa-character-journal-tab-item]',
+    )?.dispatchEvent(new MouseEvent('pointerdown', {bubbles: true}));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sheetSawPointer).toBe(0);
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(false);
+    expect(document.querySelector('.ddbc-tab-list__nav-item--is-active'))
+        .toBe(document.querySelector('[data-bfa-character-journal-tab-item]'));
+    expect(document.querySelector(
+        '.ddbc-tab-list__content .bfa-character-journal-section',
+    )).not.toBeNull();
+
+    cleanup();
+  });
+
+  it('drops a journal left behind by an extension reload', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = `
+      <button data-bfa-character-journal-tab="true" type="button">Journal</button>
+      <section class="bfa-character-journal-section"></section>
+      ${CHARACTER_SHEET_TABS_FIXTURE}
+    `;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelectorAll('[data-bfa-character-journal-tab="true"]'))
+        .toHaveLength(1);
+    expect(document.querySelectorAll('.bfa-character-journal-section')).toHaveLength(0);
+
+    cleanup();
+  });
+
+  it('reloads a clean journal when the character URL changes', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>(
+        '[data-bfa-character-journal-tab="true"]',
+    )?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(false);
+
+    window.history.replaceState({}, '', '/characters/222');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(false);
+
+    cleanup();
+  });
+
+  it('keeps an unsaved note open when the preference turns off, then removes the tab', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>(
+        '[data-bfa-character-journal-tab="true"]',
+    )?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    buttonByText('Manage Notes')?.click();
+    const title = document.querySelector<HTMLInputElement>('.bfa-journal-title-field');
+    if (title === null) {
+      throw new Error('Missing journal title');
+    }
+    title.value = 'Unsaved title';
+
+    await setStorage({'bfa.preferences.characterJournalEnabled': false});
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
+        .not.toBeNull();
+    expect(document.querySelector('.bfa-journal-confirm')?.textContent)
+        .toContain('Keep editing');
+
+    buttonByText('Keep editing')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(await readStorage('bfa.preferences.characterJournalEnabled')).toBe(false);
+    expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
+        .not.toBeNull();
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(false);
+    expect(title.value).toBe('Unsaved title');
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click();
+    buttonByText('Discard')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
+        .toBeNull();
+    expect(await readStorage('bfa.preferences.characterJournalEnabled')).toBe(false);
+
+    cleanup();
+  });
+
+  it('removes the journal tab after unsaved text is discarded', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>(
+        '[data-bfa-character-journal-tab="true"]',
+    )?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    buttonByText('Manage Notes')?.click();
+    const title = document.querySelector<HTMLInputElement>('.bfa-journal-title-field');
+    if (title === null) {
+      throw new Error('Missing journal title');
+    }
+    title.value = 'Unsaved title';
+
+    await setStorage({'bfa.preferences.characterJournalEnabled': false});
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
+        .find((button) => button.textContent === 'Discard')
+        ?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
+        .toBeNull();
+    expect(await readStorage('bfa.preferences.characterJournalEnabled')).toBe(false);
+
+    cleanup();
+  });
+
   it('does nothing on non-character-sheet pages', () => {
     window.history.replaceState({}, '', '/classes/barbarian');
     document.body.innerHTML = CHARACTER_MANAGE_PANE_FIXTURE;
@@ -309,6 +455,27 @@ type StorageChangeListener = (
   changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void;
+
+function buttonByText(label: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent === label);
+}
+
+function setStorage(values: Record<string, unknown>): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set(values, () => {
+      resolve();
+    });
+  });
+}
+
+function readStorage(key: string): Promise<unknown> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(key, (value) => {
+      resolve(value[key]);
+    });
+  });
+}
 
 function createFakeChromeStorage(initialValues: Record<string, unknown> = {}) {
   const listeners = new Set<StorageChangeListener>();

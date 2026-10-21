@@ -32,7 +32,15 @@ import {
   isCharacterPageUrl,
   parseCharacterIdFromCharacterPageUrl,
 } from '../platform/dndbeyond/urls';
-import {observeJournalTabTargets} from '../platform/dndbeyond/character-sheet-tabs-adapter';
+import {
+  clearNativeTabSelection,
+  clearNextNativeTab,
+  getJournalTabHitTarget,
+  markNextNativeTab,
+  observeJournalTabTargets,
+  removeStaleJournalUi,
+  type CharacterSheetJournalTabTarget,
+} from '../platform/dndbeyond/character-sheet-tabs-adapter';
 import {
   createCharacterArtDownloadFileName,
   downloadBlobUrl,
@@ -60,6 +68,8 @@ export function installCharacterSheetEnhancement(
     return () => {};
   }
 
+  removeStaleJournalUi(doc);
+
   const artService = createCharacterArtService(doc);
   const cropWorkflow = createCharacterPortraitCropWorkflow(artService, doc);
   const journalService = createCharacterJournalService();
@@ -69,8 +79,14 @@ export function installCharacterSheetEnhancement(
   const journalCleanups = new Set<Cleanup>();
   let activeControls: CharacterArtControlsController | null = null;
   let journalSyncGeneration = 0;
+  let knownCharacterHref = doc.location.href;
+  let releaseJournalBinding: Cleanup | null = null;
   let stopObservingJournalTabs: Cleanup | null = null;
   const getActiveControls = () => activeControls;
+
+  const readCurrentCharacterId = (): string | null => {
+    return parseCharacterIdFromCharacterPageUrl(new URL(doc.location.href));
+  };
 
   const stopObservingPortraitManagers = observePortraitManagementTargets((target) => {
     const controls = installCharacterArtControls(
@@ -106,47 +122,137 @@ export function installCharacterSheetEnhancement(
     });
   }, doc);
 
-  const startJournalFeature = () => {
-    if (stopObservingJournalTabs !== null) {
-      return;
-    }
-
-    stopObservingJournalTabs = observeJournalTabTargets((target) => {
-      const onClick = (event: MouseEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
-        void journalSection.show({
-          characterId,
-          contentHost: target.contentHost,
-          tab: target.tab,
-        });
-      };
-      const onNativeTabClick = () => {
-        journalSection.hide();
-      };
-
-      target.tab.addEventListener('click', onClick);
-      for (const nativeTab of target.nativeTabs) {
-        nativeTab.addEventListener('click', onNativeTabClick);
+  const bindJournalTarget = (target: CharacterSheetJournalTabTarget) => {
+    releaseJournalBinding?.();
+    const journalHitTarget = getJournalTabHitTarget(target.tab);
+    let openedFromPointer = false;
+    const isJournalEvent = (event: Event) => {
+      const eventTarget = event.target;
+      return eventTarget instanceof Node && journalHitTarget.contains(eventTarget);
+    };
+    const openJournal = () => {
+      const activeCharacterId = readCurrentCharacterId();
+      if (activeCharacterId === null) {
+        return;
       }
-      journalCleanups.add(() => {
-        target.tab.removeEventListener('click', onClick);
-        for (const nativeTab of target.nativeTabs) {
-          nativeTab.removeEventListener('click', onNativeTabClick);
+
+      clearNativeTabSelection(target.nativeTabs, target.tab);
+      void journalSection.show({
+        characterId: activeCharacterId,
+        contentHost: target.contentHost,
+        tab: target.tab,
+      });
+    };
+    const stopSheetTabGesture = (event: Event) => {
+      if (!isJournalEvent(event)) {
+        return;
+      }
+
+      event.stopPropagation();
+    };
+    const onPointerDown = (event: Event) => {
+      if (!isJournalEvent(event)) {
+        return;
+      }
+
+      event.stopPropagation();
+      openedFromPointer = true;
+      openJournal();
+    };
+    const onClick = (event: MouseEvent) => {
+      if (!isJournalEvent(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (openedFromPointer) {
+        openedFromPointer = false;
+        return;
+      }
+
+      openJournal();
+    };
+    const onNativeTabClick = (event: Event) => {
+      if (event.currentTarget instanceof HTMLElement) {
+        markNextNativeTab(event.currentTarget);
+      }
+
+      journalSection.requestHide(undefined, () => {
+        if (event.currentTarget instanceof HTMLElement) {
+          clearNextNativeTab(event.currentTarget);
         }
       });
-    }, doc);
+    };
+
+    // The sheet listens on the tab row, often on pointerdown, before the
+    // inserted button's click listener runs. Capture on the document claims
+    // the whole Journal hit target, including its padding.
+    doc.addEventListener('pointerdown', onPointerDown, true);
+    doc.addEventListener('mousedown', stopSheetTabGesture, true);
+    doc.addEventListener('click', onClick, true);
+    for (const nativeTab of target.nativeTabs) {
+      nativeTab.addEventListener('click', onNativeTabClick);
+    }
+    releaseJournalBinding = () => {
+      doc.removeEventListener('pointerdown', onPointerDown, true);
+      doc.removeEventListener('mousedown', stopSheetTabGesture, true);
+      doc.removeEventListener('click', onClick, true);
+      for (const nativeTab of target.nativeTabs) {
+        nativeTab.removeEventListener('click', onNativeTabClick);
+      }
+    };
+
+    if (journalSection.isShown()) {
+      openJournal();
+    }
   };
 
-  const stopJournalFeature = () => {
+  const tearDownJournalChrome = () => {
     stopObservingJournalTabs?.();
     stopObservingJournalTabs = null;
+    releaseJournalBinding?.();
+    releaseJournalBinding = null;
     for (const cleanup of journalCleanups) {
       cleanup();
     }
     journalCleanups.clear();
     journalSection.hide();
   };
+
+  const startJournalFeature = () => {
+    if (stopObservingJournalTabs !== null) {
+      return;
+    }
+
+    stopObservingJournalTabs = observeJournalTabTargets(bindJournalTarget, doc);
+  };
+
+  const stopJournalFeature = () => {
+    journalSection.requestHide(() => {
+      tearDownJournalChrome();
+    });
+  };
+
+  const syncCharacterRoute = () => {
+    if (doc.location.href === knownCharacterHref) {
+      return;
+    }
+
+    knownCharacterHref = doc.location.href;
+    const nextUrl = new URL(doc.location.href);
+    if (!isCharacterPageUrl(nextUrl) || readCurrentCharacterId() === null) {
+      journalSection.requestHide(() => {
+        tearDownJournalChrome();
+      });
+      return;
+    }
+
+    journalSection.syncRoute(readCurrentCharacterId());
+  };
+
+  doc.defaultView?.addEventListener('popstate', syncCharacterRoute);
+  const routeTimer = doc.defaultView?.setInterval(syncCharacterRoute, 400);
 
   const syncJournalEnabledState = async () => {
     const generation = ++journalSyncGeneration;
@@ -173,8 +279,12 @@ export function installCharacterSheetEnhancement(
     stopObservingPortraitManagers();
     stopObserving();
     stopJournalStorageListener();
+    doc.defaultView?.removeEventListener('popstate', syncCharacterRoute);
+    if (routeTimer !== undefined) {
+      doc.defaultView?.clearInterval(routeTimer);
+    }
     journalSyncGeneration += 1;
-    stopJournalFeature();
+    tearDownJournalChrome();
     for (const cleanup of cleanups) {
       cleanup();
     }

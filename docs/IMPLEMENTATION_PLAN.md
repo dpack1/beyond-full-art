@@ -141,23 +141,22 @@ Do not ship automatic cleanup until the character ID and successful completion c
 
 Record further design changes in `docs/DECISIONS.md` before expanding this phase.
 
-Current implementation slice:
+Current implementation slice (version 2, not shipped until Dylan approves it):
 
 - extension-owned `Journal` tab inserted after D&D Beyond's `Extras` tab,
 - popup preference to enable or disable the inserted Journal tab,
-- extension-owned journal section inside the character sheet content area,
-- images area with thumbnail-space scaffolding for a later image feature,
-- local text entries keyed by D&D Beyond character ID,
-- block-based entry schema to allow future image blocks,
-- `chrome.storage.local` persistence for text entries,
-- focused unit, DOM fixture, and local Playwright fixture coverage.
+- journal list in the sheet content region, beside the tab strip,
+- right-hand note panel on `document.body`, content box about 340px, close and back in the edge chrome, theme color sampled from the sheet,
+- local markdown notes keyed by D&D Beyond character ID, schema version 2,
+- one-way migration from version 1 with a backup that is not overwritten,
+- image bytes in extension-origin IndexedDB,
+- the Extras search row (magnifier, field, funnel, Manage Notes) on one line, `[[Name]]` links, and autosave,
+- unit, DOM fixture, and Playwright coverage.
 
 Remaining work:
 
-- manually verify the live D&D Beyond character-sheet tab DOM,
-- replace or refine the adapter selector strategy if the live tab row differs
-  from local fixtures,
-- design image blocks and IndexedDB image-byte storage,
+- Dylan's live pass on Matilda Greywolf, using the checklist in
+  `docs/TESTING.md`,
 - decide whether import/export belongs in the journal feature.
 
 ### Exit criteria
