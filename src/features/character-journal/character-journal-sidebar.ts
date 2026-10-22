@@ -67,7 +67,7 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
   dialog.style.position = 'fixed';
   dialog.style.left = 'auto';
   dialog.style.right = '0px';
-  dialog.style.width = '340px';
+  dialog.style.width = 'min(400px, calc(100vw - 36px))';
   dialog.style.zIndex = '10001';
 
   const inner = doc.createElement('div');

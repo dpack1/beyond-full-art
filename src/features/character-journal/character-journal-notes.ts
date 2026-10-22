@@ -10,7 +10,6 @@ import {createJournalPhotoViewer} from './character-journal-photo-viewer';
 import {journalTypeLabel} from './character-journal-query';
 import {applyCopiedControlClasses, paintJournalSurface} from './character-journal-sheet-style';
 import type {CharacterJournalService} from './character-journal-service';
-import {journalBodyNeedsStarter, starterJournalBody} from './character-journal-templates';
 import type {JournalEntryType, JournalNote} from './character-journal-types';
 import {normalizeJournalEntryTitle, validateJournalImageFile} from './character-journal-types';
 import type {WikiAutocomplete} from './character-journal-autocomplete';
@@ -240,18 +239,12 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       }
 
       const draft = draftNote();
-      const body = journalBodyNeedsStarter(state.panel.note.type, draft.body)
-        ? starterJournalBody(type)
-        : draft.body;
       state.panel.note = {
         ...state.panel.note,
-        body,
+        body: draft.body,
         title: draft.title,
         type,
       };
-      if (panel.textarea !== null) {
-        panel.textarea.value = body;
-      }
       scheduleSave();
       renderPanel();
     },
@@ -308,7 +301,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     list.setAlert(null);
     const timestamp = new Date().toISOString();
     openNote({
-      body: starterJournalBody(type),
+      body: '',
       characterId: state.characterId,
       createdAt: timestamp,
       featuredImageId: null,

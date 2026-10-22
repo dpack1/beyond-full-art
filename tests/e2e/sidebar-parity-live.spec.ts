@@ -218,7 +218,7 @@ test('diffs the journal panel against the live Information Sidebar', async ({pag
   expect(messages, messages.join('\n')).toEqual([]);
   expect(journal.position).toBe('fixed');
   expect(journal.right).toBe('0px');
-  expect(journal.width).toBe('340px');
+  expect(journal.width).toBe('400px');
   expect(journal.zIndex).toBe('10001');
   const top = Number.parseFloat(journal.top);
   const height = Number.parseFloat(journal.height);

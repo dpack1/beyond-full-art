@@ -67,7 +67,7 @@ export interface SidebarBox {
   position: 'fixed';
   right: '0px';
   top: string;
-  width: '340px';
+  width: 'min(400px, calc(100vw - 36px))';
   zIndex: '10001';
 }
 
@@ -80,7 +80,7 @@ export function journalSidebarBox(input: {topPx: number; viewportHeight: number}
     position: 'fixed',
     right: '0px',
     top: `${top}px`,
-    width: '340px',
+    width: 'min(400px, calc(100vw - 36px))',
     zIndex: '10001',
   };
 }

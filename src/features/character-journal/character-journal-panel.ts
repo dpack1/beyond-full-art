@@ -145,7 +145,10 @@ export function createJournalPanel(
   needs.hidden = true;
   const status = doc.createElement('p');
   status.className = 'bfa-journal-status';
-  actions.append(editButton, typeSelect, tag, needs, status);
+  const stickyTools = doc.createElement('div');
+  stickyTools.className = 'bfa-journal-sticky-tools';
+  stickyTools.append(status, typeSelect, editButton);
+  actions.append(tag, needs);
   const deleteButton = button(doc, 'Delete note', 'bfa-journal-button bfa-journal-button-danger');
   footer.append(deleteButton);
 
@@ -323,9 +326,19 @@ export function createJournalPanel(
           title.textContent = model.title;
         }
         body.replaceChildren();
+        stickyTools.replaceChildren(status, typeSelect, editButton);
+        body.append(stickyTools);
         appendBanners(doc, body, model, handlers);
         if (model.mode === 'edit') {
-          textarea = appendEditor(doc, body, model, handlers, fileInput);
+          textarea = appendEditor(
+              doc,
+              body,
+              stickyTools,
+              status,
+              model,
+              handlers,
+              fileInput,
+          );
         } else {
           textarea = null;
           body.append(readMarkdown(model));
@@ -374,6 +387,8 @@ export function createJournalPanel(
 function appendEditor(
     doc: Document,
     body: HTMLElement,
+    stickyTools: HTMLElement,
+    status: HTMLElement,
     model: PanelModel,
     handlers: PanelHandlers,
     fileInput: HTMLInputElement,
@@ -462,7 +477,8 @@ function appendEditor(
   imageError.setAttribute('role', 'alert');
   imageError.hidden = model.imageError === null;
   imageError.textContent = model.imageError ?? '';
-  body.append(toolbar, imageError, field);
+  stickyTools.insertBefore(toolbar, status);
+  body.append(imageError, field);
   return textarea;
 }
 

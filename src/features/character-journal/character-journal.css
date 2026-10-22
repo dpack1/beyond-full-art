@@ -358,7 +358,8 @@
   width: 100%;
 }
 
-.bfa-journal-format-bar {
+.bfa-journal-sticky-tools {
+  align-items: center;
   background: var(--bfa-journal-background);
   box-shadow: 0 1px 0 var(--bfa-journal-line);
   display: flex;
@@ -369,6 +370,27 @@
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+.bfa-journal-format-bar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin: 0;
+}
+
+.bfa-journal-sticky-tools .bfa-journal-status {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 6px;
+  white-space: nowrap;
+}
+
+.bfa-journal-sticky-tools .bfa-journal-type {
+  flex: 0 1 110px;
+  min-height: 28px;
+  min-width: 0;
 }
 
 .bfa-journal-icon-button {

@@ -13,7 +13,7 @@ describe('journal sidebar placement', () => {
       position: 'fixed',
       right: '0px',
       top: '124px',
-      width: '340px',
+      width: 'min(400px, calc(100vw - 36px))',
       zIndex: '10001',
     });
   });

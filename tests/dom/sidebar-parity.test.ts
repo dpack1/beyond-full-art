@@ -100,7 +100,7 @@ describe('sidebar parity', () => {
     }
     expect(dialog.style.position).toBe('fixed');
     expect(dialog.style.right).toBe('0px');
-    expect(dialog.style.width).toBe('340px');
+    expect(dialog.style.width).toBe('min(400px, calc(100vw - 36px))');
     expect(dialog.style.zIndex).toBe('10001');
     expect(dialog.style.top).toBe('124px');
     expect(dialog.style.height.endsWith('px')).toBe(true);

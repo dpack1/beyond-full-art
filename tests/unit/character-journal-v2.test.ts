@@ -31,7 +31,6 @@ import {planQuickNote} from '../../src/features/character-journal/character-jour
 import {
   mergeJournalRecord,
 } from '../../src/features/character-journal/character-journal-records';
-import {starterJournalBody} from '../../src/features/character-journal/character-journal-templates';
 import {
   isJournalNote,
   type CharacterJournalEntry,
@@ -300,7 +299,6 @@ describe('journal version 2 model', () => {
     const body = '## Loot\n\n- [ ] Rope\n- [x] Map\n\nDone.';
     expect(patchTaskCheckbox(body, 0, true)).toBe('## Loot\n\n- [x] Rope\n- [x] Map\n\nDone.');
     expect(patchTaskCheckbox(body, 3, true)).toBeNull();
-    expect(starterJournalBody('npc')).toContain('## Who they are to me');
     expect(applyJournalFormat('Hello', 0, 5, 'bold').value).toBe('**Hello**');
   });
 

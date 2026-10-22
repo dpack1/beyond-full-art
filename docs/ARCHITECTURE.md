@@ -234,7 +234,7 @@ The panel is appended to `document.body`, beside the native sidebar portal, so
 a sheet `overflow: hidden` cannot clip it. It is a second copy of the
 Information Sidebar shell, not a child of the sheet's React tree. Checked
 2026-10-21 on character 4741434, bundle `main.73ca5823.js`: the open dialog is
-`ct-sidebar` plus the hashed frame classes, 340px, with the decorative border,
+`ct-sidebar` plus the hashed frame classes, up to 400px, with the decorative border,
 the gap, and the scroll body. The note uses `ct-note-manage-pane` and
 `ct-sidebar__heading`. The note dialog is `position: fixed` at `right: 0` and
 `z-index: 10001`. Its top follows the open native sidebar, and its height is

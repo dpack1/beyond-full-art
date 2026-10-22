@@ -385,29 +385,24 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('inserts starter headings only when the body is still the previous type', async () => {
+  it('changes the note type without replacing the note body', async () => {
     const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);
-    openNewSession();
+    buttonNamed('Manage Notes')?.click();
     const select = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
     const editor = document.querySelector<HTMLTextAreaElement>('.bfa-journal-editor');
     if (select === null || editor === null) {
       throw new Error('Missing type control');
     }
 
-    expect(select.value).toBe('session');
-    expect(editor.value).toContain('What happened');
-    select.value = 'npc';
-    select.dispatchEvent(new Event('change'));
-    expect(editor.value).toContain('Who they are to me');
-    expect(editor.value).not.toContain('What happened');
-
+    expect(select.value).toBe('unset');
+    expect(editor.value).toBe('');
     editor.value = 'Marcus waved.';
     editor.dispatchEvent(new Event('input'));
-    select.value = 'place';
+    select.value = 'npc';
     select.dispatchEvent(new Event('change'));
     expect(editor.value).toBe('Marcus waved.');
-    expect(select.value).toBe('place');
+    expect(select.value).toBe('npc');
     section.destroy();
   });
 
@@ -440,7 +435,7 @@ describe('character journal section', () => {
     expect(notePane?.contains(close)).toBe(false);
     expect(notePane?.querySelector('[aria-label="Prev"]')).toBeNull();
     expect(notePane?.querySelector('.bfa-journal-panel-title')).not.toBeNull();
-    expect(document.querySelector('.bfa-journal-panel-actions')?.querySelector('.bfa-journal-type'))
+    expect(document.querySelector('.bfa-journal-sticky-tools')?.querySelector('.bfa-journal-type'))
         .not.toBeNull();
 
     const unsetSelect = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
@@ -754,7 +749,7 @@ describe('character journal section', () => {
     expect(editor?.style.width).toBe('100%');
     expect(title.style.width).toBe('100%');
     expect(header?.contains(title)).toBe(true);
-    expect(header?.contains(done ?? null)).toBe(true);
+    expect(document.querySelector('.bfa-journal-sticky-tools')?.contains(done ?? null)).toBe(true);
     expect(notePane?.contains(editor)).toBe(true);
     expect(notePane?.contains(document.querySelector('[aria-label="Close"]'))).toBe(false);
     section.destroy();
