@@ -54,6 +54,7 @@ Dylan approved this after live testing. It is on main as `acd760c`.
 - Closes a note when the user clicks outside the slide-in panel, while protecting unsaved edits with the existing discard confirmation.
 - Searches, filters, and creates notes from a toolbar with search, Filter, and Manage Notes.
 - Reads markdown, and edits it with an icon toolbar and an edit toggle.
+- Preserves progress through long notes when switching between reading and editing.
 - Embeds photos inline as `![[img:<id>|caption|width]]`. The image button, paste, and drop insert one at the cursor. Large photos are resized automatically. The bytes stay in IndexedDB.
 - Follows the sheet's light and dark theme.
 

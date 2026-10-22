@@ -227,6 +227,49 @@
   width: 100%;
 }
 
+.bfa-journal-panel .bfa-journal-editor-field {
+  display: block;
+  min-height: 0;
+}
+
+.bfa-journal-panel[data-bfa-journal-mode='edit'] [data-scrollable-container='true'],
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-panel-wrapper,
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-note-pane,
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-panel-body,
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-editor-field {
+  display: flex;
+  min-height: 0;
+}
+
+.bfa-journal-panel[data-bfa-journal-mode='edit'] [data-scrollable-container='true'],
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-note-pane,
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-panel-body {
+  flex-direction: column;
+}
+
+.bfa-journal-panel[data-bfa-journal-mode='edit'] [data-scrollable-container='true'] {
+  overflow-y: hidden;
+}
+
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-panel-wrapper,
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-note-pane,
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-panel-body,
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-editor-field {
+  flex: 1 1 auto;
+}
+
+.bfa-journal-panel[data-bfa-journal-mode='edit'] .bfa-journal-panel-footer {
+  flex: 0 0 auto;
+}
+
+/* D&D Beyond grows its short note field with a generated mirror. The journal
+   editor is independently scrollable, so that mirror would create a second,
+   incomplete scroll range for long notes. */
+.bfa-journal-panel .bfa-journal-editor-field::after {
+  content: none !important;
+  display: none !important;
+}
+
 .bfa-journal-panel .bfa-journal-title-field {
   background: transparent;
   border: 1px solid #eaeaea;;
@@ -238,8 +281,12 @@
 
 .bfa-journal-editor {
   border-color: var(--bfa-journal-accent, var(--bfa-journal-border));
+  flex: 1 1 auto;
+  height: 100%;
   min-height: 180px;
+  overflow-y: auto !important;
   resize: vertical;
+  scroll-padding-block: 10px;
 }
 
 .bfa-journal-filter-button,

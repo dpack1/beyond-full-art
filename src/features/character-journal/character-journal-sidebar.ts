@@ -109,9 +109,9 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
   const nextButton = navButton(doc, 'Next', false);
   nav.append(prevButton, nextButton);
   const wrapper = doc.createElement('div');
-  wrapper.className = SIDEBAR_WRAPPER_CLASS;
+  wrapper.className = `${SIDEBAR_WRAPPER_CLASS} bfa-journal-panel-wrapper`;
   const note = doc.createElement('div');
-  note.className = SIDEBAR_NOTE_PANE_CLASS;
+  note.className = `${SIDEBAR_NOTE_PANE_CLASS} bfa-journal-note-pane`;
   note.dataset.bfaJournalNativeChrome = 'true';
   const header = doc.createElement('header');
   header.className = SIDEBAR_HEADER_CLASS;

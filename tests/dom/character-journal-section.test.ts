@@ -209,6 +209,33 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('preserves reading progress when switching to the editor', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({body: 'A long backstory.\n\n'.repeat(80), id: 'story', title: 'My Beginning'}),
+    ]));
+    await showSection(section);
+    rowNamed('My Beginning')?.click();
+    const scroller = document.querySelector<HTMLElement>('[data-scrollable-container="true"]');
+    if (scroller === null) {
+      throw new Error('Missing sidebar scroller');
+    }
+    Object.defineProperty(scroller, 'scrollHeight', {configurable: true, value: 1000});
+    Object.defineProperty(scroller, 'clientHeight', {configurable: true, value: 200});
+    scroller.scrollTop = 400;
+
+    buttonNamed('Edit')?.click();
+    const editor = document.querySelector<HTMLTextAreaElement>('.bfa-journal-editor');
+    if (editor === null) {
+      throw new Error('Missing editor');
+    }
+    Object.defineProperty(editor, 'scrollHeight', {configurable: true, value: 1200});
+    Object.defineProperty(editor, 'clientHeight', {configurable: true, value: 200});
+    await flush();
+
+    expect(editor.scrollTop).toBe(500);
+    section.destroy();
+  });
+
   it('asks before discarding a dirty note clicked away from the sidebar', async () => {
     const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);

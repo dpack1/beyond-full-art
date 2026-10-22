@@ -284,7 +284,12 @@ export function createJournalPanel(
       });
     },
     render(model) {
+      const previousMode = renderedMode;
+      const modeScrollProgress = renderedId === model.entryId && previousMode !== model.mode
+        ? scrollProgress(previousMode === 'edit' ? textarea : scroller)
+        : null;
       root.hidden = false;
+      root.dataset.bfaJournalMode = model.mode;
       shell.dialog.setAttribute('aria-label', model.title || 'Journal note');
       nav.hidden = !model.back && !model.next;
       prevButton.disabled = !model.back;
@@ -345,6 +350,20 @@ export function createJournalPanel(
         }
         appendMentions(doc, body, model, handlers);
         appendPicker(doc, body, model, handlers);
+        if (modeScrollProgress !== null) {
+          queueMicrotask(() => {
+            if (renderedId !== model.entryId || renderedMode !== model.mode) {
+              return;
+            }
+
+            if (model.mode === 'edit') {
+              scroller.scrollTop = 0;
+              restoreScrollProgress(textarea, modeScrollProgress);
+            } else {
+              restoreScrollProgress(scroller, modeScrollProgress);
+            }
+          });
+        }
       } else {
         appendBanners(doc, body, model, handlers);
         if (renderedMode === 'read' && renderedBody !== model.body) {
@@ -384,6 +403,28 @@ export function createJournalPanel(
   };
 }
 
+function scrollProgress(element: HTMLElement | null): number {
+  if (element === null) {
+    return 0;
+  }
+
+  const maximum = element.scrollHeight - element.clientHeight;
+  if (maximum <= 0) {
+    return 0;
+  }
+
+  return Math.min(1, Math.max(0, element.scrollTop / maximum));
+}
+
+function restoreScrollProgress(element: HTMLElement | null, progress: number): void {
+  if (element === null) {
+    return;
+  }
+
+  const maximum = Math.max(0, element.scrollHeight - element.clientHeight);
+  element.scrollTop = maximum * progress;
+}
+
 function appendEditor(
     doc: Document,
     body: HTMLElement,
@@ -406,7 +447,7 @@ function appendEditor(
     ['Image', 'image'],
   ];
   const field = doc.createElement('div');
-  field.className = SIDEBAR_TEXTAREA_CLASS;
+  field.className = `${SIDEBAR_TEXTAREA_CLASS} bfa-journal-editor-field`;
   field.dataset.value = model.body;
   const textarea = doc.createElement('textarea');
   textarea.className = 'bfa-journal-editor';
