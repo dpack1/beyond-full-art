@@ -11,6 +11,23 @@
   outline-offset: 2px;
 }
 
+[data-bfa-character-journal-tab-row="true"] {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-bfa-character-journal-tab-row="true"]::-webkit-scrollbar {
+  display: none;
+}
+
+[data-bfa-character-journal-tab-row="true"] > * {
+  flex-shrink: 0;
+}
+
 .bfa-character-journal-section,
 .bfa-character-journal-section * {
   box-sizing: border-box;
@@ -136,8 +153,7 @@
 
 .bfa-journal-section-toolbar,
 .bfa-journal-toolbar,
-.bfa-journal-panel-footer,
-.bfa-journal-confirm {
+.bfa-journal-panel-footer {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -213,7 +229,7 @@
 
 .bfa-journal-panel .bfa-journal-title-field {
   background: transparent;
-  border: 0;
+  border: 1px solid #eaeaea;;
   box-shadow: none;
   font: inherit;
   min-height: 0;
@@ -343,10 +359,16 @@
 }
 
 .bfa-journal-format-bar {
+  background: var(--bfa-journal-background);
+  box-shadow: 0 1px 0 var(--bfa-journal-line);
   display: flex;
   flex-wrap: nowrap;
   gap: 2px;
   margin: 0 0 8px;
+  padding: 4px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .bfa-journal-icon-button {
@@ -570,12 +592,29 @@
 .bfa-journal-confirm {
   background: var(--bfa-journal-surface);
   border: 1px solid var(--bfa-journal-border);
-  justify-content: space-between;
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
   margin-bottom: 12px;
   padding: 10px;
+  width: 100%;
 }
 
-.bfa-journal-confirm p,
+.bfa-journal-confirm p {
+  margin: 0;
+}
+
+.bfa-journal-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.bfa-journal-panel-footer .bfa-journal-confirm {
+  margin-bottom: 0;
+}
+
 .bfa-journal-banner p {
   flex: 1 1 160px;
   margin: 0;

@@ -3,6 +3,7 @@ import {
   CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME,
   CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME,
   CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME,
+  CHARACTER_SHEET_JOURNAL_TAB_ROW_ATTRIBUTE_NAME,
   CHARACTER_SHEET_SELECTOR,
   SHEET_TAB_CONTROL_SELECTOR,
   SHEET_TAB_LABELS,
@@ -118,9 +119,11 @@ export function findOrCreateJournalTab(
     if (contentHost === null) {
       return null;
     }
+    const tabRow = markJournalTabRow(existingTab);
 
     return {
       cleanup: () => {
+        tabRow?.removeAttribute(CHARACTER_SHEET_JOURNAL_TAB_ROW_ATTRIBUTE_NAME);
         removeJournalTab(existingTab);
       },
       contentHost,
@@ -145,9 +148,11 @@ export function findOrCreateJournalTab(
       `[${CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME}="true"]`,
   ) ?? journalItem;
   insertionElement.after(journalItem);
+  const tabRow = markJournalTabRow(journalTab);
 
   return {
     cleanup: () => {
+      tabRow?.removeAttribute(CHARACTER_SHEET_JOURNAL_TAB_ROW_ATTRIBUTE_NAME);
       journalItem.remove();
     },
     contentHost: contentRegion,
@@ -326,6 +331,12 @@ function getInsertionElement(extrasTab: HTMLElement): HTMLElement {
   }
 
   return extrasTab.closest('li, [role="listitem"]') ?? extrasTab;
+}
+
+function markJournalTabRow(tab: HTMLElement): HTMLElement | null {
+  const tabRow = findTabListRoot(tab);
+  tabRow?.setAttribute(CHARACTER_SHEET_JOURNAL_TAB_ROW_ATTRIBUTE_NAME, 'true');
+  return tabRow;
 }
 
 function findNativeTabs(extrasTab: HTMLElement): HTMLElement[] {

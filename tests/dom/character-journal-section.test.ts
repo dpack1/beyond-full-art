@@ -117,6 +117,32 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('replaces the footer delete button with right-aligned confirmation actions', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+    ]));
+    await showSection(section);
+    document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
+
+    buttonNamed('Delete note')?.click();
+
+    const footer = document.querySelector('.bfa-journal-panel-footer');
+    const confirm = footer?.querySelector<HTMLElement>('.bfa-journal-confirm');
+    const actions = confirm?.querySelector<HTMLElement>('.bfa-journal-confirm-actions');
+    expect(confirm?.getAttribute('role')).toBe('alertdialog');
+    expect(confirm?.textContent).toContain('Delete this note?');
+    expect(Array.from(actions?.querySelectorAll('button') ?? [], (button) => button.textContent))
+        .toEqual(['Keep note', 'Delete note']);
+    expect(actions?.className).toBe('bfa-journal-confirm-actions');
+    expect(footer?.querySelectorAll('button')).toHaveLength(2);
+    expect(document.activeElement).toBe(buttonNamed('Keep note'));
+
+    buttonNamed('Keep note')?.click();
+    expect(footer?.querySelector('.bfa-journal-confirm')).toBeNull();
+    expect(footer?.querySelector('button')?.textContent).toBe('Delete note');
+    section.destroy();
+  });
+
   it('closes a clean panel on Escape and returns focus to the row', async () => {
     const section = createCharacterJournalSection(createFakeService([
       note({id: 'door', title: 'Locked door'}),

@@ -107,6 +107,7 @@ export function createJournalPanel(
     nextButton,
     prevButton,
     root,
+    scroller,
     setDark,
     title,
   } = shell;
@@ -260,13 +261,24 @@ export function createJournalPanel(
         return;
       }
 
+      const panelScrollTop = scroller.scrollTop;
+      const editorScrollTop = textarea.scrollTop;
       textarea.value = body;
       const host = textarea.parentElement;
       if (host !== null) {
         host.dataset.value = body;
       }
-      textarea.focus();
+      textarea.focus({preventScroll: true});
       textarea.setSelectionRange(selection.start, selection.end);
+      textarea.scrollTop = editorScrollTop;
+      scroller.scrollTop = panelScrollTop;
+      queueMicrotask(() => {
+        textarea?.focus({preventScroll: true});
+        if (textarea !== null) {
+          textarea.scrollTop = editorScrollTop;
+        }
+        scroller.scrollTop = panelScrollTop;
+      });
     },
     render(model) {
       root.hidden = false;
@@ -330,10 +342,18 @@ export function createJournalPanel(
         body.querySelector('.bfa-journal-picker')?.remove();
         appendPicker(doc, body, model, handlers);
       }
-      if (model.confirm !== null) {
-        showConfirm(doc, body, model.confirm, handlers);
+      body.querySelector('.bfa-journal-confirm')?.remove();
+      footer.querySelector('.bfa-journal-confirm')?.remove();
+      if (model.confirm?.kind === 'delete') {
+        deleteButton.remove();
+        showConfirm(doc, footer, model.confirm, handlers);
       } else {
-        body.querySelector('.bfa-journal-confirm')?.remove();
+        if (!footer.contains(deleteButton)) {
+          footer.append(deleteButton);
+        }
+        if (model.confirm !== null) {
+          showConfirm(doc, body, model.confirm, handlers);
+        }
       }
       if (!root.contains(doc.activeElement)) {
         closeButton.focus();
@@ -579,11 +599,11 @@ function appendMentions(
 
 function showConfirm(
     doc: Document,
-    body: HTMLElement,
+    host: HTMLElement,
     confirm: PanelConfirmModel,
     handlers: PanelHandlers,
 ): void {
-  body.querySelector('.bfa-journal-confirm')?.remove();
+  host.querySelector('.bfa-journal-confirm')?.remove();
   const dialog = doc.createElement('div');
   dialog.className = 'bfa-journal-confirm';
   dialog.setAttribute('role', 'alertdialog');
@@ -592,10 +612,13 @@ function showConfirm(
   question.textContent = confirm.question;
   const safe = button(doc, confirm.safe, 'bfa-journal-button');
   const danger = button(doc, confirm.danger, 'bfa-journal-button bfa-journal-button-danger');
+  const actions = doc.createElement('div');
+  actions.className = 'bfa-journal-confirm-actions';
   safe.addEventListener('click', () => handlers.onConfirm(false));
   danger.addEventListener('click', () => handlers.onConfirm(true));
-  dialog.append(question, safe, danger);
-  body.prepend(dialog);
+  actions.append(safe, danger);
+  dialog.append(question, actions);
+  host.prepend(dialog);
   if (typeof dialog.scrollIntoView === 'function') {
     dialog.scrollIntoView({block: 'nearest'});
   }

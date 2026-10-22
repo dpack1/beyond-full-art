@@ -43,6 +43,7 @@ export interface JournalSidebarShell {
   nextButton: HTMLButtonElement;
   prevButton: HTMLButtonElement;
   root: HTMLElement;
+  scroller: HTMLElement;
   setDark(on: boolean): void;
   title: HTMLElement;
 }
@@ -150,6 +151,7 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
     nextButton,
     prevButton,
     root,
+    scroller: content,
     setDark(on: boolean) {
       dialog.classList.toggle(SIDEBAR_DARK_MODE_CLASS, on);
       for (const target of darkTargets) {

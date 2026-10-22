@@ -195,7 +195,21 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 
 ## Validation
 
-Before declaring a change complete, run:
+Favor quick feedback during small UI iterations. For a localized visual,
+layout, or copy adjustment, make the change and run only:
+
+```text
+npm run build
+```
+
+Hand the result back to Dylan for manual QA. Do not automatically run the full
+unit, typecheck, or Playwright suites for these small iterations unless Dylan
+asks, the build fails in a way that needs diagnosis, or the change also affects
+storage, data safety, parsing, permissions, request handling, selectors, or
+other non-trivial behavior.
+
+For substantial or higher-risk changes, and before a requested release or PR,
+run:
 
 ```text
 npm run typecheck
@@ -203,7 +217,10 @@ npm test
 npm run build
 ```
 
-Run `npm run test:e2e` when a change touches a content script, a D&D Beyond adapter, or the selector map. Run the live selector check from [Tests](#tests) when a logged-in sheet is available.
+Run `npm run test:e2e` for substantial content-script changes, D&D Beyond
+adapter or selector-map changes, or when Dylan explicitly requests it. Run the
+live selector check from [Tests](#tests) when a logged-in sheet is available
+and live verification is part of the requested work.
 
 Add or update tests for non-trivial parsing, storage, preference, request-correlation, and selector logic. For D&D Beyond DOM changes, include concise manual verification steps in the pull request. The live checklists are in `docs/TESTING.md`. The sheet reference is `docs/ddb-reference/README.md`.
 

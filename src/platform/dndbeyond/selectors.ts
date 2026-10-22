@@ -691,5 +691,7 @@ export const CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME =
   'data-bfa-character-journal-tab';
 export const CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME =
   'data-bfa-character-journal-tab-item';
+export const CHARACTER_SHEET_JOURNAL_TAB_ROW_ATTRIBUTE_NAME =
+  'data-bfa-character-journal-tab-row';
 export const CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME =
   'bfa-character-journal-tab';
