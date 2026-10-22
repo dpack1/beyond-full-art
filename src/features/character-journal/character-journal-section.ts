@@ -107,6 +107,7 @@ export function createCharacterJournalSection(
   doc.body.append(notes.panel.root);
   doc.addEventListener('click', keepNotePanelDocked, true);
   doc.addEventListener('click', keepNotePanelDocked);
+  doc.addEventListener('click', dismissNoteFromOutside);
   doc.defaultView?.addEventListener('resize', fitOpenJournal);
   doc.addEventListener('visibilitychange', () => {
     if (doc.visibilityState === 'hidden') {
@@ -232,6 +233,7 @@ export function createCharacterJournalSection(
   function destroy(): void {
     doc.removeEventListener('click', keepNotePanelDocked, true);
     doc.removeEventListener('click', keepNotePanelDocked);
+    doc.removeEventListener('click', dismissNoteFromOutside);
     doc.defaultView?.removeEventListener('resize', fitOpenJournal);
     hide();
     flags.pendingTeardown = null;
@@ -429,6 +431,23 @@ export function createCharacterJournalSection(
     if (!notes.panel.root.hidden) {
       notes.panel.place();
     }
+  }
+
+  function dismissNoteFromOutside(event: MouseEvent): void {
+    const target = event.target;
+    const path = event.composedPath();
+    if (
+      notes.panel.root.hidden
+      || !(target instanceof Node)
+      || path.includes(notes.panel.root)
+      || path.includes(list.root)
+      || path.some((node) =>
+        node instanceof Element && node.classList.contains('bfa-journal-photo-viewer'))
+    ) {
+      return;
+    }
+
+    notes.dismissFromOutside();
   }
 
   function fitOpenJournal(): void {

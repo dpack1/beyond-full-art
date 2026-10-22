@@ -163,6 +163,89 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('closes a clean note when clicking outside without stealing focus', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+    ]));
+    await showSection(section);
+    rowNamed('Locked door')?.click();
+    const outside = document.createElement('button');
+    outside.textContent = 'Outside action';
+    document.body.append(outside);
+    outside.focus();
+
+    outside.click();
+
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(document.activeElement).toBe(outside);
+    section.destroy();
+  });
+
+  it('does not treat the click that opens a note as an outside click', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+    ]));
+    await showSection(section);
+
+    rowNamed('Locked door')?.click();
+
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+    expect(document.querySelector('.bfa-journal-panel-title')?.textContent).toBe('Locked door');
+    section.destroy();
+  });
+
+  it('keeps the sidebar open when an inside button rerenders its clicked icon', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+    ]));
+    await showSection(section);
+    rowNamed('Locked door')?.click();
+    const editIcon = buttonNamed('Edit')?.querySelector('svg');
+
+    editIcon?.dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true}));
+
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+    expect(document.querySelector('.bfa-journal-editor')).not.toBeNull();
+    section.destroy();
+  });
+
+  it('asks before discarding a dirty note clicked away from the sidebar', async () => {
+    const section = createCharacterJournalSection(createFakeService([]));
+    await showSection(section);
+    openNewSession();
+    titleField().value = 'Keep this draft';
+    titleField().dispatchEvent(new Event('input'));
+    const outside = document.createElement('button');
+    outside.textContent = 'Outside action';
+    document.body.append(outside);
+
+    outside.click();
+
+    expect(document.querySelector('.bfa-journal-confirm')?.textContent)
+        .toContain('This note is not saved yet.');
+    expect(titleField().value).toBe('Keep this draft');
+    buttonNamed('Keep editing')?.click();
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+
+    outside.click();
+    buttonNamed('Discard')?.click();
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    section.destroy();
+  });
+
+  it('does not dismiss the note for clicks in the photo viewer', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+    ]));
+    await showSection(section);
+    rowNamed('Locked door')?.click();
+    const viewer = document.querySelector<HTMLElement>('.bfa-journal-photo-viewer');
+    viewer?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+    section.destroy();
+  });
+
   it('returns to the journal list when Close discards a draft', async () => {
     const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);

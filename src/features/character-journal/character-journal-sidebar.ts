@@ -227,6 +227,7 @@ function borderSvg(doc: Document, bottom: boolean): SVGElement {
     class: bottom
       ? `${SIDEBAR_BORDER_CLASS} ${SIDEBAR_BORDER_BOTTOM_CLASS}`
       : SIDEBAR_BORDER_CLASS,
+    preserveAspectRatio: 'none',
     viewBox: '0 0 340 18',
   }, [
     svg(doc, 'path', {

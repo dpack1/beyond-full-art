@@ -48,7 +48,8 @@ export interface JournalNoteFlags {
 
 export interface JournalNotes {
   cancelSave(): void;
-  closePanel(): void;
+  closePanel(options?: {restoreFocus?: boolean}): void;
+  dismissFromOutside(): void;
   finishPendingHide(): void;
   isDirty(): boolean;
   openNew(type: JournalEntryType, returnFocus: HTMLElement): void;
@@ -89,6 +90,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     state,
   } = deps;
   let saveTimer = 0;
+  let outsideDiscardPending = false;
 
   const panel = createJournalPanel(doc, {
     onBack: () => {
@@ -147,6 +149,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       }
 
       if (!accepted) {
+        outsideDiscardPending = false;
         const cancel = flags.hideCancel;
         flags.hideCancel = null;
         cancel?.();
@@ -168,7 +171,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       }
 
       if (kind === 'discard') {
-        closePanel();
+        closePanel({restoreFocus: !outsideDiscardPending});
         return;
       }
 
@@ -344,6 +347,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       stale: false,
       status: null,
     };
+    outsideDiscardPending = false;
     list.root.inert = true;
     renderPanel();
     watchEditorAutocomplete();
@@ -362,7 +366,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     openNote(note, 'read', state.panel.returnFocus, history);
   }
 
-  function closePanel(): void {
+  function closePanel(options: {restoreFocus?: boolean} = {}): void {
     const returnTarget = state.panel?.returnFocus ?? null;
     const adoptRoute = state.routeId !== null && state.routeId !== state.characterId;
     state.panel = null;
@@ -370,7 +374,10 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     panel.root.hidden = true;
     list.root.inert = false;
     list.setAlert(null);
-    restoreFocus(returnTarget);
+    outsideDiscardPending = false;
+    if (options.restoreFocus !== false) {
+      restoreFocus(returnTarget);
+    }
     if (adoptRoute && state.routeId !== null && !flags.suppressRouteAdopt) {
       state.characterId = state.routeId;
       void reload();
@@ -444,6 +451,21 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     }
 
     state.panel.confirm = flags.pendingTeardown === null ? 'discard' : 'hide';
+    renderPanel();
+  }
+
+  function dismissFromOutside(): void {
+    if (state.panel === null || state.panel.confirm !== null) {
+      return;
+    }
+
+    if (state.panel.mismatch || !isDirty()) {
+      closePanel({restoreFocus: false});
+      return;
+    }
+
+    outsideDiscardPending = true;
+    state.panel.confirm = 'discard';
     renderPanel();
   }
 
@@ -754,6 +776,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       saveTimer = 0;
     },
     closePanel,
+    dismissFromOutside,
     finishPendingHide,
     isDirty,
     openNew,

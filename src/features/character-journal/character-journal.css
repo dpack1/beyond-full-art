@@ -598,6 +598,7 @@
 
 .bfa-journal-frame {
   flex-shrink: 0;
+  width: 100%;
 }
 
 .bfa-journal-panel-actions {
@@ -608,6 +609,8 @@
 }
 
 .bfa-journal-panel-footer {
+  display: flex;
+  justify-content: flex-end;
   margin-top: 12px;
 }
 
