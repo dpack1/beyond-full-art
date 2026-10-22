@@ -14,10 +14,13 @@ import {
   CHARACTER_JOURNAL_SCHEMA_VERSION,
   JOURNAL_NOTE_SCHEMA_VERSION,
   isCharacterJournalEntry,
+  isJournalNote,
+  type JournalNote,
 } from '../../features/character-journal/character-journal-types';
 import {
   countUnreadableJournalRecords,
   mergeJournalEntry,
+  mergeJournalRecord,
   omitJournalEntry,
   readJournalRecordArray,
 } from '../../features/character-journal/character-journal-records';
@@ -45,6 +48,11 @@ type ChromeStorageLocal = Pick<
   chrome.storage.StorageArea,
   'get' | 'remove' | 'set'
 >;
+
+export interface StoredCharacterJournalRecords {
+  characterId: CharacterId;
+  records: unknown[];
+}
 
 export async function getStoredCharacterArtMetadata(
     characterId: CharacterId,
@@ -240,6 +248,45 @@ export async function readRawCharacterJournalRecords(
 ): Promise<unknown[]> {
   return readCharacterJournalRecords(characterId, storageArea);
 }
+
+export async function getAllRawCharacterJournalRecords(
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<StoredCharacterJournalRecords[]> {
+  const storedValues = await callStorageGetAll(storageArea);
+  return Object.entries(storedValues)
+      .filter(([key]) => key.startsWith(CHARACTER_JOURNAL_ENTRIES_KEY_PREFIX))
+      .map(([key, value]) => ({
+        characterId: key.slice(CHARACTER_JOURNAL_ENTRIES_KEY_PREFIX.length),
+        records: readJournalRecordArray(value),
+      }))
+      .filter((journal) => journal.characterId !== '' && journal.records.length > 0)
+      .sort((left, right) => left.characterId.localeCompare(right.characterId));
+}
+
+
+export async function mergeImportedCharacterJournalRecords(
+    characterId: CharacterId,
+    imported: readonly (CharacterJournalEntry | JournalNote)[],
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<void> {
+  const matching = imported.filter((record) => record.characterId === characterId);
+  if (matching.length === 0) {
+    return;
+  }
+
+  await updateCharacterJournalRecords(characterId, (records) => {
+    return matching.reduce<unknown[]>((next, record) =>
+      mergeJournalRecord(next, record), [...records]);
+  }, storageArea, JOURNAL_NOTE_SCHEMA_VERSION);
+}
+
+export function readableImportedJournalRecords(
+    records: readonly unknown[],
+): (CharacterJournalEntry | JournalNote)[] {
+  return records.filter((record): record is CharacterJournalEntry | JournalNote =>
+    isCharacterJournalEntry(record) || isJournalNote(record));
+}
+
 
 export async function updateJournalNoteRecords(
     characterId: CharacterId,

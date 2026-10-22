@@ -7,7 +7,9 @@ import {
   deleteStoredCharacterArtMetadata,
   deleteStoredCharacterPortraitCropMetadata,
   getAllStoredCharacterArtMetadata,
+  getAllRawCharacterJournalRecords,
   getCharacterJournalEntries,
+  mergeImportedCharacterJournalRecords,
   getStoredCharacterArtMetadata,
   getStoredCharacterPortraitCropMetadata,
   setCharacterJournalEntry,
@@ -251,6 +253,21 @@ describe('character art storage metadata', () => {
     ]);
   });
 
+  it('lists raw journal records for every character without dropping unreadable data', async () => {
+    const storageArea = createFakeStorageArea();
+    storageArea.set({
+      'bfa.characterJournal.entries.222': [{id: 'unknown-shape'}],
+      'bfa.characterJournal.entries.111': [{id: 'note-1', schemaVersion: 2}],
+      'bfa.characterJournal.entries.empty': [],
+      'unrelated': ['leave me alone'],
+    }, () => undefined);
+
+    expect(await getAllRawCharacterJournalRecords(storageArea as never)).toEqual([
+      {characterId: '111', records: [{id: 'note-1', schemaVersion: 2}]},
+      {characterId: '222', records: [{id: 'unknown-shape'}]},
+    ]);
+  });
+
   it('keeps an unreadable record when another note is saved', async () => {
     const storageArea = createFakeStorageArea();
     const unreadable = {id: 'entry-2', title: 'Missing blocks'};
@@ -273,6 +290,43 @@ describe('character art storage metadata', () => {
         updatedAt: '2026-10-12T00:00:00.000Z',
       }),
     ]);
+  });
+
+  it('imports new notes without replacing a newer local note or unknown data', async () => {
+    const storageArea = createFakeStorageArea();
+    const unknown = {id: 'future-entry', schemaVersion: 99};
+    const newerLocal = createJournalEntry({
+      id: 'entry-1',
+      title: 'Newer local',
+      updatedAt: '2026-10-22T00:00:00.000Z',
+    });
+    storageArea.set({
+      'bfa.characterJournal.entries.169418374': [unknown, newerLocal],
+    }, () => undefined);
+
+    await mergeImportedCharacterJournalRecords('169418374', [
+      createJournalEntry({
+        id: 'entry-1',
+        title: 'Older backup',
+        updatedAt: '2026-10-21T00:00:00.000Z',
+      }),
+      createJournalEntry({
+        id: 'entry-2',
+        title: 'Backup only',
+        updatedAt: '2026-10-20T00:00:00.000Z',
+      }),
+    ], storageArea as never);
+
+    expect(storageArea.values['bfa.characterJournal.entries.169418374'])
+        .toEqual([
+          unknown,
+          newerLocal,
+          createJournalEntry({
+            id: 'entry-2',
+            title: 'Backup only',
+            updatedAt: '2026-10-20T00:00:00.000Z',
+          }),
+        ]);
   });
 
   it('retries a journal write that lost a concurrent note', async () => {

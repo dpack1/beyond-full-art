@@ -40,13 +40,26 @@ The crop dialog frames a square from the stored full art, or from a file that ha
 
 When the viewer is showing stored full art, **Download full art** saves that file through a normal browser download. The same viewer can **Remove stored full art**. Removal deletes only the local copy. The D&D Beyond portrait stays as it is. Downloads use a temporary link and the existing `storage` permission.
 
-### Extension popup: settings and stored-art inventory
+### Extension popup: settings and stored content
 
 Click the toolbar icon to open the popup.
 
 - **Improve character card portraits** upgrades small campaign and My Characters avatars to a sharper image URL. It is on by default.
 - **Character Journal tab** shows or hides the sheet's Journal tab. Turning it off does not delete entries. It is on by default.
-- **Stored full art** lists every locally saved full-art image, with the file name, character ID, size, and updated date. Each row can **Open** the character sheet, **Download** the image, or **Delete** the local copy.
+- **Stored content** groups local full art and journals by character. Each character can be opened, its art downloaded or deleted, and its journal exported or imported. Journal exports are ZIP files with Markdown notes, photos, and versioned recovery data. **Export all journals** and **Import backup** support whole-extension recovery, including a fresh install with no stored characters yet.
+
+#### Back up and restore journals
+
+Use **Export all journals** before updating or removing the extension. The ZIP
+contains readable Markdown notes and ordinary photo files under each character
+ID, plus `backup.json` for reliable restoration. A character row can export
+only that journal.
+
+Use **Import backup** and select the exported ZIP to restore it. Import merges
+by the stable note ID: missing notes are added, the newest `updatedAt` version
+wins, unrelated local notes remain, and existing photo blobs are not
+overwritten. Selecting **Import** on a character row accepts only that
+character from the backup. Older HTML backups remain importable.
 
 ### Character card portraits
 
@@ -58,7 +71,7 @@ On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras*
 
 ### Not built yet
 
-Character-deletion cleanup is specified in `docs/PRODUCT_SPEC.md` and researched in `docs/NETWORK_DELETE_RESEARCH.md`. The extension does not yet notice when a D&D Beyond character is deleted, and it does not offer to delete the matching local art. Journal popup access and export, a versioned format doc and import, and extras images are still later work.
+Character-deletion cleanup is specified in `docs/PRODUCT_SPEC.md` and researched in `docs/NETWORK_DELETE_RESEARCH.md`. The extension does not yet notice when a D&D Beyond character is deleted, and it does not offer to delete the matching local art. Extras images are still later work.
 
 ## Screenshots
 
@@ -294,11 +307,10 @@ Available now:
 - Optional character-card portrait enhancement
 - Manual removal of stored full art
 - Character journal (beta)
+- Journal ZIP backup and merge-safe restore from the extension popup
 
 Planned next:
 
-- Journal popup access, with export
-- A versioned journal format doc, plus import
 - Extras images
 - Cleanup of local art and journal data when a D&D Beyond character is deleted
 
@@ -308,7 +320,8 @@ Planned next:
 - Local art is tied to the browser where you installed the extension.
 - Only one active full-art image is stored per character right now.
 - There is not yet a built-in storage dashboard or usage meter beyond the popup inventory summary.
-- Journal photos are one image per add, in PNG, JPEG, or WebP. The note body places each one with `![[img:<id>|caption|width]]`. Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. There is no journal import or export.
+- Journal photos are one image per add, in PNG, JPEG, or WebP. The note body places each one with `![[img:<id>|caption|width]]`. Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. Export and import are available in the popup.
+- Journal ZIP folders use the stable D&D Beyond character ID. Using the full character name reliably is deferred.
 - A long journal title is cut off in the edit-mode input. A plain line right after a list item joins that bullet, which is ordinary markdown.
 
 ## Disclaimer

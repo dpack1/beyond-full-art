@@ -141,7 +141,7 @@ Do not ship automatic cleanup until the character ID and successful completion c
 
 Record further design changes in `docs/DECISIONS.md` before expanding this phase.
 
-Current implementation slice (version 2, not shipped until Dylan approves it):
+Current shipped beta implementation (version 2):
 
 - extension-owned `Journal` tab inserted after D&D Beyond's `Extras` tab,
 - popup preference to enable or disable the inserted Journal tab,
@@ -150,14 +150,10 @@ Current implementation slice (version 2, not shipped until Dylan approves it):
 - local markdown notes keyed by D&D Beyond character ID, schema version 2,
 - one-way migration from version 1 with a backup that is not overwritten,
 - image bytes in extension-origin IndexedDB,
+- ZIP export from the popup, with Markdown notes, photo files, and raw versioned recovery data,
+- popup import for all journals or one matching character, merging supported notes without replacing newer local versions,
 - the Extras search row (magnifier, field, funnel, Manage Notes) on one line, `[[Name]]` links, and autosave,
 - unit, DOM fixture, and Playwright coverage.
-
-Remaining work:
-
-- Dylan's live pass on Matilda Greywolf, using the checklist in
-  `docs/TESTING.md`,
-- decide whether import/export belongs in the journal feature.
 
 ### Exit criteria
 

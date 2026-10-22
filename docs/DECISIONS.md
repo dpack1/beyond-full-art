@@ -370,3 +370,25 @@ still renders. A photo record that is not mentioned by either syntax gets
 under the text is not dropped. Deleting the embed marks the blob orphaned on
 the next save and deletes it on a save at least 30 seconds later, which leaves
 room to undo. Deleting the note deletes its blobs immediately.
+
+## ADR-025: Journal export is one portable ZIP
+
+Status: Accepted.
+
+The popup exports character journals into one ZIP. Character folders contain
+ordinary Markdown notes and photo files, while `backup.json` preserves the raw
+storage arrays and their photo paths for import. Export reads storage without
+migrating it, retains unreadable records, and reports missing photos without
+discarding the rest.
+
+Why:
+
+- Markdown and ordinary image files remain readable if D&D Beyond changes or
+  the user stops using the extension.
+- One ZIP is easier to keep than loose files. A small stored-ZIP implementation
+  avoids a runtime dependency and the `downloads` permission.
+- Preserving raw records prevents a newer or temporarily unreadable record
+  from being silently lost.
+- Import treats the file as untrusted input, accepts only supported notes and
+  photos, keeps newer local note versions, and does not overwrite existing
+  photo blobs.

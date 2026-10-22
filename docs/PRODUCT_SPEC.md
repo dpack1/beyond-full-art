@@ -199,6 +199,9 @@ a single long native notes field.
 - Keep journal data separate from D&D Beyond notes, backstory, and extras.
 - Preserve unsaved editor text when a save fails.
 - Preserve entries when a delete fails.
+- Export every locally stored character journal from the extension popup as a ZIP of Markdown notes, photos, and recovery data that remains readable without D&D Beyond or the extension.
+- Preserve journal photos and raw stored records in that export so unreadable records are not silently lost.
+- Import that backup for all characters or one matching character, preserving newer local notes and existing local photo blobs.
 - Follow the character sheet's light and Underdark appearance, including a
   change made while Journal is open.
 
@@ -228,7 +231,6 @@ a single long native notes field.
 
 ### Deferred product decisions
 
-- Importing or exporting journals.
 - A quest-status control. The field is stored as null.
 - Optional future sync to D&D Beyond fields.
 

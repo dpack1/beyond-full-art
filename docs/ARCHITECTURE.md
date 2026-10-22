@@ -430,6 +430,26 @@ blocks store the blob key, file name, MIME type, byte size, and dimensions.
 They do not store image bytes. Schema version remains 1 so text-only entries
 saved before photos shipped still load.
 
+## Character journal export
+
+The extension popup reads every `bfa.characterJournal.entries.*` array without
+mutating or migrating it, including records the current journal UI cannot
+parse. It asks the existing journal image message boundary for each referenced
+photo and downloads one ZIP through a temporary Blob URL.
+No `downloads` permission is required.
+
+The ZIP uses the stable character ID for each character folder, note titles for
+Markdown filenames, and original photo filenames for photos. It has one
+Markdown file for every valid version 1 or version 2 note,
+ordinary photo files, and a `backup.json` containing the versioned export and
+raw record arrays. Import validates the container, supported record schemas,
+photo keys, MIME types, and
+size limits. It merges notes by ID and timestamp, preserving newer local notes,
+and restores only missing photo blobs. Legacy HTML backups remain importable.
+A missing photo is recorded as missing without preventing the remaining
+journals from being exported. The format is documented in
+[`JOURNAL_EXPORT_FORMAT.md`](JOURNAL_EXPORT_FORMAT.md).
+
 ### Phase 3 implementation direction chosen on 2026-08-06
 
 The current crop implementation uses:

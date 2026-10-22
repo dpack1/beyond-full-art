@@ -1,6 +1,6 @@
 # D&D Beyond character sheet reference
 
-**Last verified:** 2026-10-20
+**Last verified:** 2026-10-22
 
 **Reference and live-QA character:** Matilda Greywolf, Level 2 Warlock
 
@@ -18,7 +18,7 @@ Each fact is tagged with one of:
 - **from-screenshot** — measured or read from the images in this folder.
 - **unverified** — not in saved HTML, fixtures, or a screenshot.
 
-`ddbc-tab-list__nav-item`, `ddbc-tab-list__nav-item--is-active`, `ct-primary-box`, and `ct-theme-dark` are strings the selector map asks the live check to find. They are **from-code** until that check passes. `ct-character-sheet--dark-mode` is **unverified**: it is not in the fixtures and no adapter uses it. The live selector-health check in [docs/TESTING.md](../TESTING.md#selector-health) is how those class names get verified.
+`ddbc-tab-list__nav-item`, `ddbc-tab-list__nav-item--is-active`, `ct-primary-box`, and `ct-theme-dark` are strings the selector map asks the live check to find. They are **from-code** until that check passes. A live DevTools capture on 2026-10-22 confirmed the current sheet renders “Matilda Greywolf” in an `h1`, but its `styles_characterName__*` class is hashed and must not be used. Character-name persistence for export remains deferred; ZIP folders currently use the stable character ID. `ct-character-sheet--dark-mode` is **unverified**: it is not in the fixtures and no adapter uses it. The live selector-health check in [docs/TESTING.md](../TESTING.md#selector-health) is how those class names get verified.
 
 The red lines on section frames, ability boxes, the active-tab underline, and the side-panel border are D&D Beyond's own borders, drawn in the character's theme color. Matilda's sheet decoration uses red (`#c53131` on these captures, about 2px, square corners). Light mode and Underdark Mode use that same theme color for the frames. Other characters can have other theme colors. Sizes below were measured to the outer edge of those borders on the original 1920×1200 captures. **from-screenshot**
 

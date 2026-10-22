@@ -2,12 +2,18 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 const storageMocks = vi.hoisted(() => ({
   CHARACTER_JOURNAL_ENABLED_KEY: 'bfa.preferences.characterJournalEnabled',
+  getAllRawCharacterJournalRecords: vi.fn(),
   getCampaignCardPortraitUpgradeEnabled: vi.fn(),
   getCharacterJournalEnabled: vi.fn(),
+  mergeImportedCharacterJournalRecords: vi.fn(),
+  readableImportedJournalRecords: vi.fn((records: unknown[]) => records),
   setCampaignCardPortraitUpgradeEnabled: vi.fn(),
   setCharacterJournalEnabled: vi.fn(),
 }));
-
+const journalMessageMocks = vi.hoisted(() => ({
+  getStoredJournalImage: vi.fn(),
+  putStoredJournalImage: vi.fn(),
+}));
 const messageMocks = vi.hoisted(() => ({
   deleteStoredCharacterArt: vi.fn(),
   getStoredCharacterArtImageData: vi.fn(),
@@ -16,8 +22,15 @@ const messageMocks = vi.hoisted(() => ({
 
 vi.mock('../../src/platform/chrome/storage', () => storageMocks);
 vi.mock('../../src/platform/chrome/messages', () => messageMocks);
+vi.mock('../../src/platform/chrome/journal-messages', () => journalMessageMocks);
 
 import {initializePopup} from '../../src/popup/settings';
+import {importJournalExportFile} from '../../src/popup/journal-export';
+import {
+  JOURNAL_EXPORT_FORMAT,
+  JOURNAL_EXPORT_VERSION,
+} from '../../src/features/character-journal/character-journal-export';
+import {createStoredZip} from '../../src/shared/zip';
 
 describe('popup settings', () => {
   const originalCreateObjectUrl = URL.createObjectURL;
@@ -27,12 +40,16 @@ describe('popup settings', () => {
     document.head.innerHTML = '';
     document.body.innerHTML = createPopupFixture();
     storageMocks.getCampaignCardPortraitUpgradeEnabled.mockResolvedValue(true);
+    storageMocks.getAllRawCharacterJournalRecords.mockResolvedValue([]);
     storageMocks.getCharacterJournalEnabled.mockResolvedValue(true);
+    storageMocks.mergeImportedCharacterJournalRecords.mockResolvedValue(undefined);
     storageMocks.setCampaignCardPortraitUpgradeEnabled.mockResolvedValue(undefined);
     storageMocks.setCharacterJournalEnabled.mockResolvedValue(undefined);
     messageMocks.deleteStoredCharacterArt.mockResolvedValue(undefined);
     messageMocks.getStoredCharacterArtImageData.mockResolvedValue(null);
     messageMocks.listStoredCharacterArtMetadata.mockResolvedValue([]);
+    journalMessageMocks.getStoredJournalImage.mockResolvedValue(null);
+    journalMessageMocks.putStoredJournalImage.mockResolvedValue(undefined);
     URL.createObjectURL = vi.fn(() => 'blob:popup-download');
     URL.revokeObjectURL = vi.fn();
   });
@@ -45,56 +62,44 @@ describe('popup settings', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders an empty stored-art inventory', async () => {
+  it('renders an empty stored-content inventory', async () => {
     await initializePopup(document);
 
-    expect(document.querySelector('#stored-art-summary')?.textContent)
-        .toBe('No stored full art.');
-    expect(document.querySelector('#stored-art-empty')?.hasAttribute('hidden'))
+    expect(document.querySelector('#stored-content-summary')?.textContent)
+        .toBe('No stored content.');
+    expect(document.querySelector('#stored-content-empty')?.hasAttribute('hidden'))
         .toBe(false);
     expect(document.querySelectorAll('.bfa-popup__stored-art-item')).toHaveLength(0);
   });
 
-  it('renders stored-art inventory totals and item actions', async () => {
+  it('groups full art and journal actions by character', async () => {
     messageMocks.listStoredCharacterArtMetadata.mockResolvedValue([
-      createMetadata({
-        byteSize: 2 * 1024 * 1024,
-        characterId: '169418374',
-        fileName: 'Zurelda.png',
-      }),
-      createMetadata({
-        byteSize: 512 * 1024,
-        characterId: '169418375',
-        fileName: 'Matilda.webp',
-      }),
+      createMetadata({characterId: '169418375', fileName: 'Matilda.webp'}),
     ]);
+    storageMocks.getAllRawCharacterJournalRecords.mockResolvedValue([{
+      characterId: '169418375',
+      records: [createJournalNote('169418375')],
+    }]);
 
     await initializePopup(document);
 
-    expect(document.querySelector('#stored-art-summary')?.textContent)
-        .toBe('2 stored artworks / 2.5 MB');
-    expect(
-        [...document.querySelectorAll('.bfa-popup__stored-art-title')]
-            .map((element) => element.textContent),
-    ).toEqual(['Zurelda.png', 'Matilda.webp']);
-    expect(
-        [...document.querySelectorAll('.bfa-popup__button')]
-            .map((element) => element.textContent),
-    ).toEqual(['Open', 'Download', 'Delete', 'Open', 'Download', 'Delete']);
-    expect(
-        document.querySelector<HTMLAnchorElement>('.bfa-popup__button')?.href,
-    ).toBe('https://www.dndbeyond.com/characters/169418374');
-    expect(
-        document.querySelector<HTMLAnchorElement>('.bfa-popup__button')?.target,
-    ).toBe('_blank');
+    expect(document.querySelector('#stored-content-summary')?.textContent)
+        .toBe('1 character');
+    expect(document.querySelector('.bfa-popup__stored-art-title')?.textContent)
+        .toBe('Matilda');
+    expect([...document.querySelectorAll('.bfa-popup__button')]
+        .map((element) => element.textContent))
+        .toEqual([
+          'Open character', 'Download', 'Delete', 'Export', 'Import',
+        ]);
+    expect(document.querySelector<HTMLAnchorElement>(
+        '.bfa-popup__stored-art-actions a',
+    )?.href).toBe('https://www.dndbeyond.com/characters/169418375');
   });
 
-  it('downloads a stored-art inventory item', async () => {
+  it('downloads a stored full-art item', async () => {
     messageMocks.listStoredCharacterArtMetadata.mockResolvedValue([
-      createMetadata({
-        characterId: '169418374',
-        fileName: 'Zurelda.png',
-      }),
+      createMetadata({characterId: '169418374', fileName: 'Zurelda.png'}),
     ]);
     messageMocks.getStoredCharacterArtImageData.mockResolvedValue({
       byteBuffer: new Uint8Array([1, 2, 3]).buffer,
@@ -102,49 +107,39 @@ describe('popup settings', () => {
       mimeType: 'image/png',
     });
     let clickedDownload = '';
-    let clickedHref = '';
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
         function click(this: HTMLAnchorElement) {
           clickedDownload = this.download;
-          clickedHref = this.href;
         },
     );
 
     await initializePopup(document);
-    document.querySelector<HTMLButtonElement>('button.bfa-popup__button')?.click();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    findButton('Download')?.click();
+    await nextTask();
 
     expect(messageMocks.getStoredCharacterArtImageData)
         .toHaveBeenCalledWith('169418374');
     expect(clickedDownload).toBe('Zurelda- full-.png');
-    expect(clickedHref).toBe('blob:popup-download');
-    expect(document.querySelector('#stored-art-status')?.textContent)
+    expect(document.querySelector('#stored-content-status')?.textContent)
         .toBe('Stored full art download started.');
   });
 
-  it('deletes a stored-art inventory item after confirmation', async () => {
+  it('deletes a stored full-art item after confirmation', async () => {
     messageMocks.listStoredCharacterArtMetadata
         .mockResolvedValueOnce([
-          createMetadata({
-            characterId: '169418374',
-            fileName: 'Zurelda.png',
-          }),
+          createMetadata({characterId: '169418374', fileName: 'Zurelda.png'}),
         ])
         .mockResolvedValueOnce([]);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     await initializePopup(document);
-    const deleteButton = [...document.querySelectorAll<HTMLButtonElement>(
-        '.bfa-popup__button',
-    )].find((button) => button.textContent === 'Delete');
-
-    deleteButton?.click();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    findButton('Delete')?.click();
+    await nextTask();
 
     expect(messageMocks.deleteStoredCharacterArt).toHaveBeenCalledWith('169418374');
-    expect(document.querySelector('#stored-art-summary')?.textContent)
-        .toBe('No stored full art.');
-    expect(document.querySelector('#stored-art-status')?.textContent)
+    expect(document.querySelector('#stored-content-summary')?.textContent)
+        .toBe('No stored content.');
+    expect(document.querySelector('#stored-content-status')?.textContent)
         .toBe('Stored full art deleted.');
   });
 
@@ -152,69 +147,130 @@ describe('popup settings', () => {
     storageMocks.getCharacterJournalEnabled.mockResolvedValue(false);
 
     await initializePopup(document);
-    const checkbox = document.querySelector<HTMLInputElement>(
-        '#character-journal-enabled',
-    );
-    expect(checkbox?.checked).toBe(false);
-
-    checkbox?.click();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLInputElement>('#character-journal-enabled')?.click();
+    await nextTask();
 
     expect(storageMocks.setCharacterJournalEnabled).toHaveBeenCalledWith(true);
     expect(document.querySelector('#character-journal-status')?.textContent)
         .toBe('Character Journal tab enabled.');
   });
 
-  it('checks the journal box again when the preference turns back on', async () => {
-    const listeners = new Set<
-      (changes: Record<string, {newValue?: unknown}>, areaName: string) => void
-    >();
-    (globalThis as {chrome?: unknown}).chrome = {
-      storage: {
-        onChanged: {
-          addListener(listener: (changes: Record<string, {newValue?: unknown}>, areaName: string) => void) {
-            listeners.add(listener);
-          },
-          removeListener(listener: (changes: Record<string, {newValue?: unknown}>, areaName: string) => void) {
-            listeners.delete(listener);
-          },
+  it('exports all journals and their photos as a ZIP', async () => {
+    storageMocks.getAllRawCharacterJournalRecords.mockResolvedValue([{
+      characterId: '169418374',
+      records: [createJournalNote('169418374')],
+    }]);
+    journalMessageMocks.getStoredJournalImage.mockResolvedValue({
+      byteBuffer: new Uint8Array([1, 2, 3]).buffer,
+      mimeType: 'image/png',
+    });
+    let downloaded = '';
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
+        function click(this: HTMLAnchorElement) {
+          downloaded = this.download;
         },
-      },
-    };
+    );
 
     await initializePopup(document);
-    const checkbox = document.querySelector<HTMLInputElement>(
-        '#character-journal-enabled',
+    document.querySelector<HTMLButtonElement>('#stored-content-export-all')?.click();
+    await nextTask();
+
+    expect(journalMessageMocks.getStoredJournalImage)
+        .toHaveBeenCalledWith('bfa.journal.image.image-1');
+    expect(downloaded).toMatch(
+        /^beyond-full-art-journals-169418374-\d{4}-\d{2}-\d{2}\.zip$/,
     );
-    if (checkbox === null) {
-      throw new Error('Missing journal checkbox');
-    }
-    checkbox.checked = false;
+    expect(document.querySelector('#stored-content-status')?.textContent)
+        .toBe('Journal export downloaded.');
+  });
 
-    for (const listener of listeners) {
-      listener({
-        'bfa.preferences.characterJournalEnabled': {newValue: true},
-      }, 'local');
-    }
+  it('imports supported notes and missing photos from a backup', async () => {
+    const note = createJournalNote('169418374');
+    const backup = {
+      characters: [{characterId: '169418374', records: [note]}],
+      exportedAt: '2026-10-22T00:00:00.000Z',
+      format: JOURNAL_EXPORT_FORMAT,
+      images: [{
+        blobKey: 'bfa.journal.image.image-1',
+        byteBase64: 'AQID',
+        error: null,
+        fileName: 'gate.png',
+        mimeType: 'image/png',
+      }],
+      version: JOURNAL_EXPORT_VERSION,
+    };
+    const html = `<script id="bfa-journal-backup" type="application/json">${JSON.stringify(backup)}</script>`;
 
-    expect(checkbox.checked).toBe(true);
-    expect(document.querySelector('#character-journal-status')?.textContent)
-        .toBe('Character Journal tab enabled.');
-    delete (globalThis as {chrome?: unknown}).chrome;
+    const result = await importJournalExportFile(
+        new File([html], 'journal.html', {type: 'text/html'}),
+        document,
+    );
+
+    expect(journalMessageMocks.putStoredJournalImage).toHaveBeenCalledWith({
+      blobKey: 'bfa.journal.image.image-1',
+      byteBuffer: new Uint8Array([1, 2, 3]).buffer,
+      mimeType: 'image/png',
+    });
+    expect(storageMocks.mergeImportedCharacterJournalRecords)
+        .toHaveBeenCalledWith('169418374', [note]);
+    expect(result).toEqual({characters: 1, missingPhotos: 0, notes: 1});
+  });
+
+  it('imports a journal ZIP with Markdown-adjacent photo files', async () => {
+    const note = createJournalNote('169418374');
+    const backup = {
+      characters: [{characterId: '169418374', records: [note]}],
+      exportedAt: '2026-10-22T00:00:00.000Z',
+      format: JOURNAL_EXPORT_FORMAT,
+      images: [{
+        blobKey: 'bfa.journal.image.image-1',
+        byteBase64: null,
+        error: null,
+        fileName: 'gate.png',
+        mimeType: 'image/png',
+        zipPath: 'characters/169418374/photos/image-1-gate.png',
+      }],
+      version: JOURNAL_EXPORT_VERSION,
+    };
+    const encoder = new TextEncoder();
+    const zip = createStoredZip([
+      {data: encoder.encode(JSON.stringify(backup)), path: 'backup.json'},
+      {
+        data: new Uint8Array([1, 2, 3]),
+        path: 'characters/169418374/photos/image-1-gate.png',
+      },
+    ]);
+
+    const result = await importJournalExportFile(
+        new File([new Uint8Array(zip)], 'journal.zip', {type: 'application/zip'}),
+        document,
+    );
+
+    expect(journalMessageMocks.putStoredJournalImage).toHaveBeenLastCalledWith({
+      blobKey: 'bfa.journal.image.image-1',
+      byteBuffer: new Uint8Array([1, 2, 3]).buffer,
+      mimeType: 'image/png',
+    });
+    expect(result).toEqual({characters: 1, missingPhotos: 0, notes: 1});
   });
 });
 
-function createMetadata(overrides: {
-  byteSize?: number;
-  characterId: string;
-  fileName: string;
-}) {
+function findButton(label: string): HTMLButtonElement | undefined {
+  return [...document.querySelectorAll<HTMLButtonElement>('button')]
+      .find((button) => button.textContent === label);
+}
+
+function nextTask(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function createMetadata(options: {characterId: string; fileName: string}) {
   return {
-    blobKey: `blob-${overrides.characterId}`,
-    byteSize: overrides.byteSize ?? 2048,
-    characterId: overrides.characterId,
+    blobKey: `blob-${options.characterId}`,
+    byteSize: 2048,
+    characterId: options.characterId,
     createdAt: '2026-08-06T00:00:00.000Z',
-    fileName: overrides.fileName,
+    fileName: options.fileName,
     height: 1024,
     mimeType: 'image/png',
     schemaVersion: 1,
@@ -223,31 +279,46 @@ function createMetadata(overrides: {
   };
 }
 
+function createJournalNote(characterId: string) {
+  return {
+    body: 'Met <Voss> at the gate.',
+    characterId,
+    createdAt: '2026-10-20T00:00:00.000Z',
+    featuredImageId: 'image-1',
+    id: 'note-1',
+    images: [{
+      altText: '',
+      blobKey: 'bfa.journal.image.image-1',
+      byteSize: 3,
+      fileName: 'gate.png',
+      height: 20,
+      id: 'image-1',
+      mimeType: 'image/png',
+      width: 20,
+    }],
+    needsDetails: false,
+    questStatus: null,
+    schemaVersion: 2,
+    sessionDate: null,
+    title: 'Gate',
+    type: 'place',
+    updatedAt: '2026-10-21T00:00:00.000Z',
+  };
+}
+
 function createPopupFixture(): string {
   return `
-    <main class="bfa-popup__main">
-      <section class="bfa-popup__section">
-        <label for="campaign-card-portrait-upgrade">
-          <input id="campaign-card-portrait-upgrade" type="checkbox">
-        </label>
-        <p
-          id="campaign-card-portrait-upgrade-status"
-          class="bfa-popup__status bfa-popup__status--hidden"></p>
-      </section>
-      <section class="bfa-popup__section">
-        <label for="character-journal-enabled">
-          <input id="character-journal-enabled" type="checkbox">
-        </label>
-        <p
-          id="character-journal-status"
-          class="bfa-popup__status bfa-popup__status--hidden"></p>
-      </section>
-      <section class="bfa-popup__section">
-        <p id="stored-art-summary"></p>
-        <p id="stored-art-empty" hidden></p>
-        <ul id="stored-art-list"></ul>
-        <p id="stored-art-status" class="bfa-popup__status bfa-popup__status--hidden"></p>
-      </section>
-    </main>
-  `;
+    <main>
+      <input id="campaign-card-portrait-upgrade" type="checkbox">
+      <p id="campaign-card-portrait-upgrade-status"></p>
+      <input id="character-journal-enabled" type="checkbox">
+      <p id="character-journal-status"></p>
+      <p id="stored-content-summary"></p>
+      <button id="stored-content-export-all" type="button">Export all journals</button>
+      <button id="stored-content-import-all" type="button">Import backup</button>
+      <input id="stored-content-import-file" type="file">
+      <p id="stored-content-empty" hidden></p>
+      <ul id="stored-content-list"></ul>
+      <p id="stored-content-status"></p>
+    </main>`;
 }

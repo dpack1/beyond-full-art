@@ -48,6 +48,8 @@ Status: complete
 Status: shipped (beta)
 
 Dylan approved this after live testing. It is on main as `acd760c`.
+Journal ZIP backup and restore were approved after live export/import QA on
+2026-10-22.
 
 - Adds a Journal tab on the character sheet, after Extras.
 - Opens each note in a slide-in panel that mirrors D&D Beyond's Information Sidebar.
@@ -55,17 +57,18 @@ Dylan approved this after live testing. It is on main as `acd760c`.
 - Searches, filters, and creates notes from a toolbar with search, Filter, and Manage Notes.
 - Reads markdown, and edits it with an icon toolbar and an edit toggle.
 - Preserves progress through long notes when switching between reading and editing.
+- Exports every local journal as a ZIP with Markdown notes, photo files, and versioned `backup.json` recovery data.
+- Imports that backup globally or for one matching character while preserving newer local notes and existing photos.
 - Embeds photos inline as `![[img:<id>|caption|width]]`. The image button, paste, and drop insert one at the cursor. Large photos are resized automatically. The bytes stay in IndexedDB.
 - Follows the sheet's light and dark theme.
 
 Known caveats:
 
+- Journal ZIP folders use the character ID until full-name capture is reliable.
 - A long title is cut off in the edit-mode input.
 - A plain line right after a list item joins that bullet. That is ordinary markdown.
 
 Deferred follow-ups:
 
-- Popup access, with export
-- A versioned format doc, plus import
 - Extras images
 - Cleanup when a character is deleted
