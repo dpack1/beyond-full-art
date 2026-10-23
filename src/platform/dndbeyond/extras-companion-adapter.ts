@@ -1,4 +1,5 @@
 import type {Cleanup} from '../../shared/types';
+import {findExtrasTab} from './character-sheet-tabs-adapter';
 import {
   CHARACTER_HEADER_AVATAR_SELECTOR,
   CHARACTER_HEADER_PORTRAIT_SELECTOR,
@@ -62,6 +63,33 @@ export function findCharacterHeaderPortrait(
     return null;
   }
   return {container, portrait};
+}
+
+export async function openExtrasCompanionSidebar(
+    companionId: string,
+    companions: ExtrasCompanionTarget[],
+    doc: Document = document,
+): Promise<boolean> {
+  const mounted = companions.find(
+      (companion) => companion.companionId === companionId && companion.row.isConnected,
+  );
+  if (mounted !== undefined) {
+    mounted.row.click();
+    return true;
+  }
+
+  findExtrasTab(doc)?.click();
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const companion = findExtrasCompanionTargets(doc).find(
+        (candidate) => candidate.companionId === companionId,
+    );
+    if (companion !== undefined) {
+      companion.row.click();
+      return true;
+    }
+  }
+  return false;
 }
 
 export function observeExtrasCompanionTargets(

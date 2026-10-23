@@ -71,9 +71,10 @@ export function reconcileCompanionOverlay(options: {
   doc: Document;
   enabled: boolean;
   header: CharacterHeaderPortraitTarget | null;
+  onActivate: () => void;
   selection: CompanionPortraitSelection | null;
 }): void {
-  const {doc, enabled, header, selection} = options;
+  const {doc, enabled, header, onActivate, selection} = options;
   for (const overlay of doc.querySelectorAll<HTMLElement>(`[${OVERLAY_ATTRIBUTE}]`)) {
     if (header === null || overlay.parentElement !== header.container) {
       overlay.remove();
@@ -113,7 +114,21 @@ export function reconcileCompanionOverlay(options: {
     overlay = doc.createElement('img');
     overlay.className = OVERLAY_CLASS;
     overlay.setAttribute(OVERLAY_ATTRIBUTE, 'true');
+    overlay.setAttribute('role', 'button');
+    overlay.tabIndex = 0;
     const createdOverlay = overlay;
+    overlay.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onActivate();
+    });
+    overlay.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      onActivate();
+    });
     overlay.addEventListener('error', () => {
       const failedUrl = createdOverlay.getAttribute('src');
       if (failedUrl !== null) {
@@ -124,6 +139,7 @@ export function reconcileCompanionOverlay(options: {
     header.container.append(overlay);
   }
   overlay.alt = `${selection.name} companion portrait`;
+  overlay.setAttribute('aria-label', `Open ${selection.name} companion details`);
   if (overlay.getAttribute('src') !== selection.imageUrl) {
     overlay.hidden = false;
     overlay.removeAttribute(OVERLAY_FAILED_URL_ATTRIBUTE);

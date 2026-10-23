@@ -400,7 +400,7 @@ Status: Accepted for the Phase 6 portrait slice.
 The first companion feature lets one Extra be selected per character. The
 extension adds a checkbox to a verified Extras row, stores a versioned snapshot
 of that row's identity, name, type, and exact rendered image URL in
-`chrome.storage.local`, and draws a non-interactive portrait over the
+`chrome.storage.local`, and draws an interactive portrait over the
 bottom-right of the character header portrait.
 
 The global popup preference hides the controls and overlay without deleting
@@ -415,8 +415,9 @@ Why:
   later row observation can refresh stale metadata.
 - Reusing the exact rendered URL avoids copying image bytes or guessing D&D
   Beyond's image-CDN transformations.
-- A display-only overlay with `pointer-events: none` cannot take the native
-  portrait's click target.
+- The small overlay has its own click and keyboard target. Activating it clicks
+  the selected native Extra row, opening D&D Beyond's own sidebar instead of
+  reproducing its stats or HP controls.
 - Stats, hit points, and controls have a larger and less stable contract, so
   they remain a separate follow-up rather than expanding the portrait MVP.
 
@@ -425,3 +426,8 @@ type, group, and header-avatar classes on Matilda Greywolf. The row exposes no
 stable Extra ID, so identity uses normalized group, name, and type; the exact
 image URL disambiguates duplicate rows. A future D&D Beyond ID should replace
 that composite when one becomes available.
+
+On 2026-10-23 the display-only decision was replaced by the smaller native
+sidebar shortcut: clicking or keyboard-activating the overlay opens the saved
+Extra's row. If Extras is not mounted, the extension opens that tab first and
+then activates the matching row.

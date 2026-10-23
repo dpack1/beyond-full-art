@@ -305,7 +305,7 @@ function findVisuallyActiveTab(root: HTMLElement): HTMLElement | null {
   }) ?? null;
 }
 
-function findExtrasTab(root: ParentNode): HTMLElement | null {
+export function findExtrasTab(root: ParentNode): HTMLElement | null {
   const candidates = root.querySelectorAll<HTMLElement>(SHEET_TAB_CONTROL_SELECTOR);
 
   for (const candidate of candidates) {

@@ -180,7 +180,7 @@ Current implementation slice (manual browser QA pending):
 - typed Extras-row and character-header adapter,
 - validated per-character selection metadata and enabled preference,
 - accessible Extras checkboxes with one active companion per character,
-- non-interactive bottom-right header portrait overlay,
+- keyboard-accessible bottom-right overlay that opens the native Extra sidebar,
 - popup toggle that retains the saved selection,
 - unit, DOM, selector-health, popup, and local Playwright fixture coverage.
 
@@ -200,8 +200,8 @@ Current implementation slice (manual browser QA pending):
    enabled preference in `chrome.storage.local`.
 3. Inject accessible checkboxes into Extras rows with usable images and enforce
    one selected companion per character.
-4. Render a non-interactive bottom-right portrait overlay without blocking the
-   native character portrait.
+4. Render a bottom-right portrait overlay whose isolated click/keyboard target
+   opens the selected Extra's native sidebar.
 5. Add a popup setting that hides or restores the controls and overlay without
    deleting the selection.
 6. Reconcile selection and UI across row remounts, storage changes, image

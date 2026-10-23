@@ -342,9 +342,10 @@ the header overlay render before Extras is opened after a refresh; observing
 the selected row refreshes that snapshot. A failed image hides the overlay but
 does not destroy the saved selection.
 
-The first slice allows one selection per character and renders a display-only,
-`pointer-events: none` overlay. A later summary row for companion name, stats,
-health, or controls requires a separate verified data and interaction contract.
+The first slice allows one selection per character. The overlay is an isolated
+click and keyboard target that activates the selected native Extra row. When
+Extras is unmounted, the adapter opens the Extras tab, waits for the matching
+row, and activates it. Stats and HP remain entirely in D&D Beyond's sidebar.
 
 ## Phase 2 storage design
 

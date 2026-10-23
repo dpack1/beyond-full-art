@@ -68,7 +68,7 @@ On campaign pages and `https://www.dndbeyond.com/characters`, enabled card portr
 
 ### Companion portrait
 
-On a character sheet, the extension enlarges the header portrait and adds a little space before the character name. Each usable row in **Extras** gains a small checkbox over its image. Selecting one stores that choice for the current character and places the Extra's portrait over the header portrait's bottom-right corner. The companion border follows the sheet's character theme color. Selecting another Extra replaces it; clearing the checkbox removes the overlay. The overlay does not intercept clicks, and the popup setting can hide the controls and overlay without forgetting the selection.
+On a character sheet, the extension enlarges the header portrait and adds a little space before the character name. Each usable row in **Extras** gains a small checkbox over its image. Selecting one stores that choice for the current character and places the Extra's portrait over the header portrait's bottom-right corner. Clicking that portrait opens the Extra's native D&D Beyond sidebar, where its stats and hit points can be managed normally. The companion border follows the sheet's character theme color. Selecting another Extra replaces it; clearing the checkbox removes the overlay.
 
 ### Character journal
 
@@ -190,7 +190,8 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 1. Leave **Companion portrait on character sheet** enabled in the popup.
 2. Open a character sheet and choose **Extras**.
 3. Check the small box on the Extra whose portrait should appear beside the character portrait.
-4. Clear it to remove the overlay, or select a different Extra to replace it.
+4. Click the companion portrait to open that Extra's native sidebar.
+5. Clear the checkbox to remove the overlay, or select a different Extra to replace it.
 
 ### Use the character journal
 

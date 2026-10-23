@@ -444,6 +444,10 @@ describe('character sheet enhancement', () => {
   it('selects one Extra and shows its portrait on the character header', async () => {
     window.history.replaceState({}, '', '/characters/169418374');
     document.body.innerHTML = EXTRAS_COMPANION_FIXTURE;
+    let rowClicks = 0;
+    document.querySelector('.ct-extra-row')?.addEventListener('click', () => {
+      rowClicks += 1;
+    });
 
     const cleanup = installCharacterSheetEnhancement(document);
     await nextTask();
@@ -461,10 +465,14 @@ describe('character sheet enhancement', () => {
         '[data-bfa-companion-overlay]',
     );
     expect(overlay?.alt).toBe('Petali companion portrait');
+    expect(overlay?.getAttribute('role')).toBe('button');
+    expect(overlay?.getAttribute('aria-label')).toBe('Open Petali companion details');
     expect(overlay?.src).toContain('639281168224223961.png');
     expect(document.querySelector('.bfa-companion-header')).not.toBeNull();
     expect(document.querySelector('.bfa-companion-player-portrait')).not.toBeNull();
     expect(document.querySelector('.bfa-companion-player-portrait-frame')).not.toBeNull();
+    overlay?.click();
+    expect(rowClicks).toBe(1);
     overlay?.dispatchEvent(new Event('error'));
     await nextTask();
     expect(document.querySelector<HTMLImageElement>(

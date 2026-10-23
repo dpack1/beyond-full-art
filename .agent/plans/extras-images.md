@@ -199,7 +199,7 @@ D&D Beyond's native row behavior elsewhere.
 
 ### Overlay view
 
-The first overlay is display-only:
+The overlay is a native-sidebar shortcut:
 
 - extension-owned classes and attributes use `bfa-` / `data-bfa-`,
 - placed at the bottom-right of the header portrait,
@@ -207,7 +207,8 @@ The first overlay is display-only:
   maximum so it remains legible on narrow layouts,
 - square crop with `object-fit: cover`, a small border, and enough contrast in
   light and dark modes,
-- `pointer-events: none` so it cannot block the native portrait interaction,
+- its click and keyboard target opens the selected Extra's native sidebar,
+- events stop at the small overlay so the player portrait is not also opened,
 - meaningful alt text using the selected companion name,
 - no animation beyond an optional reduced-motion-safe opacity transition.
 
@@ -327,7 +328,7 @@ Safety rules:
 - Prefer a stable D&D Beyond Extra ID; test duplicates before accepting a
   composite fallback.
 - Make every mount idempotent and every observer disposable.
-- Keep the overlay non-interactive and remove it when its image fails.
+- Keep the overlay interaction isolated and remove it when its image fails.
 - Never delete or modify an Extra, companion image, character portrait, or
   local full art.
 - On uncertain row identity, do not select or overwrite the stored record.
@@ -351,6 +352,8 @@ Rollback:
 - 2026-10-22: Implemented the portrait-only slice, verified type checking,
   focused Vitest coverage, and the production build. Manual visual QA remains;
   Chrome-based tests are not to be run on this computer at Dylan's request.
+- 2026-10-23: Replaced the abandoned compact-stat/HP direction with a simple
+  overlay shortcut that opens the selected Extra's native sidebar.
 
 ## Decision log
 
@@ -363,8 +366,8 @@ Rollback:
 - 2026-10-22: Store only validated companion metadata and the exact rendered
   image URL in `chrome.storage.local`; do not copy image bytes or transform the
   URL.
-- 2026-10-22: Make the first overlay display-only and non-interactive so normal
-  D&D Beyond portrait behavior remains intact.
+- 2026-10-23: Make the overlay keyboard-accessible and open D&D Beyond's native
+  Extra sidebar rather than duplicating stats or HP controls.
 - 2026-10-22: The observed Extras row has no stable ID. Use normalized
   group/name/type as the base identity and append the exact image URL only for
   duplicates.

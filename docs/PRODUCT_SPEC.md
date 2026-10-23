@@ -276,8 +276,9 @@ character portrait, so I do not forget that companion is present.
   `bfa.companionPortrait.selection.<characterId>`.
 - The Extras control is a checkbox. Selecting a different row replaces the
   previous choice for that character.
-- The companion image is a non-interactive square overlay at the bottom-right
-  of the 60px character-header portrait.
+- The companion image is a keyboard-accessible square overlay at the
+  bottom-right of the enlarged 76px character-header portrait. Activating it
+  opens the selected Extra's native sidebar.
 - The exact HTTPS image URL already rendered by D&D Beyond is stored; no image
   bytes are copied and no URL transformation is applied.
 - Disabling the popup setting removes the checkboxes and overlay without

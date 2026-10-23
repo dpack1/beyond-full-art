@@ -31,7 +31,13 @@
   border-radius: 5px;
   background: #202528;
   box-shadow: 0 1px 4px rgb(0 0 0 / 70%);
-  pointer-events: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.bfa-companion-overlay:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 .bfa-companion-overlay[hidden] {

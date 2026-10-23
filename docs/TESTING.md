@@ -197,6 +197,7 @@ reload the unpacked build, and refresh the character sheet before starting.
 8. Test light and Underdark appearance and a narrow window. The portrait should stay square, legible, and out of the way.
 9. If another character has multiple Extras, select each in turn and confirm only one is checked and displayed.
 10. If an Extra portrait cannot load, confirm no broken-image icon remains and the saved choice can recover when Extras mounts again.
+11. Click Petali's overlay and confirm Petali's native D&D Beyond sidebar opens. Repeat with keyboard focus and Enter.
 
 ## Delete cleanup manual checklist
 

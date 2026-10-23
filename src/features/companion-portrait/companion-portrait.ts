@@ -15,6 +15,7 @@ import {
   type CompanionPortraitSelection,
 } from '../../platform/chrome/companion-portrait-storage';
 import {
+  openExtrasCompanionSidebar,
   observeExtrasCompanionTargets,
   type ExtrasCompanionTarget,
   type ExtrasCompanionTargets,
@@ -37,6 +38,7 @@ export function installCompanionPortraitFeature(
   let selection: CompanionPortraitSelection | null = null;
   let loadGeneration = 0;
   let destroyed = false;
+  let openingCompanion = false;
 
   const reconcile = () => {
     if (destroyed) {
@@ -49,8 +51,30 @@ export function installCompanionPortraitFeature(
       onChange: handleSelectionChange,
       selectedCompanionId: selection?.companionId ?? null,
     });
-    reconcileCompanionOverlay({doc, enabled, header: targets.header, selection});
+    reconcileCompanionOverlay({
+      doc,
+      enabled,
+      header: targets.header,
+      onActivate: handleCompanionActivation,
+      selection,
+    });
   };
+
+  async function handleCompanionActivation(): Promise<void> {
+    if (openingCompanion || selection === null) {
+      return;
+    }
+    openingCompanion = true;
+    try {
+      await openExtrasCompanionSidebar(
+          selection.companionId,
+          targets.companions,
+          doc,
+      );
+    } finally {
+      openingCompanion = false;
+    }
+  }
 
   const loadState = async () => {
     const generation = ++loadGeneration;
