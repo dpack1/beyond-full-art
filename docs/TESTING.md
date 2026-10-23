@@ -182,6 +182,22 @@ journal by the operating system's theme.
 
 Automated coverage for the simple fixture is `tests/e2e/character-journal.spec.ts`. The live-shaped sheet, first click, theme, and scroll coverage is `tests/e2e/character-journal-sheet.spec.ts`. Build screenshots are `tests/e2e/character-journal-build-shots.spec.ts`. None of them open the live site.
 
+## Companion portrait manual checklist
+
+Use Matilda Greywolf and Petali for the first visual pass. Build the extension,
+reload the unpacked build, and refresh the character sheet before starting.
+
+1. Confirm **Companion portrait on character sheet** is enabled in the popup.
+2. Open **Extras** and confirm Petali has one small checkbox over the bottom-right of the Extra portrait.
+3. Confirm Matilda's header portrait is enlarged with a small gap before her name. Select Petali and confirm the companion scales with it and its border matches Matilda's sheet theme color without moving the name or level.
+4. Click the native character portrait and the Extra row outside the checkbox; both native interactions should still work.
+5. Switch Extras filters, another sheet tab, and back. Confirm there is still only one checkbox and one overlay.
+6. Refresh without opening Extras first. The saved overlay should appear from local metadata.
+7. Turn the popup setting off and on. The controls and overlay should hide and return while the selection remains saved.
+8. Test light and Underdark appearance and a narrow window. The portrait should stay square, legible, and out of the way.
+9. If another character has multiple Extras, select each in turn and confirm only one is checked and displayed.
+10. If an Extra portrait cannot load, confirm no broken-image icon remains and the saved choice can recover when Extras mounts again.
+
 ## Delete cleanup manual checklist
 
 When Phase 4 is implemented:

@@ -7,6 +7,11 @@ import {
   setCharacterJournalEnabled,
 } from '../platform/chrome/storage';
 import {installStoredContent} from './stored-content';
+import {
+  COMPANION_PORTRAIT_ENABLED_KEY,
+  getCompanionPortraitEnabled,
+  setCompanionPortraitEnabled,
+} from '../platform/chrome/companion-portrait-storage';
 
 const SETTINGS_STYLE_ATTRIBUTE_NAME = 'data-bfa-popup-styles';
 const HIDDEN_STATUS_CLASS_NAME = 'bfa-popup__status--hidden';
@@ -57,6 +62,32 @@ export async function initializePopup(doc: Document): Promise<void> {
     installJournalPreferenceSync(journalCheckbox, journalStatus);
   }
 
+  const companionCheckbox = doc.querySelector<HTMLInputElement>(
+      '#companion-portrait-enabled',
+  );
+  const companionStatus = doc.querySelector<HTMLParagraphElement>(
+      '#companion-portrait-status',
+  );
+  if (companionCheckbox !== null && companionStatus !== null) {
+    companionCheckbox.checked = await getCompanionPortraitEnabled();
+    companionCheckbox.addEventListener('change', () => {
+      void handleCheckboxChange({
+        checkbox: companionCheckbox,
+        disabledMessage: 'Companion portrait disabled.',
+        enabledMessage: 'Companion portrait enabled.',
+        setValue: setCompanionPortraitEnabled,
+        status: companionStatus,
+      });
+    });
+    installPreferenceSync({
+      checkbox: companionCheckbox,
+      disabledMessage: 'Companion portrait disabled.',
+      enabledMessage: 'Companion portrait enabled.',
+      key: COMPANION_PORTRAIT_ENABLED_KEY,
+      status: companionStatus,
+    });
+  }
+
   await installStoredContent(doc);
 }
 async function handleCheckboxChange(options: {
@@ -98,19 +129,37 @@ function installJournalPreferenceSync(
     checkbox: HTMLInputElement,
     status: HTMLParagraphElement,
 ): void {
+  installPreferenceSync({
+    checkbox,
+    disabledMessage: 'Character Journal tab disabled.',
+    enabledMessage: 'Character Journal tab enabled.',
+    key: CHARACTER_JOURNAL_ENABLED_KEY,
+    status,
+  });
+}
+
+function installPreferenceSync(options: {
+  checkbox: HTMLInputElement;
+  disabledMessage: string;
+  enabledMessage: string;
+  key: string;
+  status: HTMLParagraphElement;
+}): void {
   if (typeof chrome === 'undefined' || chrome.storage?.onChanged === undefined) {
     return;
   }
 
+  const {checkbox, disabledMessage, enabledMessage, key, status} = options;
+
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (
       areaName !== 'local'
-      || !Object.hasOwn(changes, CHARACTER_JOURNAL_ENABLED_KEY)
+      || !Object.hasOwn(changes, key)
     ) {
       return;
     }
 
-    const nextValue = changes[CHARACTER_JOURNAL_ENABLED_KEY]?.newValue;
+    const nextValue = changes[key]?.newValue;
     if (typeof nextValue !== 'boolean' || checkbox.checked === nextValue) {
       return;
     }
@@ -118,9 +167,7 @@ function installJournalPreferenceSync(
     checkbox.checked = nextValue;
     renderStatus(
         status,
-        nextValue
-          ? 'Character Journal tab enabled.'
-          : 'Character Journal tab disabled.',
+        nextValue ? enabledMessage : disabledMessage,
         false,
     );
   });

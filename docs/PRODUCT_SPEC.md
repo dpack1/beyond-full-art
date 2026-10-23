@@ -234,6 +234,55 @@ a single long native notes field.
 - A quest-status control. The field is stored as null.
 - Optional future sync to D&D Beyond fields.
 
+## Phase 6, companion portrait from Extras
+
+### User story
+
+As a player with a familiar, pet, summon, or other Extra, I can choose one of
+them in D&D Beyond's Extras section and keep its portrait visible beside my
+character portrait, so I do not forget that companion is present.
+
+### Required behavior
+
+- Provide a popup setting to enable or disable the companion portrait feature
+  without deleting the saved choice.
+- Add an extension-owned checkbox to each Extras row with a usable image.
+- Allow one selected companion per character. Selecting another replaces the
+  current selection; clearing it removes the portrait.
+- Show the selected companion as a small bottom-right overlay on the character
+  header portrait.
+- Preserve D&D Beyond's portrait click behavior and native Extra-row behavior.
+- Store only small, versioned selection metadata in `chrome.storage.local`,
+  keyed by the string character ID.
+- Restore the overlay after refresh even before the Extras tab is opened.
+- Update safely when Extras rows remount, the route changes, the popup setting
+  changes, or the selected image fails.
+
+### First-slice limits
+
+- The overlay is display-only and shows one portrait.
+- Companion image bytes are not copied into IndexedDB.
+- The extension uses the exact image URL D&D Beyond already rendered and does
+  not invent a larger-image transformation.
+- Companion name, AC, hit points, speed, notes, and health/action controls
+  under the character header are deferred until the portrait slice is stable.
+- No private endpoint or network-request integration is part of this phase.
+
+### Current implementation defaults
+
+- The popup setting is enabled by default and uses
+  `bfa.preferences.companionPortraitEnabled`.
+- One versioned selection is stored at
+  `bfa.companionPortrait.selection.<characterId>`.
+- The Extras control is a checkbox. Selecting a different row replaces the
+  previous choice for that character.
+- The companion image is a non-interactive square overlay at the bottom-right
+  of the 60px character-header portrait.
+- The exact HTTPS image URL already rendered by D&D Beyond is stored; no image
+  bytes are copied and no URL transformation is applied.
+- Disabling the popup setting removes the checkboxes and overlay without
+  deleting the saved selection.
+
 ## Non-goals for early phases
 
 - Rebuilding the D&D Beyond character sheet.

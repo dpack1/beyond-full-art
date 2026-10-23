@@ -2,7 +2,7 @@
   <img src="assets/readme/banner.png" alt="Beyond Full Art banner" width="900" />
 </p>
 
-Beyond Full Art is a Chrome Manifest V3 extension for D&D Beyond character art. It keeps D&D Beyond's portrait flow and adds local full-art storage, a portrait crop tool, a fullscreen viewer, sharper character-card portraits, and a local character journal.
+Beyond Full Art is a Chrome Manifest V3 extension for D&D Beyond character art. It keeps D&D Beyond's portrait flow and adds local full-art storage, a portrait crop tool, a fullscreen viewer, sharper character-card portraits, a companion portrait, and a local character journal.
 
 This file is the runbook: what the extension does, how to install it, and how to build, run, and test it. Product and architecture detail lives in `docs/`. The D&D Beyond sheet reference is [docs/ddb-reference/README.md](docs/ddb-reference/README.md). The journal note panel follows the Information Sidebar in [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). Shipped features are listed in `.agent/FEATURES.md`. Work that has not shipped lives in `.agent/plans/` and follows `.agent/PLANS.md`. Agent-facing conventions live in `AGENTS.md`.
 
@@ -46,6 +46,7 @@ Click the toolbar icon to open the popup.
 
 - **Improve character card portraits** upgrades small campaign and My Characters avatars to a sharper image URL. It is on by default.
 - **Character Journal tab** shows or hides the sheet's Journal tab. Turning it off does not delete entries. It is on by default.
+- **Companion portrait on character sheet** shows selection checkboxes in Extras and the chosen portrait beside the character portrait. Turning it off keeps the saved choice. It is on by default.
 - **Stored content** groups local full art and journals by character. Each character can be opened, its art downloaded or deleted, and its journal exported or imported. Journal exports are ZIP files with Markdown notes, photos, and versioned recovery data. **Export all journals** and **Import backup** support whole-extension recovery, including a fresh install with no stored characters yet.
 
 #### Back up and restore journals
@@ -65,13 +66,17 @@ character from the backup. Older HTML backups remain importable.
 
 On campaign pages and `https://www.dndbeyond.com/characters`, enabled card portraits swap to a larger avatar URL after the page renders. A card pulses while it upgrades and flashes briefly when the sharper image is in place.
 
+### Companion portrait
+
+On a character sheet, the extension enlarges the header portrait and adds a little space before the character name. Each usable row in **Extras** gains a small checkbox over its image. Selecting one stores that choice for the current character and places the Extra's portrait over the header portrait's bottom-right corner. The companion border follows the sheet's character theme color. Selecting another Extra replaces it; clearing the checkbox removes the overlay. The overlay does not intercept clicks, and the popup setting can hide the controls and overlay without forgetting the selection.
+
 ### Character journal
 
 On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. This is the shipped beta. Search, **Filter**, and **Manage Notes** sit on one toolbar. Choosing a note opens a slide-in panel that mirrors the Information Sidebar in [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). Read mode renders markdown. **Edit** switches to the source, with an icon toolbar. Photos sit in the note as `![[img:<id>|caption|width]]`, inserted at the cursor by the image button, paste, or drop. PNG, JPEG, and WebP files over 3 MB are resized (longest edge 2048px) and stored under 3 MB. A file over 25 MB is refused. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. The tab, the list, and the panel follow the sheet's light and dark appearance. Nothing is written to D&D Beyond notes, backstory, or extras. The UI lives in `src/features/character-journal/`.
 
 ### Not built yet
 
-Character-deletion cleanup is specified in `docs/PRODUCT_SPEC.md` and researched in `docs/NETWORK_DELETE_RESEARCH.md`. The extension does not yet notice when a D&D Beyond character is deleted, and it does not offer to delete the matching local art. Extras images are still later work.
+Character-deletion cleanup is specified in `docs/PRODUCT_SPEC.md` and researched in `docs/NETWORK_DELETE_RESEARCH.md`. The extension does not yet notice when a D&D Beyond character is deleted, and it does not offer to delete the matching local art.
 
 ## Screenshots
 
@@ -180,6 +185,13 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 3. Open a D&D Beyond campaign page or the My Characters page.
 4. When enabled, character cards progressively swap to a sharper portrait source after the page renders.
 
+### Show a companion portrait
+
+1. Leave **Companion portrait on character sheet** enabled in the popup.
+2. Open a character sheet and choose **Extras**.
+3. Check the small box on the Extra whose portrait should appear beside the character portrait.
+4. Clear it to remove the overlay, or select a different Extra to replace it.
+
 ### Use the character journal
 
 1. Leave **Character Journal tab** enabled in the popup.
@@ -216,7 +228,7 @@ Toolbar popup
 | `src/platform/dndbeyond/` | URL parsing and the DOM adapters that import the map. |
 | `src/platform/chrome/` | Storage, IndexedDB, and runtime-message validation. |
 | `src/background/service-worker.ts` | Owns art reads and writes. Treat it as ephemeral. |
-| `src/popup/` | Toolbar popup: two settings and the stored-art inventory. |
+| `src/popup/` | Toolbar popup: three settings and the stored-art inventory. |
 | `src/shared/` | Small DOM, download, and result helpers. |
 | `tests/unit`, `tests/dom`, `tests/e2e` | Pure logic, jsdom fixtures, and Playwright extension fixtures. |
 | `docs/ddb-reference/` | Living reference for Matilda Greywolf's sheet: layout, tabs, theme, and the hooks the extension uses. |
@@ -308,10 +320,11 @@ Available now:
 - Manual removal of stored full art
 - Character journal (beta)
 - Journal ZIP backup and merge-safe restore from the extension popup
+- Companion portrait selected from Extras
 
 Planned next:
 
-- Extras images
+- Companion name, stats, health, and controls below the character header
 - Cleanup of local art and journal data when a D&D Beyond character is deleted
 
 ## Known limits
@@ -323,6 +336,7 @@ Planned next:
 - Journal photos are one image per add, in PNG, JPEG, or WebP. The note body places each one with `![[img:<id>|caption|width]]`. Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. Export and import are available in the popup.
 - Journal ZIP folders use the stable D&D Beyond character ID. Using the full character name reliably is deferred.
 - A long journal title is cut off in the edit-mode input. A plain line right after a list item joins that bullet, which is ordinary markdown.
+- Companion display is portrait-only and supports one selected Extra per character. It reuses the exact image URL D&D Beyond rendered; name, stats, health, and controls are deferred.
 
 ## Disclaimer
 

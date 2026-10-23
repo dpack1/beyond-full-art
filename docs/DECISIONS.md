@@ -392,3 +392,36 @@ Why:
 - Import treats the file as untrusted input, accepts only supported notes and
   photos, keeps newer local note versions, and does not overwrite existing
   photo blobs.
+
+## ADR-026: Companion portrait selection is local metadata over verified Extras DOM
+
+Status: Accepted for the Phase 6 portrait slice.
+
+The first companion feature lets one Extra be selected per character. The
+extension adds a checkbox to a verified Extras row, stores a versioned snapshot
+of that row's identity, name, type, and exact rendered image URL in
+`chrome.storage.local`, and draws a non-interactive portrait over the
+bottom-right of the character header portrait.
+
+The global popup preference hides the controls and overlay without deleting
+the per-character selection. Selecting a second Extra replaces the first even
+though the requested row control is visually a checkbox.
+
+Why:
+
+- One overlay matches the initial design and avoids an unresolved layout for
+  multiple companions.
+- A small URL snapshot can restore the overlay before Extras mounts, while a
+  later row observation can refresh stale metadata.
+- Reusing the exact rendered URL avoids copying image bytes or guessing D&D
+  Beyond's image-CDN transformations.
+- A display-only overlay with `pointer-events: none` cannot take the native
+  portrait's click target.
+- Stats, hit points, and controls have a larger and less stable contract, so
+  they remain a separate follow-up rather than expanding the portrait MVP.
+
+Live inspection on 2026-10-22 verified stable, non-hashed row, image, name,
+type, group, and header-avatar classes on Matilda Greywolf. The row exposes no
+stable Extra ID, so identity uses normalized group, name, and type; the exact
+image URL disambiguates duplicate rows. A future D&D Beyond ID should replace
+that composite when one becomes available.

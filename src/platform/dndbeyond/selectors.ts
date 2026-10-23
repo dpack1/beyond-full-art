@@ -46,6 +46,7 @@ const PORTRAIT_EDIT_PANEL = 'Portrait edit panel';
 const PORTRAIT_CROP = 'Portrait crop';
 const CARD_PORTRAITS = 'Character card portraits';
 const CHARACTER_JOURNAL = 'Character journal';
+const COMPANION_PORTRAIT = 'Companion portrait';
 
 interface SelectorDraft {
   id: string;
@@ -324,6 +325,73 @@ const characterListCardPortrait = selector({
   lookFor: 'An element with classes image and user-selected-avatar, or any element whose inline style contains /avatars/. The upgrade only runs when that element has a background image.',
   selector: '.image.user-selected-avatar, [style*="/avatars/"]',
   targets: 'Avatar background on a My Characters card or an owned campaign card.',
+});
+
+// --- Companion portrait: character header and Extras rows ---
+
+const characterHeaderAvatar = selector({
+  features: [COMPANION_PORTRAIT],
+  fixtures: ['extras-companion'],
+  id: 'character-header-avatar',
+  liveSheet: true,
+  lookFor: 'The avatar slot at the left of the character identity bar, class ddbc-character-tidbits__avatar. It wraps the 60px character portrait and is not the Information Sidebar portrait.',
+  selector: '.ddbc-character-tidbits__avatar',
+  targets: 'Character header avatar slot that receives the companion overlay.',
+});
+
+const characterHeaderPortrait = selector({
+  features: [COMPANION_PORTRAIT],
+  fixtures: ['extras-companion'],
+  id: 'character-header-portrait',
+  liveSheet: true,
+  lookFor: 'The img.ddbc-character-avatar__portrait with alt "Character portrait" inside ddbc-character-tidbits__avatar in the character identity bar.',
+  selector: '.ddbc-character-tidbits__avatar img.ddbc-character-avatar__portrait[alt="Character portrait"]',
+  targets: 'Character portrait inside the header avatar slot.',
+});
+
+const extrasCompanionRow = selector({
+  features: [COMPANION_PORTRAIT],
+  fixtures: ['extras-companion'],
+  id: 'extras-companion-row',
+  lookFor: 'One companion row in Extras, class ct-extra-row. Verified on the Familiar row for Petali on 2026-10-22.',
+  selector: '.ct-extra-row',
+  targets: 'One selectable companion row in the Extras section.',
+});
+
+const extrasCompanionImage = selector({
+  features: [COMPANION_PORTRAIT],
+  fixtures: ['extras-companion'],
+  id: 'extras-companion-image',
+  lookFor: 'The companion preview img in an Extras row, class ct-extra-row__img. Its currentSrc or src is used unchanged.',
+  selector: '.ct-extra-row__img',
+  targets: 'Companion preview image inside an Extras row.',
+});
+
+const extrasCompanionName = selector({
+  features: [COMPANION_PORTRAIT],
+  fixtures: ['extras-companion'],
+  id: 'extras-companion-name',
+  lookFor: 'The companion name in an Extras row, class ddbc-extra-name. A customized companion can also contain a tooltip asterisk.',
+  selector: '.ddbc-extra-name',
+  targets: 'Companion display name inside an Extras row.',
+});
+
+const extrasCompanionType = selector({
+  features: [COMPANION_PORTRAIT],
+  fixtures: ['extras-companion'],
+  id: 'extras-companion-type',
+  lookFor: 'The type line under the companion name, class ct-extra-row__meta-item, such as Tiny Fey.',
+  selector: '.ct-extra-row__meta-item',
+  targets: 'Companion type inside an Extras row.',
+});
+
+const extrasCompanionGroup = selector({
+  features: [COMPANION_PORTRAIT],
+  fixtures: ['extras-companion'],
+  id: 'extras-companion-group',
+  lookFor: 'The Extras content-group heading, class ct-content-group__header-content, such as Familiar.',
+  selector: '.ct-content-group__header-content',
+  targets: 'Extras group heading containing companion rows.',
 });
 
 // --- Character journal: sheet tab row ---
@@ -626,6 +694,13 @@ export const DDB_SELECTORS: readonly DdbSelectorEntry[] = [
   campaignCharacterCardPortrait,
   characterListCardLink,
   characterListCardPortrait,
+  characterHeaderAvatar,
+  characterHeaderPortrait,
+  extrasCompanionRow,
+  extrasCompanionImage,
+  extrasCompanionName,
+  extrasCompanionType,
+  extrasCompanionGroup,
   sheetTabExtrasControl,
   sheetTabLabels,
   sheetTabList,
@@ -671,6 +746,13 @@ export const CAMPAIGN_CHARACTER_CARD_PORTRAIT_SELECTOR =
 export const CHARACTER_LIST_CARD_LINK_SELECTOR = characterListCardLink.selector;
 export const CHARACTER_LIST_CARD_PORTRAIT_SELECTOR =
   characterListCardPortrait.selector;
+export const CHARACTER_HEADER_AVATAR_SELECTOR = characterHeaderAvatar.selector;
+export const CHARACTER_HEADER_PORTRAIT_SELECTOR = characterHeaderPortrait.selector;
+export const EXTRAS_COMPANION_ROW_SELECTOR = extrasCompanionRow.selector;
+export const EXTRAS_COMPANION_IMAGE_SELECTOR = extrasCompanionImage.selector;
+export const EXTRAS_COMPANION_NAME_SELECTOR = extrasCompanionName.selector;
+export const EXTRAS_COMPANION_TYPE_SELECTOR = extrasCompanionType.selector;
+export const EXTRAS_COMPANION_GROUP_SELECTOR = extrasCompanionGroup.selector;
 
 // --- Extension-owned markers ---
 //
@@ -687,6 +769,8 @@ export const CHARACTER_JOURNAL_STYLE_ATTRIBUTE_NAME =
   'data-bfa-character-journal-styles';
 export const CARD_PORTRAIT_UPGRADE_STYLE_ATTRIBUTE_NAME =
   'data-bfa-card-portrait-upgrade-styles';
+export const COMPANION_PORTRAIT_STYLE_ATTRIBUTE_NAME =
+  'data-bfa-companion-portrait-styles';
 export const CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME =
   'data-bfa-character-journal-tab';
 export const CHARACTER_SHEET_JOURNAL_TAB_ITEM_ATTRIBUTE_NAME =

@@ -11,6 +11,7 @@ import {
   LIVE_CHARACTER_SHEET_TABS_FIXTURE,
 } from '../../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../../fixtures/portrait-manager';
+import {EXTRAS_COMPANION_FIXTURE} from '../../fixtures/extras-companion';
 
 export const CHARACTER_ID = '169418374';
 export const BASE_CHARACTER_URL = `https://www.dndbeyond.com/characters/${CHARACTER_ID}`;
@@ -49,6 +50,12 @@ export const liveCharacterSheetFixture: RoutedFixture = {
   body: LIVE_CHARACTER_SHEET_TABS_FIXTURE,
   name: 'live-character-sheet',
   url: `${BASE_CHARACTER_URL}?bfaFixture=live-character-sheet`,
+};
+
+export const extrasCompanionFixture: RoutedFixture = {
+  body: EXTRAS_COMPANION_FIXTURE,
+  name: 'extras-companion',
+  url: `${BASE_CHARACTER_URL}?bfaFixture=extras-companion`,
 };
 
 export const currentDecorationsWithoutUploadFixture: RoutedFixture = {

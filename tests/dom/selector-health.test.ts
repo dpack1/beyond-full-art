@@ -28,11 +28,13 @@ import {
 } from '../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../fixtures/portrait-manager';
 import {SIDEBAR_SHELL_FIXTURE} from '../fixtures/sidebar-shell';
+import {EXTRAS_COMPANION_FIXTURE} from '../fixtures/extras-companion';
 
 const fixtures: Record<string, string> = {
   'campaign-card': CAMPAIGN_CHARACTER_CARD_FIXTURE,
   'campaign-thumbnail-card': CAMPAIGN_THUMBNAIL_CHARACTER_CARD_FIXTURE,
   'current-sheet-tabs': CURRENT_CHARACTER_SHEET_TABS_FIXTURE,
+  'extras-companion': EXTRAS_COMPANION_FIXTURE,
   'information-sidebar': CURRENT_INFORMATION_SIDEBAR_FIXTURE,
   'live-sheet-tabs': LIVE_CHARACTER_SHEET_TABS_FIXTURE,
   'manage-pane': CHARACTER_MANAGE_PANE_FIXTURE,

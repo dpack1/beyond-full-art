@@ -1,0 +1,79 @@
+.bfa-companion-header {
+  position: relative !important;
+  flex: 0 0 76px !important;
+  width: 76px !important;
+  min-width: 76px !important;
+  height: 76px !important;
+  margin-right: 8px !important;
+  overflow: visible !important;
+}
+
+.bfa-companion-player-portrait-frame,
+.bfa-companion-player-portrait {
+  width: 76px !important;
+  height: 76px !important;
+}
+
+.bfa-companion-player-portrait {
+  object-fit: cover;
+}
+
+.bfa-companion-overlay {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  z-index: 2;
+  width: clamp(26px, 42%, 34px);
+  height: clamp(26px, 42%, 34px);
+  box-sizing: border-box;
+  object-fit: cover;
+  border: 2px solid var(--theme-color, currentColor);
+  border-radius: 5px;
+  background: #202528;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 70%);
+  pointer-events: none;
+}
+
+.bfa-companion-overlay[hidden] {
+  display: none;
+}
+
+[data-bfa-companion-select-host="true"] {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.bfa-companion-select {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  z-index: 2;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid rgb(0 0 0 / 55%);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+  cursor: pointer;
+}
+
+.bfa-companion-select input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: currentColor;
+  cursor: pointer;
+}
+
+.bfa-companion-select:focus-within {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bfa-companion-overlay {
+    transition: none;
+  }
+}

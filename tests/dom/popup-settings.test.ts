@@ -19,10 +19,19 @@ const messageMocks = vi.hoisted(() => ({
   getStoredCharacterArtImageData: vi.fn(),
   listStoredCharacterArtMetadata: vi.fn(),
 }));
+const companionStorageMocks = vi.hoisted(() => ({
+  COMPANION_PORTRAIT_ENABLED_KEY: 'bfa.preferences.companionPortraitEnabled',
+  getCompanionPortraitEnabled: vi.fn(),
+  setCompanionPortraitEnabled: vi.fn(),
+}));
 
 vi.mock('../../src/platform/chrome/storage', () => storageMocks);
 vi.mock('../../src/platform/chrome/messages', () => messageMocks);
 vi.mock('../../src/platform/chrome/journal-messages', () => journalMessageMocks);
+vi.mock(
+    '../../src/platform/chrome/companion-portrait-storage',
+    () => companionStorageMocks,
+);
 
 import {initializePopup} from '../../src/popup/settings';
 import {importJournalExportFile} from '../../src/popup/journal-export';
@@ -45,6 +54,8 @@ describe('popup settings', () => {
     storageMocks.mergeImportedCharacterJournalRecords.mockResolvedValue(undefined);
     storageMocks.setCampaignCardPortraitUpgradeEnabled.mockResolvedValue(undefined);
     storageMocks.setCharacterJournalEnabled.mockResolvedValue(undefined);
+    companionStorageMocks.getCompanionPortraitEnabled.mockResolvedValue(true);
+    companionStorageMocks.setCompanionPortraitEnabled.mockResolvedValue(undefined);
     messageMocks.deleteStoredCharacterArt.mockResolvedValue(undefined);
     messageMocks.getStoredCharacterArtImageData.mockResolvedValue(null);
     messageMocks.listStoredCharacterArtMetadata.mockResolvedValue([]);
@@ -153,6 +164,18 @@ describe('popup settings', () => {
     expect(storageMocks.setCharacterJournalEnabled).toHaveBeenCalledWith(true);
     expect(document.querySelector('#character-journal-status')?.textContent)
         .toBe('Character Journal tab enabled.');
+  });
+
+  it('toggles the companion portrait setting', async () => {
+    companionStorageMocks.getCompanionPortraitEnabled.mockResolvedValue(false);
+
+    await initializePopup(document);
+    document.querySelector<HTMLInputElement>('#companion-portrait-enabled')?.click();
+    await nextTask();
+
+    expect(companionStorageMocks.setCompanionPortraitEnabled).toHaveBeenCalledWith(true);
+    expect(document.querySelector('#companion-portrait-status')?.textContent)
+        .toBe('Companion portrait enabled.');
   });
 
   it('exports all journals and their photos as a ZIP', async () => {
@@ -313,6 +336,8 @@ function createPopupFixture(): string {
       <p id="campaign-card-portrait-upgrade-status"></p>
       <input id="character-journal-enabled" type="checkbox">
       <p id="character-journal-status"></p>
+      <input id="companion-portrait-enabled" type="checkbox">
+      <p id="companion-portrait-status"></p>
       <p id="stored-content-summary"></p>
       <button id="stored-content-export-all" type="button">Export all journals</button>
       <button id="stored-content-import-all" type="button">Import backup</button>

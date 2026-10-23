@@ -168,3 +168,58 @@ Current shipped beta implementation (version 2):
 - Failed saves preserve unsaved text in the editor.
 - Failed deletes preserve the entry.
 - Journal data is never written to page-origin storage.
+
+## Phase 6, companion portrait from Extras
+
+Record further design changes in `docs/DECISIONS.md` and keep
+`.agent/plans/extras-images.md` current while this phase is unshipped.
+
+Current implementation slice (manual browser QA pending):
+
+- live-verified header and Extras selectors in the central selector map,
+- typed Extras-row and character-header adapter,
+- validated per-character selection metadata and enabled preference,
+- accessible Extras checkboxes with one active companion per character,
+- non-interactive bottom-right header portrait overlay,
+- popup toggle that retains the saved selection,
+- unit, DOM, selector-health, popup, and local Playwright fixture coverage.
+
+### Research spike
+
+- Capture the live DOM for an Extras row and the character-header portrait.
+- Verify a stable Extra identity and the rendered image source.
+- Verify row remount behavior under tab changes, search, filters, and route
+  changes.
+- Add only verified hooks to the selector map and saved fixtures.
+
+### First-slice work items
+
+1. Build a typed D&D Beyond adapter for Extras companion rows and the header
+   portrait.
+2. Add a versioned, per-character companion selection record and a global
+   enabled preference in `chrome.storage.local`.
+3. Inject accessible checkboxes into Extras rows with usable images and enforce
+   one selected companion per character.
+4. Render a non-interactive bottom-right portrait overlay without blocking the
+   native character portrait.
+5. Add a popup setting that hides or restores the controls and overlay without
+   deleting the selection.
+6. Reconcile selection and UI across row remounts, storage changes, image
+   failures, and client-side character navigation.
+7. Add selector health, storage, DOM, popup, and Playwright fixture coverage.
+
+### Exit criteria
+
+- A selected companion remains visible after refresh without opening Extras.
+- Selecting, replacing, and clearing the companion are character-specific.
+- Disabling and re-enabling the popup setting retains the selection.
+- No duplicate controls or overlays appear after Extras remounts.
+- Native portrait clicks and Extra-row interactions continue to work.
+- Missing identities, image-less rows, malformed storage, and failed images
+  fail safely without modifying D&D Beyond data.
+- Typecheck, unit/DOM tests, build, fixture E2E, and the logged-in selector
+  check pass.
+
+Companion name, stats, hit points, and controls under the character identity
+bar are a separate follow-up after this phase's DOM and selection contracts
+are proven.

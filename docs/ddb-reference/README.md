@@ -75,6 +75,13 @@ A second row sits just under the main row and changes with the section. **from-s
 | Notes | All, Orgs, Allies, Enemies, Backstory, Other |
 | Extras | All, Familiar (plus a search field, "Search Names, Types, or Tags", and Manage Extras) |
 
+Matilda's Extras capture contains one `FAMILIAR` group and one row for
+`Petali*`, type `Tiny Fey`. The row shows a small square image, AC, current/max
+hit points, speed, and notes. Live inspection on 2026-10-22 verified
+`.ct-extra-row`, `.ct-extra-row__img`, `.ddbc-extra-name`,
+`.ct-extra-row__meta-item`, and `.ct-content-group__header-content`. The row
+has no stable ID attribute. **from-code**
+
 The selector map asks the live check for these tab classes. They are not readable from the screenshots, and no page HTML was saved. The live selector-health check is how they get verified. **from-code**
 
 | Class | Role |
@@ -215,6 +222,18 @@ The map in `src/platform/dndbeyond/selectors.ts` is the list to edit. This table
 | `sheet-section-filter` | `.ct-extras-filter__interactions`, and the Inventory and Spells equivalents | code, verified 2026-10-21 on character 4741434 |
 | `sheet-section-filter-button` | `.ct-extras-filter__advanced` and the Inventory and Spells equivalents | code |
 | `sheet-manage-button` | `button.ct-theme-button` | code |
+
+### Companion portrait
+
+| Id | Selector | Source |
+| --- | --- | --- |
+| `character-header-avatar` | `.ddbc-character-tidbits__avatar` | code, verified 2026-10-22 on Matilda |
+| `character-header-portrait` | `.ddbc-character-tidbits__avatar img.ddbc-character-avatar__portrait[alt="Character portrait"]` | code, verified 2026-10-22 on Matilda |
+| `extras-companion-row` | `.ct-extra-row` | code, verified 2026-10-22 on Matilda |
+| `extras-companion-image` | `.ct-extra-row__img` | code, verified 2026-10-22 on Matilda |
+| `extras-companion-name` | `.ddbc-extra-name` | code, verified 2026-10-22 on Matilda |
+| `extras-companion-type` | `.ct-extra-row__meta-item` | code, verified 2026-10-22 on Matilda |
+| `extras-companion-group` | `.ct-content-group__header-content` | code, verified 2026-10-22 on Matilda |
 
 ### Sheet structure and theme (live check)
 

@@ -311,6 +311,41 @@ Requirements:
 
 Use the highest-quality URL already available from the target image when possible. Check `currentSrc` before `src`. Do not invent image-CDN URL transformations without verification.
 
+## Companion portrait boundary
+
+The implemented first slice remains tracked in `.agent/plans/extras-images.md`
+until manual QA and release. It uses the same external-contract boundary as
+the other sheet features:
+
+```text
+D&D Beyond Extras row
+  -> extras-companion-adapter (verified identity, name, type, image URL)
+  -> companion portrait controller
+  -> chrome.storage.local selection keyed by character ID
+  -> extension-owned overlay on the character-header portrait
+```
+
+The adapter owns all D&D Beyond selectors and narrowly observes the sheet for
+Extras-row and header remounts. The feature owns its checkbox and overlay DOM.
+The popup owns only the global enabled preference.
+
+Storage keys:
+
+```text
+bfa.preferences.companionPortraitEnabled
+bfa.companionPortrait.selection.<characterId>
+```
+
+The selection record stores versioned metadata and the exact image URL already
+rendered by D&D Beyond. It does not store image bytes. The URL snapshot lets
+the header overlay render before Extras is opened after a refresh; observing
+the selected row refreshes that snapshot. A failed image hides the overlay but
+does not destroy the saved selection.
+
+The first slice allows one selection per character and renders a display-only,
+`pointer-events: none` overlay. A later summary row for companion name, stats,
+health, or controls requires a separate verified data and interaction contract.
+
 ## Phase 2 storage design
 
 ```mermaid

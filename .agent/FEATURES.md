@@ -70,5 +70,6 @@ Known caveats:
 
 Deferred follow-ups:
 
-- Extras images
+- Companion portrait manual visual QA and release
+- Companion name, stats, health, and controls below the character header
 - Cleanup when a character is deleted

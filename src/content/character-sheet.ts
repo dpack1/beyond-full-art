@@ -4,6 +4,7 @@ import {
 } from '../features/character-art/art-service';
 import {createCharacterJournalSection} from '../features/character-journal/character-journal-section';
 import {createCharacterJournalService} from '../features/character-journal/character-journal-service';
+import {installCompanionPortraitFeature} from '../features/companion-portrait/companion-portrait';
 import {createCharacterPortraitCropWorkflow} from '../features/crop-workflow/crop-workflow';
 import {
   installCharacterArtControls,
@@ -87,6 +88,10 @@ export function installCharacterSheetEnhancement(
   const readCurrentCharacterId = (): string | null => {
     return parseCharacterIdFromCharacterPageUrl(new URL(doc.location.href));
   };
+  const companionPortrait = installCompanionPortraitFeature(
+      readCurrentCharacterId,
+      doc,
+  );
 
   const stopObservingPortraitManagers = observePortraitManagementTargets((target) => {
     const controls = installCharacterArtControls(
@@ -241,6 +246,7 @@ export function installCharacterSheetEnhancement(
 
     knownCharacterHref = doc.location.href;
     const nextUrl = new URL(doc.location.href);
+    companionPortrait.syncRoute();
     if (!isCharacterPageUrl(nextUrl) || readCurrentCharacterId() === null) {
       journalSection.requestHide(() => {
         tearDownJournalChrome();
@@ -284,6 +290,7 @@ export function installCharacterSheetEnhancement(
       doc.defaultView?.clearInterval(routeTimer);
     }
     journalSyncGeneration += 1;
+    companionPortrait.cleanup();
     tearDownJournalChrome();
     for (const cleanup of cleanups) {
       cleanup();

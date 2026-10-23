@@ -23,6 +23,7 @@ import {
   LIVE_CHARACTER_SHEET_TABS_FIXTURE,
 } from '../fixtures/character-sheet-tabs';
 import {PORTRAIT_MANAGER_FIXTURE} from '../fixtures/portrait-manager';
+import {EXTRAS_COMPANION_FIXTURE} from '../fixtures/extras-companion';
 
 describe('character sheet enhancement', () => {
   const originalCreateObjectUrl = URL.createObjectURL;
@@ -33,6 +34,7 @@ describe('character sheet enhancement', () => {
     document.head.querySelector('[data-bfa-viewer-styles]')?.remove();
     document.head.querySelector('[data-bfa-art-styles]')?.remove();
     document.head.querySelector('[data-bfa-character-journal-styles]')?.remove();
+    document.head.querySelector('[data-bfa-companion-portrait-styles]')?.remove();
     chromeMessageMocks.deleteStoredCharacterArt.mockResolvedValue(undefined);
     chromeMessageMocks.getStoredCharacterArtImageData.mockResolvedValue(null);
     chromeMessageMocks.getStoredCharacterArtMetadata.mockResolvedValue(null);
@@ -55,6 +57,7 @@ describe('character sheet enhancement', () => {
     document.head.querySelector('[data-bfa-viewer-styles]')?.remove();
     document.head.querySelector('[data-bfa-art-styles]')?.remove();
     document.head.querySelector('[data-bfa-character-journal-styles]')?.remove();
+    document.head.querySelector('[data-bfa-companion-portrait-styles]')?.remove();
     window.history.replaceState({}, '', '/');
     URL.createObjectURL = originalCreateObjectUrl;
     URL.revokeObjectURL = originalRevokeObjectUrl;
@@ -438,6 +441,93 @@ describe('character sheet enhancement', () => {
     cleanup();
   });
 
+  it('selects one Extra and shows its portrait on the character header', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = EXTRAS_COMPANION_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await nextTask();
+    const checkbox = document.querySelector<HTMLInputElement>(
+        '[data-bfa-companion-select] input',
+    );
+    expect(checkbox?.getAttribute('aria-label'))
+        .toBe('Show Petali beside character portrait');
+    expect(document.querySelector('[data-bfa-companion-overlay]')).toBeNull();
+
+    checkbox?.click();
+    await nextTask();
+
+    const overlay = document.querySelector<HTMLImageElement>(
+        '[data-bfa-companion-overlay]',
+    );
+    expect(overlay?.alt).toBe('Petali companion portrait');
+    expect(overlay?.src).toContain('639281168224223961.png');
+    expect(document.querySelector('.bfa-companion-header')).not.toBeNull();
+    expect(document.querySelector('.bfa-companion-player-portrait')).not.toBeNull();
+    expect(document.querySelector('.bfa-companion-player-portrait-frame')).not.toBeNull();
+    overlay?.dispatchEvent(new Event('error'));
+    await nextTask();
+    expect(document.querySelector<HTMLImageElement>(
+        '[data-bfa-companion-overlay]',
+    )?.hidden).toBe(true);
+    expect(await readStorage('bfa.companionPortrait.selection.169418374'))
+        .toEqual(expect.objectContaining({
+          characterId: '169418374',
+          name: 'Petali',
+          type: 'Tiny Fey',
+        }));
+
+    cleanup();
+    expect(document.querySelector('[data-bfa-companion-select]')).toBeNull();
+    expect(document.querySelector('[data-bfa-companion-overlay]')).toBeNull();
+    expect(document.querySelector('.bfa-companion-player-portrait')).toBeNull();
+  });
+
+  it('restores a saved companion before Extras needs to mount', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    const storage = createFakeChromeStorage({
+      'bfa.companionPortrait.selection.169418374': createPetaliSelection(),
+    });
+    (globalThis as {chrome: {storage: unknown}}).chrome.storage = storage;
+    document.body.innerHTML = EXTRAS_COMPANION_FIXTURE;
+    document.querySelector('.ct-content-group')?.remove();
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await nextTask();
+
+    expect(document.querySelector<HTMLImageElement>('[data-bfa-companion-overlay]')?.alt)
+        .toBe('Petali companion portrait');
+
+    cleanup();
+  });
+
+  it('hides companion UI while disabled and restores the saved choice live', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    const storage = createFakeChromeStorage({
+      'bfa.preferences.companionPortraitEnabled': false,
+      'bfa.companionPortrait.selection.169418374': createPetaliSelection(),
+    });
+    (globalThis as {chrome: {storage: unknown}}).chrome.storage = storage;
+    document.body.innerHTML = EXTRAS_COMPANION_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await nextTask();
+    expect(document.querySelector('[data-bfa-companion-select]')).toBeNull();
+    expect(document.querySelector('[data-bfa-companion-overlay]')).toBeNull();
+
+    storage.local.set({
+      'bfa.preferences.companionPortraitEnabled': true,
+    }, () => {});
+    await nextTask();
+
+    expect(document.querySelector<HTMLInputElement>(
+        '[data-bfa-companion-select] input',
+    )?.checked).toBe(true);
+    expect(document.querySelector('[data-bfa-companion-overlay]')).not.toBeNull();
+
+    cleanup();
+  });
+
   it('does nothing on non-character-sheet pages', () => {
     window.history.replaceState({}, '', '/classes/barbarian');
     document.body.innerHTML = CHARACTER_MANAGE_PANE_FIXTURE;
@@ -534,4 +624,21 @@ function createFakeStorageArea(
       callback();
     },
   };
+}
+
+function createPetaliSelection() {
+  return {
+    characterId: '169418374',
+    companionId: 'familiar\u001fpetali\u001ftiny fey',
+    group: 'Familiar',
+    imageUrl: 'https://www.dndbeyond.com/avatars/59568/811/639281168224223961.png?width=350&height=350&fit=bounds',
+    name: 'Petali',
+    schemaVersion: 1,
+    type: 'Tiny Fey',
+    updatedAt: '2026-10-22T00:00:00.000Z',
+  };
+}
+
+function nextTask(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }
