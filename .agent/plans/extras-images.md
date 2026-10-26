@@ -95,7 +95,7 @@ through the feature.
 
 ### User flow
 
-1. The popup setting **Companion portrait on character sheet** is enabled.
+1. The popup setting **Companion portrait** is enabled.
 2. The user opens **Extras**.
 3. Each Extra with a readable portrait gains a checkbox labeled for assistive
    technology as `Show <name> beside character portrait`.
@@ -217,9 +217,9 @@ available or use a neutral high-contrast border.
 
 ### Popup setting
 
-Add a third setting section after **Character Journal tab**:
+Add a third setting section after **Character Journal**:
 
-- Label: **Companion portrait on character sheet**
+- Label: **Companion portrait**
 - Hint: **Choose one companion in Extras and show its portrait beside your character.**
 - Status text mirrors the existing setting behavior.
 

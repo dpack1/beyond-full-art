@@ -47,6 +47,19 @@
   margin-top: 0;
 }
 
+.bfa-popup__section--setting {
+  position: relative;
+  margin-top: 8px;
+  padding: 10px 12px;
+}
+
+.bfa-popup__setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
 .bfa-popup__section-header {
   align-items: baseline;
   display: flex;
@@ -67,31 +80,166 @@
 }
 
 .bfa-popup__toggle {
-  align-items: flex-start;
+  align-items: center;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: auto 1fr;
+  min-width: 0;
 }
 
 .bfa-popup__checkbox {
   accent-color: #c83a3d;
   block-size: 18px;
   inline-size: 18px;
-  margin: 2px 0 0;
+  margin: 0;
 }
 
 .bfa-popup__label {
   display: block;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  margin-bottom: 4px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .bfa-popup__hint {
   color: #c3c9d2;
-  display: block;
   font-size: 13px;
   line-height: 1.4;
+  margin: 0;
+}
+
+.bfa-popup__info {
+  position: relative;
+}
+
+.bfa-popup__info summary {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  place-items: center;
+  border: 1px solid rgba(209, 178, 109, 0.62);
+  border-radius: 50%;
+  color: #d1b26d;
+  cursor: pointer;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.bfa-popup__info summary::-webkit-details-marker {
+  display: none;
+}
+
+.bfa-popup__info summary:hover,
+.bfa-popup__info summary:focus-visible,
+.bfa-popup__info[open] summary {
+  border-color: #d1b26d;
+  background: rgba(209, 178, 109, 0.14);
+  outline: none;
+}
+
+.bfa-popup__info .bfa-popup__hint {
+  position: absolute;
+  top: 26px;
+  right: 0;
+  z-index: 5;
+  width: 240px;
+  padding: 9px 10px;
+  border: 1px solid rgba(209, 178, 109, 0.42);
+  border-radius: 8px;
+  background: #151e29;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+}
+
+.bfa-popup__info:focus-within:not([open]) .bfa-popup__hint {
+  display: block;
+}
+
+.bfa-popup__section--setting .bfa-popup__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.bfa-popup__section--setting .bfa-popup__status--error {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 8px 0 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+.bfa-popup__storage-summary {
+  color: #d5d0c5;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+
+.bfa-popup__storage-usage {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+}
+
+.bfa-popup__storage-usage div {
+  display: grid;
+  gap: 4px;
+}
+
+.bfa-popup__storage-usage dt {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bfa-popup__storage-usage dd {
+  color: #c3c9d2;
+  display: grid;
+  font-size: 12px;
+  gap: 4px;
+  margin: 0;
+}
+
+.bfa-popup__storage-meter {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0;
+  border-radius: 999px;
+  block-size: 8px;
+  inline-size: 100%;
+  overflow: hidden;
+}
+
+.bfa-popup__storage-meter::-webkit-progress-bar {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.bfa-popup__storage-meter::-webkit-progress-value {
+  background: #d1b26d;
+  border-radius: 999px;
+}
+
+.bfa-popup__storage-meter--warning::-webkit-progress-value {
+  background: #ff928a;
+}
+
+.bfa-popup__storage-note {
+  color: #c3c9d2;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 10px 0 0;
 }
 
 .bfa-popup__stored-content-tools {

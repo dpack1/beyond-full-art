@@ -53,3 +53,5 @@ Record decisions made during implementation and why.
 ```
 
 Keep future-feature plans current. Check off completed milestones, record discoveries, and adjust the approach when live-site evidence contradicts the original design.
+
+There is no active storage plan. [storage.md](plans/storage.md) is the history of the completed folder-library implementation. Do not rebuild it.

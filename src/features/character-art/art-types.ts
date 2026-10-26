@@ -55,6 +55,7 @@ export interface SaveCharacterArtInput {
   characterId: CharacterId;
   fileName: string;
   height: number | null;
+  loadedSha256?: string | null | undefined;
   mimeType: SupportedCharacterArtMimeType;
   width: number | null;
 }
@@ -81,6 +82,7 @@ export interface ViewerImageResolution {
   altText: string;
   imageUrl: string;
   releaseImageUrl?: Cleanup;
+  sha256?: string | null;
   storedArtFileName?: string;
   usingStoredArt: boolean;
   warningMessage: string | null;

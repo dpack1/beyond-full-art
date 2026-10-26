@@ -431,3 +431,98 @@ On 2026-10-23 the display-only decision was replaced by the smaller native
 sidebar shortcut: clicking or keyboard-activating the overlay opens the saved
 Extra's row. If Extras is not mounted, the extension opens that tab first and
 then activates the matching row.
+
+## ADR-027: A chosen folder becomes the library after the files match
+
+Status: Accepted. After the player confirms, a checked folder is where full
+art, crops, journal notes, and journal photos are saved. Browser copies of
+those records are removed only when every one of them still matches the
+folder. Preferences and the directory handle stay on this browser.
+
+The popup can connect one directory that the user chooses. Chrome's directory
+picker runs in `folder/setup.html`, because the toolbar popup closes when the
+picker opens. The extension stores the directory handle in its IndexedDB
+database, in the `backupFolder` store added at database version 2. The art
+blob store is left in place until a verified cleanup removes blobs that now
+live in the folder.
+
+A new folder must be empty. Finder's `.DS_Store`, `Thumbs.db`, and
+`desktop.ini` are ignored. The extension then writes `beyond-full-art.json`
+and creates `characters/`. A folder that already has other files is refused.
+A folder that already contains a readable version 1 or version 2 marker can be
+chosen again, including on another computer. `createdAt` is not rewritten.
+The marker's schema version becomes 2 when a copy finishes with no failures,
+or when an empty browser starts saving in that folder.
+
+Copying writes each character's files, reads them back, and saves
+`character.json` only when those hashes match. A character that already has
+`character.json` is not overwritten. Cleanup then compares the browser's art,
+crops, notes, and photos with those files. On a full match it sets
+`bfa.library.mode` to `folder` and removes the browser copies. A mismatch, a
+missing blob, or a failed copy leaves the browser copies in place and keeps
+saving on this browser. Declining the cleanup prompt does the same.
+
+An empty folder with nothing saved in the browser can be confirmed as the
+place new art and notes are saved. An existing folder and an empty browser
+can be confirmed the same way, without copying files back into the browser.
+Later saves and reads go through the service worker to that folder. If Chrome
+has not granted the folder, the sheet asks the player to choose it again and
+does not fall back to an empty browser copy.
+
+Forgetting the folder removes only the handle on this browser. Files in the
+folder stay there. The library mode stays `folder`, so the sheet keeps asking
+for that folder instead of starting a new empty library.
+
+Google Drive is not an API integration. If the chosen folder is inside Google
+Drive for Desktop, Drive syncs the files the extension writes there. Opening
+the sheet reads the folder as it is on disk. A sheet that is already open does
+not watch automatically. **Check folder** in the popup refreshes its status and
+inventory; the Journal action re-reads the current character without replacing
+a dirty draft. Note saves reject a newer stored `updatedAt`, and full-art saves
+reject a current SHA-256 different from the page's loaded revision.
+
+Folder deletes are durable records rather than missing files. Hashed tombstone
+JSON files are listed in `character.json`; readers hide tombstoned notes and
+photos, and saving the same note id is refused until an explicit restore.
+Photo bytes stay in the folder for that restore. Full-art and crop deletion
+also write tombstones, then remove the live image file. This keeps another
+computer from interpreting a deliberate delete as a record it should copy
+back later.
+
+Cross-computer comparison is keyed by character ID, record kind, and record
+ID. Image equality is byte SHA-256; note equality is the existing semantic
+fingerprint rather than display text or timestamps alone. A differing shared
+key is always a conflict, even when one timestamp is later. Folder-only
+records do not block the already-shipped verified adoption path. Drive
+conflict sibling names are surfaced, but their files are not opened or
+deleted by comparison.
+
+An additions-only result uses a single confirmed union. Browser-only files are
+written with the existing checked writers, folder-only notes are retained, and
+comparison runs again before folder mode or browser cleanup changes. Any
+conflict or failed verification keeps all browser copies. Switching away from
+an active library is a separate confirmed action performed before the stored
+directory handle is replaced.
+
+Conflict application is all-choice-first. Notes can keep either copy, keep both
+under a new ID, or resolve a tombstone as deleted or restored. Full-art and crop
+choices make one image current and preserve the other bytes in a checked,
+timestamped file listed under `character.json` `kept`; later current-image
+writes do not delete those files. Browser cleanup follows successful checked
+writes. A photo conflict keeps both checked byte versions. The version owned by
+the later `updatedAt` note keeps the shared photo ID; ties keep the folder
+version on that ID. The other version receives a new random ID, and its retained
+note has image metadata, embeds, and featured-image state remapped. If the note
+itself was otherwise equal, that losing-side note is copied under a new ID with
+the ` (other computer)` suffix so both photos remain reachable.
+
+Why:
+
+- A blank folder gives the extension one place to build a stable layout.
+- Refusing a mixed folder avoids writing beside unrelated files.
+- Removing browser copies only after a match means a failed copy or a later
+  edit cannot throw away the newer copy.
+- The directory handle cannot live in `chrome.storage.local`. IndexedDB is the
+  existing extension-origin store that can hold it.
+- Writing `bfa.library.mode` before the browser delete means a crash still
+  reads the folder instead of an empty browser.

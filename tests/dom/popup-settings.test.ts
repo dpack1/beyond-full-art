@@ -24,6 +24,9 @@ const companionStorageMocks = vi.hoisted(() => ({
   getCompanionPortraitEnabled: vi.fn(),
   setCompanionPortraitEnabled: vi.fn(),
 }));
+const storageUsageMocks = vi.hoisted(() => ({
+  readExtensionStorageUsage: vi.fn(),
+}));
 
 vi.mock('../../src/platform/chrome/storage', () => storageMocks);
 vi.mock('../../src/platform/chrome/messages', () => messageMocks);
@@ -32,8 +35,10 @@ vi.mock(
     '../../src/platform/chrome/companion-portrait-storage',
     () => companionStorageMocks,
 );
+vi.mock('../../src/platform/chrome/storage-usage', () => storageUsageMocks);
 
 import {initializePopup} from '../../src/popup/settings';
+import {folderCheckMessage} from '../../src/popup/backup-folder';
 import {importJournalExportFile} from '../../src/popup/journal-export';
 import {
   JOURNAL_EXPORT_FORMAT,
@@ -61,6 +66,12 @@ describe('popup settings', () => {
     messageMocks.listStoredCharacterArtMetadata.mockResolvedValue([]);
     journalMessageMocks.getStoredJournalImage.mockResolvedValue(null);
     journalMessageMocks.putStoredJournalImage.mockResolvedValue(undefined);
+    storageUsageMocks.readExtensionStorageUsage.mockResolvedValue({
+      indexedDbBytes: null,
+      indexedDbQuotaBytes: null,
+      localBytes: null,
+      localQuotaBytes: null,
+    });
     URL.createObjectURL = vi.fn(() => 'blob:popup-download');
     URL.revokeObjectURL = vi.fn();
   });
@@ -71,6 +82,65 @@ describe('popup settings', () => {
     URL.createObjectURL = originalCreateObjectUrl;
     URL.revokeObjectURL = originalRevokeObjectUrl;
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('opens a window to choose a backup folder', async () => {
+    const create = vi.fn().mockResolvedValue({id: 1});
+    vi.stubGlobal('chrome', {
+      runtime: {
+        getURL: (path: string) => `chrome-extension://test/${path}`,
+      },
+      windows: {create},
+    });
+
+    await initializePopup(document);
+    document.querySelector<HTMLButtonElement>('#backup-folder-choose')?.click();
+    await nextTask();
+
+    expect(create).toHaveBeenCalledWith({
+      focused: true,
+      height: 560,
+      type: 'popup',
+      url: 'chrome-extension://test/folder/setup.html',
+      width: 440,
+    });
+  });
+
+  it('summarizes a folder check and possible Drive conflict copies', () => {
+    const message = folderCheckMessage('Beyond-Full-Art', {
+      characterCount: 2,
+      checkedAt: '2026-10-26T18:00:00.000Z',
+      newestAt: '2026-10-26T17:18:19.000Z',
+      siblingCount: 1,
+    });
+
+    expect(message).toContain('Checked “Beyond-Full-Art”');
+    expect(message).toContain('2 saved characters');
+    expect(message).toContain('Newest folder change:');
+    expect(message).toContain('1 possible Drive conflict copy was found');
+  });
+
+  it('shows notes and image storage from the two measured pools', async () => {
+    storageUsageMocks.readExtensionStorageUsage.mockResolvedValue({
+      indexedDbBytes: 4096,
+      indexedDbQuotaBytes: 5_000_000_000,
+      localBytes: 9_000_000,
+      localQuotaBytes: 10_485_760,
+    });
+
+    await initializePopup(document);
+
+    expect(document.querySelector<HTMLParagraphElement>(
+        '#storage-usage-summary',
+    )?.hidden).toBe(true);
+    expect(document.querySelector('#storage-usage-local')?.textContent)
+        .toBe('8.6 MB of 10.0 MB');
+    expect(document.querySelector<HTMLProgressElement>(
+        '#storage-usage-local-meter',
+    )?.classList.contains('bfa-popup__storage-meter--warning')).toBe(true);
+    expect(document.querySelector('#storage-usage-images')?.textContent)
+        .toBe('about 4.0 KB of 4.7 GB');
   });
 
   it('renders an empty stored-content inventory', async () => {
@@ -338,6 +408,15 @@ function createPopupFixture(): string {
       <p id="character-journal-status"></p>
       <input id="companion-portrait-enabled" type="checkbox">
       <p id="companion-portrait-status"></p>
+      <p id="backup-folder-status"></p>
+      <button id="backup-folder-check" type="button" hidden>Check folder</button>
+      <button id="backup-folder-choose" type="button">Choose folder</button>
+      <button id="backup-folder-forget" type="button" hidden>Forget folder</button>
+      <p id="storage-usage-summary"></p>
+      <span id="storage-usage-local"></span>
+      <progress id="storage-usage-local-meter"></progress>
+      <span id="storage-usage-images"></span>
+      <progress id="storage-usage-images-meter"></progress>
       <p id="stored-content-summary"></p>
       <button id="stored-content-export-all" type="button">Export all journals</button>
       <button id="stored-content-import-all" type="button">Import backup</button>

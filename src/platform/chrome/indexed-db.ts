@@ -1,10 +1,18 @@
-const CHARACTER_ART_DATABASE_NAME = 'beyondFullArt';
-const CHARACTER_ART_DATABASE_VERSION = 1;
+export const CHARACTER_ART_DATABASE_NAME = 'beyondFullArt';
+const CHARACTER_ART_DATABASE_VERSION = 2;
 const CHARACTER_ART_OBJECT_STORE_NAME = 'characterArtBlobs';
+const BACKUP_FOLDER_OBJECT_STORE_NAME = 'backupFolder';
+const BACKUP_FOLDER_RECORD_ID = 'selected';
 
 interface CharacterArtBlobRecord {
   blob: Blob;
   blobKey: string;
+}
+
+export interface StoredBackupFolderRecord {
+  connectedAt: string;
+  handle: FileSystemDirectoryHandle;
+  id: typeof BACKUP_FOLDER_RECORD_ID;
 }
 
 const databasePromises = new WeakMap<IDBFactory, Promise<IDBDatabase>>();
@@ -58,6 +66,61 @@ export async function putStoredCharacterArtBlob(
   });
 }
 
+export async function getStoredBackupFolder(
+    factory: IDBFactory = getIndexedDbFactory(),
+): Promise<StoredBackupFolderRecord | null> {
+  return runWithDatabase(factory, async (database) => {
+    const transaction = database.transaction(BACKUP_FOLDER_OBJECT_STORE_NAME, 'readonly');
+    const request = transaction.objectStore(BACKUP_FOLDER_OBJECT_STORE_NAME)
+        .get(BACKUP_FOLDER_RECORD_ID);
+    const result = await waitForRequest<unknown>(request);
+    await waitForTransaction(transaction);
+    return isStoredBackupFolderRecord(result) ? result : null;
+  });
+}
+
+export async function setStoredBackupFolder(
+    handle: FileSystemDirectoryHandle,
+    connectedAt: string,
+    factory: IDBFactory = getIndexedDbFactory(),
+): Promise<void> {
+  await runWithDatabase(factory, async (database) => {
+    const transaction = database.transaction(BACKUP_FOLDER_OBJECT_STORE_NAME, 'readwrite');
+    transaction.objectStore(BACKUP_FOLDER_OBJECT_STORE_NAME).put({
+      connectedAt,
+      handle,
+      id: BACKUP_FOLDER_RECORD_ID,
+    } satisfies StoredBackupFolderRecord);
+    await waitForTransaction(transaction);
+  });
+}
+
+export async function deleteStoredBackupFolder(
+    factory: IDBFactory = getIndexedDbFactory(),
+): Promise<void> {
+  await runWithDatabase(factory, async (database) => {
+    const transaction = database.transaction(BACKUP_FOLDER_OBJECT_STORE_NAME, 'readwrite');
+    transaction.objectStore(BACKUP_FOLDER_OBJECT_STORE_NAME).delete(BACKUP_FOLDER_RECORD_ID);
+    await waitForTransaction(transaction);
+  });
+}
+
+function isStoredBackupFolderRecord(value: unknown): value is StoredBackupFolderRecord {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const record = value as {
+    connectedAt?: unknown;
+    handle?: unknown;
+    id?: unknown;
+  };
+  return record.id === BACKUP_FOLDER_RECORD_ID
+    && typeof record.connectedAt === 'string'
+    && typeof record.handle === 'object'
+    && record.handle !== null;
+}
+
 function getIndexedDbFactory(): IDBFactory {
   if (globalThis.indexedDB === undefined) {
     throw new Error('IndexedDB is unavailable');
@@ -86,6 +149,11 @@ function openCharacterArtDatabase(factory: IDBFactory): Promise<IDBDatabase> {
       if (!database.objectStoreNames.contains(CHARACTER_ART_OBJECT_STORE_NAME)) {
         database.createObjectStore(CHARACTER_ART_OBJECT_STORE_NAME, {
           keyPath: 'blobKey',
+        });
+      }
+      if (!database.objectStoreNames.contains(BACKUP_FOLDER_OBJECT_STORE_NAME)) {
+        database.createObjectStore(BACKUP_FOLDER_OBJECT_STORE_NAME, {
+          keyPath: 'id',
         });
       }
     };

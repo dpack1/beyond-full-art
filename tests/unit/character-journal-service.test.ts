@@ -45,6 +45,63 @@ describe('character journal service', () => {
     expect(await service.getImage('missing')).toBeNull();
   });
 
+  it('refuses a save loaded before the current stored note', async () => {
+    const service = createCharacterJournalService({
+      now: () => new Date('2026-10-27T01:00:00.000Z'),
+    });
+    const first = await service.save(note({
+      body: 'First version',
+      id: 'note-stale',
+      title: 'Stale test',
+    }), null);
+    if (first.kind !== 'saved') {
+      throw new Error('expected the first save');
+    }
+
+    const result = await service.save(
+        {...first.note, body: 'Draft from an older page'},
+        '2026-10-26T00:00:00.000Z',
+    );
+
+    expect(result).toEqual({kind: 'stale', note: first.note});
+  });
+
+  it('keeps a stale draft as a new note with independent photo ids', async () => {
+    const originalBytes = new Uint8Array([4, 5, 6]).buffer;
+    const blobs = new Map<string, StoredJournalImage>([
+      ['bfa.journal.image.photo-1', {byteBuffer: originalBytes, mimeType: 'image/png'}],
+    ]);
+    const service = createCharacterJournalService({
+      createId: sequence(['photo-copy', 'note-copy']),
+      imageStore: memoryStore(blobs),
+      now: () => new Date('2026-10-27T01:00:00.000Z'),
+    });
+    const draft = note({
+      body: 'Draft\n\n![[img:photo-1|Camp]]',
+      featuredImageId: 'photo-1',
+      id: 'note-1',
+      images: [storedImage('photo-1')],
+      title: 'Camp',
+    });
+
+    const copy = await service.keepBoth(draft);
+
+    expect(copy).toMatchObject({
+      body: 'Draft\n\n![[img:photo-copy|Camp]]',
+      featuredImageId: 'photo-copy',
+      id: 'note-copy',
+      title: 'Camp (other computer)',
+    });
+    expect(copy.images[0]).toMatchObject({
+      blobKey: 'bfa.journal.image.photo-copy',
+      id: 'photo-copy',
+    });
+    expect(new Uint8Array(
+        blobs.get('bfa.journal.image.photo-copy')?.byteBuffer ?? new ArrayBuffer(0),
+    )).toEqual(new Uint8Array([4, 5, 6]));
+    expect(blobs.has('bfa.journal.image.photo-1')).toBe(true);
+  });
+
   it('inserts a photo embed at the cursor', async () => {
     const blobs = new Map<string, StoredJournalImage>();
     const service = createCharacterJournalService({

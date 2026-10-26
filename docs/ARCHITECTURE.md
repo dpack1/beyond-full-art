@@ -36,9 +36,11 @@ src/
     fullscreen-viewer/
   platform/
     chrome/
+      backup-folder.ts
       indexed-db.ts
       messages.ts
       storage.ts
+      storage-usage.ts
     dndbeyond/
       campaign-card-portrait-adapter.ts
       character-sheet-tabs-adapter.ts
@@ -47,10 +49,16 @@ src/
       portrait-upload-handoff.ts
       selectors.ts
       urls.ts
+  folder/
+    setup.html
+    setup.css
+    setup.ts
   popup/
+    backup-folder.ts
     settings.html
     settings.css
     settings.ts
+    storage-usage.ts
   shared/
     dom.ts
     download.ts
@@ -400,9 +408,107 @@ through a validated runtime message. The service worker is the only writer.
 The 3 MB ceiling is on the stored blob, not on `chrome.storage.local`. A new
 file larger than that, up to 25 MB, is drawn down to a 2048px long edge and
 re-encoded before the message. Photos already stored are read unchanged.
-`unlimitedStorage` is not requested. The extension origin still shares the
-browser's extension storage quota, about 10 MB, and a full quota is reported
-on the note with the image size.
+`unlimitedStorage` is not requested. `chrome.storage.local` is capped at
+about 10 MB (`QUOTA_BYTES`). IndexedDB uses the extension origin's own quota.
+The popup reads `chrome.storage.local.getBytesInUse(null)` and
+`navigator.storage.estimate()` and shows those two pools separately. A full
+quota on a note write is still reported with the image size.
+
+## Backup folder
+
+The popup's **Choose folder** button opens `folder/setup.html` in its own
+window. That page calls `showDirectoryPicker`. An empty folder receives
+`beyond-full-art.json` (format `beyond-full-art-folder`, schema version 1)
+and a `characters/` directory. A folder that already has that marker can be
+chosen again. Any other contents are refused.
+
+The directory handle is stored in the `backupFolder` object store of the
+`beyondFullArt` IndexedDB database. Database version 2 adds that store and
+does not rewrite art blobs. Forgetting the folder deletes that one record.
+It does not delete files in the folder.
+
+The setup window can copy this browser's art, crops, notes, and photos into
+the folder after a confirmation. Each file is read back and hashed.
+`characters/<characterId>/character.json` is written last, so a directory
+without it is ignored. A character that already has `character.json` is left
+alone. The marker becomes schema version 2 when that copy has no failures, or
+when the player starts saving in a prepared folder that has no browser copies
+to remove.
+
+When the player then confirms cleanup, or confirms an empty browser should
+save in the folder, `bfa.library.mode` becomes `folder`. That flag is written
+before the browser art, crop, note, and photo records are removed. Popup
+toggles, the companion portrait selection, and the directory handle stay.
+From then on the service worker reads and writes full art, crops, notes, and
+photos in the folder. Content scripts reach notes through `library:*`
+messages. Journal photo puts include the character id so the file can be
+placed before the note is saved. If the folder permission is `prompt` or
+`denied`, or the handle is missing, reads and writes fail with a message to
+choose the folder again. They do not create a new empty library in the
+browser.
+
+A note edited after the copy does not match, so cleanup refuses and this
+browser keeps saving locally until setup unions or resolves it. The popup's
+**Check folder** reads commit status and refreshes its inventory. The Journal
+action reopens the current character; a clean panel adopts a newer note and a
+dirty panel keeps its draft and becomes stale. Note save compares
+`loadedUpdatedAt`. Full-art save compares the SHA-256 the page loaded with the
+current commit before writing.
+
+Folder-mode deletion writes a checked JSON tombstone and records its hash in
+`character.json`. A deleted note file is removed and its id is no longer read.
+Its journal photo files remain in place but are hidden by image tombstones so
+an explicit restore can recover the note without losing those bytes. Saving a
+tombstoned note id is refused. Art and crop deletion use the same format and
+remove the current image bytes.
+
+`folder-library-snapshot.ts` reads browser and folder state, while
+`folder-library-compare.ts` compares normalized records keyed by character ID,
+record kind, and record ID. Browser art and photo bytes are SHA-256 hashed;
+notes use the same semantic fingerprint as verified folder adoption. Shared
+keys with different fingerprints and local keys covered by folder tombstones
+are conflicts. Browser-only keys are additions. Folder-only records do not
+block the existing verified-adoption path. Directory entries whose names look
+like Drive conflict siblings are reported without opening or parsing them.
+Setup consumes an additions result through `folder-library-union.ts`. It writes
+only browser-only records, reads folder notes before appending new note IDs,
+writes photo bytes before their notes, and runs comparison again. Only a
+matching result proceeds to verified adoption and browser cleanup. Conflict or
+failed results preserve the browser copies and do not enable folder mode.
+Note, photo, full-art, and crop conflicts proceed to `folder-library-conflicts.ts`.
+The setup window creates one radio group per conflict and keeps Apply disabled
+until every group has a choice. Changed notes can keep the folder copy, replace
+it with the browser copy, or keep both under a new ID. Tombstoned records can
+stay deleted or restore the browser copy. For full art and crops, the selected
+bytes become current and the rejected bytes are hash-checked into timestamped
+files recorded in the commit's `kept` array. Current-art readers ignore
+`kept`, and ordinary rewrites preserve it. Checked folder writes finish before
+resolved adoption removes browser records. Differing photo bytes are both
+written and checked. The photo belonging to the newer owning note keeps the
+shared ID; the other photo receives a random ID. `journal-image-remap.ts`
+updates that note's image record, body embeds, and featured-image pointer. When
+otherwise-identical notes own the two photo versions, the losing side is
+retained as an ` (other computer)` note so neither photo becomes invisible.
+
+When folder mode is already active, setup calls `isSameEntry` before connecting
+a newly chosen directory. A different handle, or a browser without that API,
+requires confirmation. Cancellation happens before `connectBackupFolder`, so
+the current IndexedDB handle is unchanged.
+
+```text
+beyond-full-art.json
+characters/<characterId>/character.json
+characters/<characterId>/full-art.<png|jpg|webp>
+characters/<characterId>/portrait-crop.<png|jpg|webp>
+characters/<characterId>/full-art-kept-<UTC stamp>.<png|jpg|webp>
+characters/<characterId>/portrait-crop-kept-<UTC stamp>.png
+characters/<characterId>/journal/notes/<noteId>.json
+characters/<characterId>/journal/images/<imageId>.<png|jpg|webp>
+characters/<characterId>/journal/tombstones/<noteId>.json
+characters/<characterId>/journal/tombstones/image-<imageId>.json
+characters/<characterId>/tombstones/full-art.json
+characters/<characterId>/tombstones/portrait-crop.json
+```
 
 ```text
 bfa.preferences.characterJournalEnabled

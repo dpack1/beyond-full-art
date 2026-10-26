@@ -6,6 +6,8 @@ import {
   setCampaignCardPortraitUpgradeEnabled,
   setCharacterJournalEnabled,
 } from '../platform/chrome/storage';
+import {installBackupFolder} from './backup-folder';
+import {installStorageUsage} from './storage-usage';
 import {installStoredContent} from './stored-content';
 import {
   COMPANION_PORTRAIT_ENABLED_KEY,
@@ -88,7 +90,11 @@ export async function initializePopup(doc: Document): Promise<void> {
     });
   }
 
-  await installStoredContent(doc);
+  await Promise.all([
+    installBackupFolder(doc),
+    installStorageUsage(doc),
+    installStoredContent(doc),
+  ]);
 }
 async function handleCheckboxChange(options: {
   checkbox: HTMLInputElement;

@@ -51,6 +51,12 @@ Current implementation slice:
 - embedded status, crop, and delete controls in observed portrait-management surfaces,
 - fullscreen-viewer download for the currently stored full art, using the stored filename when available,
 - popup inventory for locally stored full art with per-item open, download, and delete actions,
+- popup backup-folder setup for one empty directory, or a directory this extension already prepared, plus a confirmed copy and a verified switch so later art and notes are saved in that folder,
+- durable folder tombstones for deleted art, crops, notes, and journal photos, including explicit conflict restore,
+- a read-only folder comparison engine for matches, additions, changed records, tombstones, and unopened Drive conflict siblings,
+- setup union for non-conflicting additions, with post-write verification before browser cleanup, and confirmation before switching an active library folder,
+- conflict review with complete-choice gating: notes support keep-folder, keep-browser, keep-both, deleted, and restore; full art and crops preserve rejected bytes as checked `kept` files; photo conflicts preserve both versions and remap the losing photo and note references,
+- popup and Journal folder checks, dirty-draft preservation and Keep both, note `updatedAt` guards, and full-art loaded-SHA guards,
 - optional sharper character-card portrait URLs on campaign pages and the My Characters page,
 - focused unit, DOM fixture, and local Playwright fixture coverage.
 

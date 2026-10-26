@@ -109,6 +109,7 @@ interface SaveCharacterArtRequest extends CharacterArtEnvelope {
   characterId: CharacterId;
   fileName: string;
   height: number | null;
+  loadedSha256?: string | null | undefined;
   mimeType: SaveCharacterArtInput['mimeType'];
   type: 'art:save';
   width: number | null;
@@ -253,6 +254,7 @@ export function asCharacterArtRequest(
         || typeof value.mimeType !== 'string'
         || !isSupportedCharacterArtMimeType(value.mimeType)
         || typeof value.byteBase64 !== 'string'
+        || !isOptionalSha256(value.loadedSha256)
         || !isNullableNumber(value.height)
         || !isNullableNumber(value.width)
       ) {
@@ -268,6 +270,7 @@ export function asCharacterArtRequest(
         characterId: value.characterId,
         fileName: value.fileName,
         height: value.height,
+        loadedSha256: value.loadedSha256,
         mimeType: value.mimeType,
         source: CHARACTER_ART_MESSAGE_SOURCE,
         type: 'art:save',
@@ -729,6 +732,12 @@ function asCharacterArtResponse(
 
 function isNullableNumber(value: unknown): value is number | null {
   return value === null || typeof value === 'number';
+}
+
+function isOptionalSha256(value: unknown): value is string | null | undefined {
+  return value === undefined
+    || value === null
+    || (typeof value === 'string' && /^[a-f0-9]{64}$/.test(value));
 }
 
 function isCharacterPortraitCropRect(

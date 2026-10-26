@@ -54,6 +54,7 @@ export interface CharacterArtService {
   saveArt(
       characterId: CharacterId,
       file: File,
+      loadedSha256?: string | null,
   ): Promise<Result<CharacterArtMetadata, string>>;
   savePortraitCrop(
       input: SaveCharacterPortraitCropInput,
@@ -138,6 +139,7 @@ export function createCharacterArtService(
         if (imageData === null) {
           return {
             ...fallbackSource,
+            sha256: null,
             usingStoredArt: false,
             warningMessage: null,
           };
@@ -154,6 +156,7 @@ export function createCharacterArtService(
           releaseImageUrl: () => {
             revokeObjectUrl(objectUrl);
           },
+          sha256: await sha256Hex(imageData.byteBuffer),
           storedArtFileName: imageData.fileName,
           usingStoredArt: true,
           warningMessage: null,
@@ -161,6 +164,7 @@ export function createCharacterArtService(
       } catch (error) {
         return {
           ...fallbackSource,
+          sha256: null,
           usingStoredArt: false,
           warningMessage: asUserFacingError(
               error,
@@ -169,7 +173,7 @@ export function createCharacterArtService(
         };
       }
     },
-    async saveArt(characterId, file) {
+    async saveArt(characterId, file, loadedSha256) {
       const validationResult = validateSelectedFile(file);
       if (!validationResult.ok) {
         return validationResult;
@@ -187,6 +191,7 @@ export function createCharacterArtService(
           characterId,
           fileName: validationResult.value.file.name,
           height: dimensions.height,
+          loadedSha256,
           mimeType: validationResult.value.mimeType,
           width: dimensions.width,
         };
@@ -211,6 +216,13 @@ export function createCharacterArtService(
       }
     },
   };
+}
+
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', buffer.slice(0));
+  return [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
 }
 
 function asUserFacingError(error: unknown, fallbackMessage: string): string {

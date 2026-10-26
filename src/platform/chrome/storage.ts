@@ -24,6 +24,7 @@ import {
   omitJournalEntry,
   readJournalRecordArray,
 } from '../../features/character-journal/character-journal-records';
+import {isFolderLibrary} from './library-mode';
 
 const CHARACTER_ART_SCHEMA_VERSION_KEY = 'bfa.characterArt.schemaVersion';
 const CHARACTER_ART_METADATA_KEY_PREFIX = 'bfa.characterArt.metadata.';
@@ -95,6 +96,17 @@ export async function setStoredCharacterArtMetadata(
   }, storageArea);
 }
 
+export async function getAllStoredCharacterPortraitCropMetadata(
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<CharacterPortraitCropMetadata[]> {
+  const storedValues = await callStorageGetAll(storageArea);
+  return Object.entries(storedValues)
+      .filter(([key]) => key.startsWith(CHARACTER_PORTRAIT_CROP_METADATA_KEY_PREFIX))
+      .map(([, value]) => value)
+      .filter(isCharacterPortraitCropMetadata)
+      .sort((left, right) => left.characterId.localeCompare(right.characterId));
+}
+
 export async function getStoredCharacterPortraitCropMetadata(
     characterId: CharacterId,
     storageArea: ChromeStorageLocal = getStorageArea(),
@@ -125,6 +137,49 @@ export async function deleteStoredCharacterArtMetadata(
     storageArea: ChromeStorageLocal = getStorageArea(),
 ): Promise<void> {
   await callStorageRemove(getCharacterArtMetadataKey(characterId), storageArea);
+}
+
+export async function deleteStoredArtAndJournal(
+    storageArea: ChromeStorageLocal = getStorageArea(),
+): Promise<string[]> {
+  const storedValues = await callStorageGetAll(storageArea);
+  const blobKeys: string[] = [];
+  const keysToRemove: string[] = [];
+  for (const [key, value] of Object.entries(storedValues)) {
+    if (key.startsWith(CHARACTER_ART_METADATA_KEY_PREFIX) && isCharacterArtMetadata(value)) {
+      blobKeys.push(value.blobKey);
+      keysToRemove.push(key);
+      continue;
+    }
+    if (
+      key.startsWith(CHARACTER_PORTRAIT_CROP_METADATA_KEY_PREFIX)
+      && isCharacterPortraitCropMetadata(value)
+    ) {
+      blobKeys.push(value.blobKey);
+      keysToRemove.push(key);
+      continue;
+    }
+    if (key.startsWith(CHARACTER_JOURNAL_BACKUP_KEY_PREFIX)) {
+      keysToRemove.push(key);
+      continue;
+    }
+    if (!key.startsWith(CHARACTER_JOURNAL_ENTRIES_KEY_PREFIX)) {
+      continue;
+    }
+    keysToRemove.push(key);
+    for (const record of readJournalRecordArray(value)) {
+      if (!isJournalNote(record)) {
+        continue;
+      }
+      for (const image of record.images) {
+        blobKeys.push(image.blobKey);
+      }
+    }
+  }
+  for (const key of keysToRemove) {
+    await callStorageRemove(key, storageArea);
+  }
+  return blobKeys;
 }
 
 export async function deleteStoredCharacterPortraitCropMetadata(
@@ -244,13 +299,27 @@ export function getCharacterJournalBackupKey(characterId: CharacterId): string {
 
 export async function readRawCharacterJournalRecords(
     characterId: CharacterId,
-    storageArea: ChromeStorageLocal = getStorageArea(),
+    storageArea?: ChromeStorageLocal,
 ): Promise<unknown[]> {
-  return readCharacterJournalRecords(characterId, storageArea);
+  if (storageArea === undefined && await isFolderLibrary()) {
+    const {readFolderJournalRecords} = await import('./folder-library-client');
+    return readFolderJournalRecords(characterId);
+  }
+  return readCharacterJournalRecords(characterId, storageArea ?? getStorageArea());
 }
 
 export async function getAllRawCharacterJournalRecords(
-    storageArea: ChromeStorageLocal = getStorageArea(),
+    storageArea?: ChromeStorageLocal,
+): Promise<StoredCharacterJournalRecords[]> {
+  if (storageArea === undefined && await isFolderLibrary()) {
+    const {listFolderJournalRecords} = await import('./folder-library-client');
+    return listFolderJournalRecords();
+  }
+  return listLocalJournalRecords(storageArea ?? getStorageArea());
+}
+
+async function listLocalJournalRecords(
+    storageArea: ChromeStorageLocal,
 ): Promise<StoredCharacterJournalRecords[]> {
   const storedValues = await callStorageGetAll(storageArea);
   return Object.entries(storedValues)
@@ -267,17 +336,17 @@ export async function getAllRawCharacterJournalRecords(
 export async function mergeImportedCharacterJournalRecords(
     characterId: CharacterId,
     imported: readonly (CharacterJournalEntry | JournalNote)[],
-    storageArea: ChromeStorageLocal = getStorageArea(),
+    storageArea?: ChromeStorageLocal,
 ): Promise<void> {
   const matching = imported.filter((record) => record.characterId === characterId);
   if (matching.length === 0) {
     return;
   }
 
-  await updateCharacterJournalRecords(characterId, (records) => {
+  await updateJournalNoteRecords(characterId, (records) => {
     return matching.reduce<unknown[]>((next, record) =>
       mergeJournalRecord(next, record), [...records]);
-  }, storageArea, JOURNAL_NOTE_SCHEMA_VERSION);
+  }, storageArea);
 }
 
 export function readableImportedJournalRecords(
@@ -291,12 +360,18 @@ export function readableImportedJournalRecords(
 export async function updateJournalNoteRecords(
     characterId: CharacterId,
     update: (records: readonly unknown[]) => unknown[],
-    storageArea: ChromeStorageLocal = getStorageArea(),
+    storageArea?: ChromeStorageLocal,
 ): Promise<void> {
+  if (storageArea === undefined && await isFolderLibrary()) {
+    const {readFolderJournalRecords, writeFolderJournalRecords} = await import('./folder-library-client');
+    const current = await readFolderJournalRecords(characterId);
+    await writeFolderJournalRecords(characterId, update(current));
+    return;
+  }
   await updateCharacterJournalRecords(
       characterId,
       update,
-      storageArea,
+      storageArea ?? getStorageArea(),
       JOURNAL_NOTE_SCHEMA_VERSION,
   );
 }

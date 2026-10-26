@@ -99,7 +99,8 @@ src/
     fullscreen-viewer/                  accessible fullscreen overlay
   platform/chrome/                      storage, IndexedDB, runtime messages
   platform/dndbeyond/                   selector map, URLs, DOM adapters
-  popup/                                toolbar settings and stored-art inventory
+  popup/                                toolbar settings, storage readout, backup folder, inventory
+  folder/                               backup-folder picker window
   shared/                               DOM, download, and result helpers
 tests/
   unit/                                 pure logic
@@ -120,7 +121,7 @@ Preserve these boundaries:
 - Chrome API access lives behind `src/platform/chrome/` where tests need a seam.
 - UI components own their markup, behavior, and styles.
 - Storage code stays separate from DOM integration.
-- The popup is one surface: settings toggles plus the stored-art inventory.
+- The popup is one surface: settings toggles, the storage readout, the backup-folder connection, and the stored-art inventory. The directory picker itself runs in `folder/setup.html`.
 
 Avoid large files. Consider splitting a file that approaches 250 lines when it has more than one responsibility. Do not split cohesive code merely to satisfy a line count. `src/features/character-art/upload-control.ts` and `src/platform/chrome/messages.ts` are already past that guideline; split them only when changing their behavior.
 
@@ -161,9 +162,9 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - Keep host permissions limited to the D&D Beyond origins the current feature needs.
 - Do not request `webRequest`, `unlimitedStorage`, or `downloads` before the feature that needs them is implemented.
 - Do not execute remote code.
-- Keep stored artwork local unless a product decision explicitly adds cloud sync.
-- Store preferences, metadata, and journal note text in `chrome.storage.local`.
-- Store full image bytes in extension-origin IndexedDB.
+- Keep stored artwork on this machine unless a product decision explicitly adds cloud sync. ADR-027: after a verified match, the chosen folder is the library for art, crops, notes, and photos. Preferences stay in `chrome.storage.local`. The directory handle stays in IndexedDB. `bfa.library.mode` is `folder` only after that match, and it is written before the browser copies are removed.
+- Store preferences in `chrome.storage.local`. While the library is still this browser, art and crop metadata and journal note text live there too.
+- Store full image bytes in extension-origin IndexedDB until the folder is the library. After that, image bytes live in the folder. Do not store image bytes in `chrome.storage.local`.
 - Do not use page-origin localStorage or IndexedDB from a content script for extension data.
 - Treat the service worker as ephemeral. Persist state instead of relying on global memory.
 - Character IDs are strings. Do not coerce them through JavaScript numbers.
@@ -184,9 +185,15 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - Full art is written only after D&D Beyond's native **Change Portrait** action. A chosen file, and a crop made from that file, stay pending until that confirmation.
 - One active full-art image is stored per character. Replacement writes the new blob before deleting the old one.
 - Supported uploads are `image/png`, `image/jpeg`, and `image/webp`, up to 3 MB. The generated crop is a 512×512 PNG.
-- Popup styles are injected by `src/popup/settings.ts` from `settings.css?raw`. `settings.html` has no stylesheet link. The build copies the HTML and bundles the script to `dist/popup/settings.js`.
+- Popup styles are injected by `src/popup/settings.ts` from `settings.css?raw`. `settings.html` has no stylesheet link. The build copies the HTML and bundles the script to `dist/popup/settings.js`. The backup-folder window does the same with `src/folder/setup.css` and `dist/folder/setup.js`.
+- Backup folder setup runs outside the toolbar popup because that popup closes when Chrome's directory picker opens. A new folder must be empty aside from `.DS_Store`, `Thumbs.db`, or `desktop.ini`. An existing folder is accepted when its `beyond-full-art.json` marker is version 1 or 2. A confirmed copy writes checked files. A second confirm removes this browser's copies only when they still match the folder, and later saves go to the folder. A mismatch leaves both copies in place. The marker becomes version 2 after a fully successful copy, or when an empty browser starts saving in the folder. The handle lives in the IndexedDB `backupFolder` store.
+- Folder-library deletion writes hashed tombstone JSON and preserves every `character.json` tombstone on later writes. Deleted note files are removed; their photo files remain but are hidden by image tombstones. A tombstoned note id cannot be saved until the explicit restore path clears its note and image tombstones.
+- `src/platform/chrome/folder-library-snapshot.ts` reads browser and folder sync state. `folder-library-compare.ts` owns cross-computer identity and pure comparison. Together they hash browser image bytes, use the shared note fingerprint, treat a local record covered by a folder tombstone as a conflict, and list Drive conflict siblings without opening them. `folder-library-union.ts` writes browser-only additions and rechecks before verified adoption. Conflict choices own later writes.
+- While folder mode is active, choosing another directory requires an `isSameEntry` check and confirmation before `connectBackupFolder` can replace the stored handle. Treat a missing or failed `isSameEntry` as requiring confirmation.
+- `folder-library-conflicts.ts` validates the whole choice set before writing. Notes support folder, browser, both, deleted, and restore. Full art and crops support folder, browser, deleted, and restore; the non-current bytes are hash-checked into timestamped files recorded under `character.json` `kept`. Differing photo bytes are both retained: the photo owned by the newer note keeps its id, the other photo gets a new id, and retained note embeds and featured-image references are remapped.
+- The popup and Journal expose **Check folder** while folder mode is active. A dirty Journal draft is not replaced by a newer folder note. Its banner offers Save, Discard draft, and Keep both; Keep both copies the draft and its photo blobs to new ids before loading the folder note. Full-art saves include the SHA-256 loaded by the page and `saveFolderFullArt` refuses a different current revision.
 - Both popup toggles default to enabled when the preference key is missing.
-- Journal photos are image records on a note. Their bytes live in IndexedDB under keys prefixed `bfa.journal.image.`. Do not store image bytes in `chrome.storage.local`. The body places a photo with `![[img:<id>]]`, optionally `![[img:<id>|caption|300]]`. A file over 3 MB is resized to a 2048px long edge before it is stored. The source file can be up to 25 MB. Stored bytes stay at or under 3 MB. Photos already in IndexedDB are left as they are. Deleting the embed marks the blob orphaned; a later save, at least 30 seconds on, deletes it.
+- Journal photos are image records on a note. While the library is this browser, their bytes live in IndexedDB under keys prefixed `bfa.journal.image.`. After the folder is the library, the photo file is `characters/<characterId>/journal/images/<imageId>.<ext>` and the put message includes that character id. Do not store image bytes in `chrome.storage.local`. The body places a photo with `![[img:<id>]]`, optionally `![[img:<id>|caption|300]]`. A file over 3 MB is resized to a 2048px long edge before it is stored. The source file can be up to 25 MB. Stored bytes stay at or under 3 MB. Photos already stored are left as they are. Deleting the embed marks the blob orphaned; a later save, at least 30 seconds on, deletes it.
 - The journal follows the sheet's light or dark appearance and scrolls inside the sheet's content pane. Opening it claims the whole tab hit target, including padding, on pointerdown. It conceals the sheet section with `display: none !important` while Journal is open. The note panel mirrors the Information Sidebar recorded in `docs/ddb-reference/sidebar.md`. Its close and back controls sit outside the content box. Do not copy `ct-sidebar` onto that panel.
 - Playwright journal screenshots are written to `/opt/cursor/artifacts/journal/` by `tests/e2e/character-journal.spec.ts` and `tests/e2e/character-journal-sheet.spec.ts`. The suite loads the unpacked `dist/` extension against local character-sheet fixtures, not the live site.
 - `assets/icons/icon-source.png` is the icon master. The build copies only `icon-16.png`, `icon-32.png`, `icon-48.png`, and `icon-128.png`.

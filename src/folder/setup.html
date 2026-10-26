@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Backup folder</title>
+  </head>
+  <body class="bfa-folder-setup">
+    <main class="bfa-folder-setup__main">
+      <p class="bfa-folder-setup__eyebrow">Beyond Full Art</p>
+      <h1 class="bfa-folder-setup__title">Choose a backup folder</h1>
+      <p class="bfa-folder-setup__copy">
+        Create a blank folder, then choose it here. The extension adds its own
+        marker and a characters directory. If this browser already has art or
+        notes, you can copy them into the folder. After the files check out,
+        the copies in this browser can be removed, and new art and notes save
+        in the folder.
+      </p>
+      <p class="bfa-folder-setup__copy">
+        Put that folder inside Google Drive for Desktop if you want Drive to
+        sync it. On another computer, choose the same folder after it appears
+        on disk.
+      </p>
+      <div class="bfa-folder-setup__actions">
+        <button id="folder-setup-choose" class="bfa-folder-setup__button" type="button">
+          Choose an empty folder
+        </button>
+        <button id="folder-setup-copy" class="bfa-folder-setup__button bfa-folder-setup__button--primary" type="button" hidden>
+          Copy into folder
+        </button>
+        <button id="folder-setup-close" class="bfa-folder-setup__button" type="button">
+          Close
+        </button>
+      </div>
+      <p id="folder-setup-status" class="bfa-folder-setup__status" aria-live="polite"></p>
+    </main>
+    <script src="./setup.js"></script>
+  </body>
+</html>

@@ -59,6 +59,9 @@ export async function installStoredContent(doc: Document): Promise<void> {
       void importJournals(file, target, elements, doc);
     }
   });
+  doc.addEventListener('bfa-folder-checked', () => {
+    void refresh(elements, doc);
+  });
 
   await refresh(elements, doc);
 }

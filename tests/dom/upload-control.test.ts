@@ -629,7 +629,7 @@ describe('upload controls', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(saveArt).toHaveBeenCalledWith('169418374', file);
+    expect(saveArt).toHaveBeenCalledWith('169418374', file, null);
     expect(uploadSection?.textContent).toContain('Portrait saved locally as full art.');
   });
 
@@ -799,6 +799,7 @@ describe('upload controls', () => {
           altText: 'stored full art',
           imageUrl: 'blob:first-full-art',
           releaseImageUrl: () => {},
+          sha256: '1'.repeat(64),
           usingStoredArt: true,
           warningMessage: null,
         })
@@ -806,6 +807,7 @@ describe('upload controls', () => {
           altText: 'stored full art',
           imageUrl: 'blob:second-full-art',
           releaseImageUrl: () => {},
+          sha256: '2'.repeat(64),
           usingStoredArt: true,
           warningMessage: null,
         });
@@ -892,6 +894,9 @@ describe('upload controls', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
+    expect(saveArt).toHaveBeenCalledWith(
+        '169418374', replacementFile, '1'.repeat(64),
+    );
     const currentPreviewImage = manager?.querySelector<HTMLImageElement>(
         '.bfa-art-sync__top-layout .bfa-art-sync__preview-image',
     );

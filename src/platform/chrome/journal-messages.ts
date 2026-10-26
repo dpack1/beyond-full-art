@@ -22,6 +22,7 @@ export interface PutJournalImageRequest extends JournalImageEnvelope {
   byteBase64?: string;
   byteBuffer?: ArrayBuffer;
   byteSize: number;
+  characterId?: string;
   mimeType: SupportedCharacterArtMimeType;
   type: 'journal:put-image';
 }
@@ -105,7 +106,7 @@ export function asJournalImageRequest(
         return null;
       }
 
-      return {
+      const request: PutJournalImageRequest = {
         blobKey: value.blobKey,
         byteBase64: typeof value.byteBase64 === 'string' ? value.byteBase64 : '',
         byteBuffer,
@@ -114,6 +115,10 @@ export function asJournalImageRequest(
         source: JOURNAL_IMAGE_MESSAGE_SOURCE,
         type: 'journal:put-image',
       };
+      if (typeof value.characterId === 'string' && /^[A-Za-z0-9_-]+$/.test(value.characterId)) {
+        request.characterId = value.characterId;
+      }
+      return request;
     }
     default:
       return null;
@@ -194,18 +199,23 @@ export function createGetJournalImageSuccessResponse(
 export async function putStoredJournalImage(input: {
   blobKey: string;
   byteBuffer: ArrayBuffer;
+  characterId?: string;
   mimeType: SupportedCharacterArtMimeType;
 }): Promise<void> {
   // Extension messages do not keep an ArrayBuffer intact. Chromium delivers
   // that field as a plain object, so the base64 copy is the one the worker reads.
-  const response = await sendJournalImageMessage({
+  const message: PutJournalImageRequest = {
     blobKey: input.blobKey,
     byteBase64: encodeArrayBufferToBase64(input.byteBuffer),
     byteSize: input.byteBuffer.byteLength,
     mimeType: input.mimeType,
     source: JOURNAL_IMAGE_MESSAGE_SOURCE,
     type: 'journal:put-image',
-  });
+  };
+  if (input.characterId !== undefined) {
+    message.characterId = input.characterId;
+  }
+  const response = await sendJournalImageMessage(message);
   if (response.type !== 'journal:put-image:success') {
     throw new Error(response.type === 'journal:error'
       ? response.message

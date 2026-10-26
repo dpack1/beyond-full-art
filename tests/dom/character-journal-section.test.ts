@@ -22,6 +22,7 @@ describe('character journal section', () => {
     document.body.innerHTML = '';
     document.head.querySelector('[data-bfa-character-journal-styles]')?.remove();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('shows the list in the content host and says there are no notes', async () => {
@@ -64,6 +65,92 @@ describe('character journal section', () => {
     search.value = 'nope';
     search.dispatchEvent(new Event('input'));
     expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No matches');
+    section.destroy();
+  });
+
+  it('checks the folder without replacing a dirty draft', async () => {
+    vi.stubGlobal('chrome', {
+      runtime: {lastError: undefined},
+      storage: {
+        local: {
+          get(_key: string, callback: (value: Record<string, unknown>) => void) {
+            callback({'bfa.library.mode': 'folder'});
+          },
+          set(_values: Record<string, unknown>, callback: () => void) {
+            callback();
+          },
+        },
+      },
+    });
+    const stored = [note({body: 'Folder version one', id: 'camp', title: 'Camp'})];
+    const section = createCharacterJournalSection(createFakeService(stored));
+    await showSection(section);
+    await flush();
+    document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
+    buttonNamed('Edit')?.click();
+    titleField().value = 'My unsaved draft';
+    titleField().dispatchEvent(new Event('input'));
+    stored[0] = {
+      ...stored[0] as JournalNote,
+      body: 'Newer folder text',
+      updatedAt: '2026-10-27T00:00:00.000Z',
+    };
+
+    buttonNamed('Check folder')?.click();
+    await flush();
+
+    expect(titleField().value).toBe('My unsaved draft');
+    expect(document.querySelector('.bfa-journal-banner')?.textContent)
+        .toContain('The folder has a newer copy. Your draft is still here.');
+    expect(buttonNamed('Save')).not.toBeNull();
+    expect(buttonNamed('Discard draft')).not.toBeNull();
+    buttonNamed('Keep both')?.click();
+    await flush();
+
+    expect(stored).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'camp-copy',
+        title: 'My unsaved draft (other computer)',
+      }),
+    ]));
+    expect(titleField().value).toBe('Camp');
+    section.destroy();
+  });
+
+  it('replaces a clean open editor when Check folder finds a newer note', async () => {
+    vi.stubGlobal('chrome', {
+      runtime: {lastError: undefined},
+      storage: {
+        local: {
+          get(_key: string, callback: (value: Record<string, unknown>) => void) {
+            callback({'bfa.library.mode': 'folder'});
+          },
+          set(_values: Record<string, unknown>, callback: () => void) {
+            callback();
+          },
+        },
+      },
+    });
+    const stored = [note({body: 'Folder version one', id: 'camp', title: 'Camp'})];
+    const section = createCharacterJournalSection(createFakeService(stored));
+    await showSection(section);
+    await flush();
+    document.querySelector<HTMLButtonElement>('.bfa-journal-row')?.click();
+    buttonNamed('Edit')?.click();
+    stored[0] = {
+      ...stored[0] as JournalNote,
+      body: 'Newer folder text',
+      title: 'Newer camp',
+      updatedAt: '2026-10-27T00:00:00.000Z',
+    };
+
+    buttonNamed('Check folder')?.click();
+    await flush();
+
+    expect(titleField().value).toBe('Newer camp');
+    expect(document.querySelector<HTMLTextAreaElement>('.bfa-journal-editor')?.value)
+        .toBe('Newer folder text');
+    expect(document.querySelector('.bfa-journal-banner')).toBeNull();
     section.destroy();
   });
 
@@ -902,6 +989,11 @@ function createFakeService(notes: JournalNote[]): CharacterJournalService {
     },
     async getImage() {
       return null;
+    },
+    async keepBoth(entry) {
+      const copy = {...entry, id: `${entry.id}-copy`, title: `${entry.title} (other computer)`};
+      notes.push(copy);
+      return copy;
     },
     async open(characterId) {
       return {

@@ -24,6 +24,7 @@ import {
 } from './character-journal-embeds';
 import {journalImageTooLargeMessage} from './character-journal-image-fit';
 import {rewriteUniqueTitle} from './character-journal-links';
+import {remapJournalNoteImages} from './journal-image-remap';
 import {removeJournalImageLine} from './character-journal-markdown';
 import {
   journalMigrationConfirmed,
@@ -47,6 +48,7 @@ export interface JournalImageStore {
   putImage(input: {
     blobKey: string;
     byteBuffer: ArrayBuffer;
+    characterId?: string;
     mimeType: JournalImage['mimeType'];
   }): Promise<void>;
 }
@@ -72,6 +74,7 @@ export interface CharacterJournalService {
   deleteEntry(characterId: CharacterId, entryId: string): Promise<void>;
   fileQuickNote(characterId: CharacterId, text: string): Promise<JournalNote>;
   getImage(blobKey: string): Promise<StoredJournalImage | null>;
+  keepBoth(note: JournalNote): Promise<JournalNote>;
   open(characterId: CharacterId): Promise<JournalOpenResult>;
   removeImage(note: JournalNote, imageId: string): Promise<JournalNote>;
   save(note: JournalNote, loadedUpdatedAt: string | null): Promise<JournalSaveResult>;
@@ -154,6 +157,7 @@ export function createCharacterJournalService(
     getImage(blobKey) {
       return imageStore.getImage(blobKey);
     },
+    keepBoth,
     open,
     removeImage,
     save,
@@ -278,6 +282,52 @@ export function createCharacterJournalService(
     return {kind: 'saved', note: nextNote};
   }
 
+  async function keepBoth(note: JournalNote): Promise<JournalNote> {
+    const sources = await Promise.all(note.images.map(async (image) => {
+      const stored = await imageStore.getImage(image.blobKey);
+      if (stored === null) {
+        throw new Error(`The photo “${image.fileName}” could not be copied.`);
+      }
+      return {image, stored};
+    }));
+    const replacements = new Map<string, string>();
+    for (const {image} of sources) {
+      replacements.set(image.id, createId());
+    }
+    const written: string[] = [];
+    try {
+      for (const {image, stored} of sources) {
+        const nextId = replacements.get(image.id);
+        if (nextId === undefined) {
+          throw new Error('A copied photo id could not be created.');
+        }
+        const blobKey = `${JOURNAL_IMAGE_BLOB_KEY_PREFIX}${nextId}`;
+        await imageStore.putImage({
+          blobKey,
+          byteBuffer: stored.byteBuffer,
+          characterId: note.characterId,
+          mimeType: stored.mimeType,
+        });
+        written.push(blobKey);
+      }
+      const copy = remapJournalNoteImages(note, replacements);
+      const saved = await save({
+        ...copy,
+        id: createId(),
+        title: `${note.title} (other computer)`,
+      }, null);
+      if (saved.kind !== 'saved') {
+        throw new Error('The draft copy could not be saved.');
+      }
+      return saved.note;
+    } catch (error) {
+      await Promise.all(written.map((blobKey) => (
+        imageStore.deleteImage(blobKey).catch(() => undefined)
+      )));
+      throw error;
+    }
+  }
+
   async function attachImage(
       note: JournalNote,
       file: File,
@@ -306,6 +356,7 @@ export function createCharacterJournalService(
     await imageStore.putImage({
       blobKey,
       byteBuffer: prepared.byteBuffer,
+      characterId: note.characterId,
       mimeType,
     });
     const fileName = normalizeJournalImageFileName(file.name);

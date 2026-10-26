@@ -24,6 +24,13 @@ Status: complete
 - Allows stored full art to be removed from the viewer.
 - Allows stored full art to be downloaded from the fullscreen viewer.
 - Lists stored full-art records in the extension popup with per-item open, download, and delete actions.
+- The popup reports notes-and-settings usage against Chrome's extension cap and the browser's IndexedDB estimate for images.
+- The popup can prepare one empty backup folder, or reconnect a folder this extension already prepared. Setup writes a marker and a `characters/` directory. A confirmed copy writes checked character files into that folder. When they match, the setup window can remove this browser's copies and save new art and notes in the folder. A mismatch leaves both copies in place.
+- Folder-library deletes write hashed tombstones into `character.json`. Deleted notes and photos stay hidden, accidental saves of the same note id are refused, and photo bytes remain available when setup restores a retained browser note.
+- The folder comparator classifies matching records, additions, changed shared IDs, and tombstoned browser records using note fingerprints and image hashes. Setup can union non-conflicting browser-only records, re-check the combined folder, and only then remove browser copies. Drive conflict siblings are reported without opening them.
+- Choosing a different directory while folder mode is active requires confirmation before the stored handle can be replaced. Cancelling keeps the current library.
+- Setup resolves every conflict only after each row has a choice. Notes support Keep folder, Keep browser, Keep both, Leave deleted, and Restore. Full-art and crop conflicts select the current image while storing the other bytes as a checked `kept` file. Photo conflicts retain both byte versions, give the losing version a new id, and remap its owning note.
+- **Check folder** in the popup refreshes folder status and inventory. The Journal action refreshes an open character without replacing a dirty draft. A stale draft can be retried, discarded, or copied with independent photo ids before loading the folder note. Full-art saves refuse to overwrite a folder revision different from the SHA-256 the page loaded.
 
 ### Portrait crop workflow
 

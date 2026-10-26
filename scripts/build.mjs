@@ -35,6 +35,7 @@ async function ensureDistRoot() {
   await mkdir(path.join(distRoot, 'background'), {recursive: true});
   await mkdir(path.join(distRoot, 'icons'), {recursive: true});
   await mkdir(path.join(distRoot, 'popup'), {recursive: true});
+  await mkdir(path.join(distRoot, 'folder'), {recursive: true});
 }
 
 async function copyManifest() {
@@ -78,6 +79,10 @@ async function copyPopupHtml() {
   await copyFile(
       path.join(repoRoot, 'src/popup/settings.html'),
       path.join(distRoot, 'popup/settings.html'),
+  );
+  await copyFile(
+      path.join(repoRoot, 'src/folder/setup.html'),
+      path.join(distRoot, 'folder/setup.html'),
   );
 }
 
@@ -135,7 +140,22 @@ async function buildOnce() {
       sourcemap: true,
       target: 'chrome114',
     }),
+    esbuild.build(folderSetupBuildOptions()),
   ]);
+}
+
+function folderSetupBuildOptions() {
+  return {
+    absWorkingDir: repoRoot,
+    bundle: true,
+    entryPoints: ['src/folder/setup.ts'],
+    format: 'iife',
+    outfile: 'dist/folder/setup.js',
+    platform: 'browser',
+    plugins: [rawCssPlugin],
+    sourcemap: true,
+    target: 'chrome114',
+  };
 }
 
 async function main() {
@@ -200,11 +220,14 @@ async function main() {
     target: 'chrome114',
   });
 
+  const folderSetupContext = await esbuild.context(folderSetupBuildOptions());
+
   await Promise.all([
     contentContext.watch(),
     backgroundContext.watch(),
     cardPortraitsContext.watch(),
     popupContext.watch(),
+    folderSetupContext.watch(),
   ]);
 }
 

@@ -1,5 +1,12 @@
 import {journalImageStorageFullMessage} from '../features/character-journal/character-journal-image-fit';
 import {
+  deleteFolderJournalImage,
+  libraryBlockedError,
+  readFolderJournalImage,
+  resolveLibrary,
+  writeFolderJournalImage,
+} from '../platform/chrome/folder-library';
+import {
   asJournalImageRequest,
   createDeleteJournalImageSuccessResponse,
   createGetJournalImageSuccessResponse,
@@ -48,18 +55,43 @@ export function installJournalImageMessageHandler(): void {
 }
 
 async function handleJournalImageRequest(request: JournalImageRequest) {
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
   switch (request.type) {
     case 'journal:delete-image':
-      await deleteStoredCharacterArtBlob(request.blobKey);
+      if (library.kind === 'ready') {
+        await deleteFolderJournalImage(library.directory, request.blobKey);
+      } else {
+        await deleteStoredCharacterArtBlob(request.blobKey);
+      }
       return createDeleteJournalImageSuccessResponse();
     case 'journal:get-image':
       return createGetJournalImageSuccessResponse(
-          await readJournalImage(request.blobKey),
+          library.kind === 'ready'
+            ? await readFolderJournalImage(library.directory, request.blobKey)
+            : await readJournalImage(request.blobKey),
       );
     case 'journal:put-image': {
       const byteBuffer = request.byteBuffer;
       if (byteBuffer === undefined) {
         throw new Error('Journal photo save request was missing binary data.');
+      }
+      if (library.kind === 'ready') {
+        if (request.characterId === undefined) {
+          throw new Error('The photo could not be saved in the folder.');
+        }
+        const bytes = new Uint8Array(byteBuffer.byteLength);
+        bytes.set(new Uint8Array(byteBuffer));
+        await writeFolderJournalImage(
+            library.directory,
+            request.characterId,
+            request.blobKey,
+            bytes,
+            request.mimeType,
+        );
+        return createPutJournalImageSuccessResponse();
       }
 
       try {

@@ -107,6 +107,31 @@ When full-art storage is implemented:
 
 Automated tests cannot prove that private D&D Beyond DOM and endpoints still match assumptions. Every release touching an adapter requires live manual validation.
 
+## Backup folder manual checklist
+
+1. Build the extension and reload it.
+2. Open the toolbar popup and choose **Choose folder**.
+3. Confirm a separate window opens, and that choosing a folder which already has files is refused. The browser's stored art is unchanged.
+4. Create a new empty folder and choose it. Confirm the folder now contains `beyond-full-art.json` and a `characters` directory.
+5. Reopen the popup and confirm it names that folder. **Forget folder** removes the connection and leaves the files in place.
+6. Choose the same folder again and confirm it reconnects without a second marker.
+7. If the folder is inside Google Drive for Desktop, confirm Drive shows the marker and the `characters` directory.
+8. With art or notes still in this browser, choose that empty prepared folder again. Accept the prompt to copy, then accept the prompt to remove this browser's copies. Confirm the folder contains `characters/<character id>/character.json` and the note and photo files.
+9. Reload the extension, reopen the popup, and confirm it says art and notes are saved in that folder. The inventory should list the same character. Reload the sheet and confirm the portrait and journal still open.
+10. Save a new journal note and confirm the note file appears under that character in the folder, and that this browser's extension storage no longer holds the note text.
+11. If the copy is already in the folder and this browser still has its copies, open **Choose folder** again and accept the prompt to remove the browser copies. Declining leaves those copies in place.
+12. With the folder as the library, delete a journal note that contains a photo. Confirm its note JSON is removed, hashed note and image entries appear in `character.json`, tombstone JSON appears under `journal/tombstones/`, and the photo file remains under `journal/images/`.
+13. Reload the sheet and confirm the deleted note stays absent. If another browser still has the note, reconnect it through setup and confirm the conflict screen can leave it deleted or restore it explicitly.
+14. Add a different note in this browser while the prepared folder contains another note. Reopen setup, confirm **Add records and use folder**, then confirm both notes remain in the folder and the browser copies are removed only after the files check.
+15. Place `note-id (1).json` beside a managed note file. Setup should report the Drive conflict copy without parsing or deleting it.
+16. While the folder is the library, choose a different prepared folder and decline the switch confirmation. Confirm the original folder name remains connected and no files move.
+17. Create different bodies for the same note ID in the browser and folder. Reopen setup and confirm Apply stays disabled until a choice is selected. Test Keep folder, Keep browser, and Keep both; Keep both must create an ` (other computer)` note.
+18. For a tombstoned note or full-art record that still exists in this browser, test Leave deleted and Restore.
+19. Create different full-art or crop bytes with the same record on each side. Confirm setup requires a choice, makes the chosen image current, and leaves the other bytes in a timestamped `kept` file listed with a SHA-256 in `character.json`. Then create different photo bytes under the same photo ID. Confirm setup offers Keep both, the newer owning note keeps the original photo ID, the other photo receives a new ID, and both retained notes render their own photo.
+20. While the folder is the library, click **Check folder** in the popup. Confirm its status shows the check time, newest folder change, saved-character count, and any Drive conflict-copy count, and that Stored content refreshes.
+21. Open a Journal note, make an unsaved edit, then change that note from another computer and let Drive finish. Click **Check folder** in the Journal. Confirm the draft remains visible and the newer-folder warning offers Save, Discard draft, and Keep both. Save is refused while stale. Discard draft loads the folder note. Keep both creates an ` (other computer)` note with independent photo IDs, then loads the folder note.
+22. Open D&D Beyond's portrait manager so the extension loads current full art. Replace the folder's full-art file through the other computer, let Drive finish, then try to commit a different portrait from the already-open manager. Confirm the extension refuses the save and keeps the newly selected portrait pending.
+
 ## Full-art storage manual checklist
 
 1. Build the extension.
@@ -146,7 +171,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 
 1. Build the extension.
 2. Load the unpacked build directory in Chrome.
-3. Open the extension popup and confirm `Improve character card portraits` is enabled.
+3. Open the extension popup and confirm `Sharper card portraits` is enabled.
 4. Open a D&D Beyond campaign page and confirm character-card portraits become sharper after render.
 5. Open `https://www.dndbeyond.com/characters` and confirm My Characters card portraits become sharper after render.
 6. While the cards upgrade, confirm each in-progress portrait gets a subtle red pulse and each completed portrait briefly flashes green.
@@ -187,7 +212,7 @@ Automated coverage for the simple fixture is `tests/e2e/character-journal.spec.t
 Use Matilda Greywolf and Petali for the first visual pass. Build the extension,
 reload the unpacked build, and refresh the character sheet before starting.
 
-1. Confirm **Companion portrait on character sheet** is enabled in the popup.
+1. Confirm **Companion portrait** is enabled in the popup.
 2. Open **Extras** and confirm Petali has one small checkbox over the bottom-right of the Extra portrait.
 3. Confirm Matilda's header portrait is enlarged with a small gap before her name. Select Petali and confirm the companion scales with it and its border matches Matilda's sheet theme color without moving the name or level.
 4. Click the native character portrait and the Extra row outside the checkbox; both native interactions should still work.

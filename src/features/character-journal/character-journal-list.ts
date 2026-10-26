@@ -16,6 +16,7 @@ export interface JournalRowModel {
 }
 
 export interface JournalListHandlers {
+  onCheck: () => void;
   onFilter: (types: readonly JournalEntryType[]) => void;
   onManage: () => void;
   onOpen: (entryId: string, returnFocus: HTMLElement) => void;
@@ -35,6 +36,8 @@ export interface JournalListView {
   disconnect(): void;
   root: HTMLElement;
   searchField: HTMLInputElement;
+  setCheckBusy(busy: boolean): void;
+  setCheckVisible(visible: boolean): void;
   setAlert(message: string | null): void;
   setFilters(types: readonly JournalEntryType[]): void;
   setMessage(message: string | null, tone: 'alert' | 'muted' | 'notice'): void;
@@ -54,6 +57,11 @@ export function createJournalList(
   toolbar.className = 'bfa-journal-section-toolbar';
   const chrome = createSectionToolbar(doc);
   const {filterButton, manageButton, row, searchField} = chrome;
+  const checkButton = doc.createElement('button');
+  checkButton.className = 'bfa-journal-button bfa-journal-check-folder';
+  checkButton.hidden = true;
+  checkButton.type = 'button';
+  checkButton.textContent = 'Check folder';
 
   const filter = doc.createElement('div');
   filter.className = 'bfa-journal-filter';
@@ -76,7 +84,7 @@ export function createJournalList(
     filter.append(option);
   }
 
-  toolbar.append(row, filter);
+  toolbar.append(row, checkButton, filter);
 
   const alert = doc.createElement('p');
   alert.className = 'bfa-journal-alert';
@@ -134,6 +142,7 @@ export function createJournalList(
     closeFilter();
     handlers.onManage();
   });
+  checkButton.addEventListener('click', handlers.onCheck);
 
   return {
     disconnect() {
@@ -141,6 +150,13 @@ export function createJournalList(
     },
     root,
     searchField,
+    setCheckBusy(busy) {
+      checkButton.disabled = busy;
+      checkButton.textContent = busy ? 'Checking folder…' : 'Check folder';
+    },
+    setCheckVisible(visible) {
+      checkButton.hidden = !visible;
+    },
     setAlert(text) {
       alert.hidden = text === null;
       alert.textContent = text ?? '';
