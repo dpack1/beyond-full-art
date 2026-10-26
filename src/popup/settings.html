@@ -10,70 +10,148 @@
       <p class="bfa-popup__eyebrow">Beyond Full Art</p>
       <h1 class="bfa-popup__title">Extension settings</h1>
       <p class="bfa-popup__description">
-        Control optional D&amp;D Beyond enhancements without changing the site layout.
+        Control optional D&amp;D Beyond enhancements.
       </p>
 
-      <section class="bfa-popup__section" aria-labelledby="campaign-portraits-heading">
-        <label class="bfa-popup__toggle" for="campaign-card-portrait-upgrade">
-          <input
-            id="campaign-card-portrait-upgrade"
-            class="bfa-popup__checkbox"
-            type="checkbox">
-          <span>
+      <section class="bfa-popup__section bfa-popup__section--setting" aria-labelledby="campaign-portraits-heading">
+        <div class="bfa-popup__setting-row">
+          <label class="bfa-popup__toggle" for="campaign-card-portrait-upgrade">
+            <input
+              id="campaign-card-portrait-upgrade"
+              class="bfa-popup__checkbox"
+              type="checkbox">
             <span id="campaign-portraits-heading" class="bfa-popup__label">
-              Improve character card portraits
+              Sharper card portraits
             </span>
-            <span class="bfa-popup__hint">
+          </label>
+          <details class="bfa-popup__info">
+            <summary aria-label="About improved character card portraits">i</summary>
+            <p class="bfa-popup__hint">
               Loads sharper portraits on D&amp;D Beyond campaign and My Characters cards.
-            </span>
-          </span>
-        </label>
+            </p>
+          </details>
+        </div>
         <p
           id="campaign-card-portrait-upgrade-status"
           class="bfa-popup__status bfa-popup__status--hidden"
           aria-live="polite"></p>
       </section>
 
-      <section class="bfa-popup__section" aria-labelledby="character-journal-heading">
-        <label class="bfa-popup__toggle" for="character-journal-enabled">
-          <input
-            id="character-journal-enabled"
-            class="bfa-popup__checkbox"
-            type="checkbox">
-          <span>
+      <section class="bfa-popup__section bfa-popup__section--setting" aria-labelledby="character-journal-heading">
+        <div class="bfa-popup__setting-row">
+          <label class="bfa-popup__toggle" for="character-journal-enabled">
+            <input
+              id="character-journal-enabled"
+              class="bfa-popup__checkbox"
+              type="checkbox">
             <span id="character-journal-heading" class="bfa-popup__label">
-              Character Journal tab
+              Character Journal
             </span>
-            <span class="bfa-popup__hint">
+          </label>
+          <details class="bfa-popup__info">
+            <summary aria-label="About the Character Journal tab">i</summary>
+            <p class="bfa-popup__hint">
               Adds a local Journal tab for notes and photos on character sheets.
-            </span>
-          </span>
-        </label>
+            </p>
+          </details>
+        </div>
         <p
           id="character-journal-status"
           class="bfa-popup__status bfa-popup__status--hidden"
           aria-live="polite"></p>
       </section>
 
-      <section class="bfa-popup__section" aria-labelledby="companion-portrait-heading">
-        <label class="bfa-popup__toggle" for="companion-portrait-enabled">
-          <input
-            id="companion-portrait-enabled"
-            class="bfa-popup__checkbox"
-            type="checkbox">
-          <span>
+      <section class="bfa-popup__section bfa-popup__section--setting" aria-labelledby="companion-portrait-heading">
+        <div class="bfa-popup__setting-row">
+          <label class="bfa-popup__toggle" for="companion-portrait-enabled">
+            <input
+              id="companion-portrait-enabled"
+              class="bfa-popup__checkbox"
+              type="checkbox">
             <span id="companion-portrait-heading" class="bfa-popup__label">
-              Companion portrait on character sheet
+              Companion portrait
             </span>
-            <span class="bfa-popup__hint">
-              Choose one companion in Extras and show its portrait beside your character.
-            </span>
-          </span>
-        </label>
+          </label>
+          <details class="bfa-popup__info">
+            <summary aria-label="About the companion portrait">i</summary>
+            <p class="bfa-popup__hint">
+              Choose one companion in Extras, keep its portrait visible, and click it to open the native sidebar.
+            </p>
+          </details>
+        </div>
         <p
           id="companion-portrait-status"
           class="bfa-popup__status bfa-popup__status--hidden"
           aria-live="polite"></p>
+      </section>
+
+      <section class="bfa-popup__section" aria-labelledby="backup-folder-heading">
+        <h2 id="backup-folder-heading" class="bfa-popup__section-title">
+          Backup folder
+        </h2>
+        <p id="backup-folder-status" class="bfa-popup__storage-summary" aria-live="polite">
+          Checking backup folder…
+        </p>
+        <p class="bfa-popup__storage-note">
+          Choose a blank folder. If this browser already has art or notes, the
+          setup window copies them in, checks the files, and can remove the
+          copies here. New art and notes then save in the folder.
+          A folder inside Google Drive for Desktop can sync from there.
+          A folder this extension already prepared can be chosen again.
+        </p>
+        <div class="bfa-popup__stored-content-tools">
+          <button id="backup-folder-check" class="bfa-popup__button" type="button" hidden>
+            Check folder
+          </button>
+          <button id="backup-folder-choose" class="bfa-popup__button" type="button">
+            Choose folder
+          </button>
+          <button id="backup-folder-forget" class="bfa-popup__button" type="button" hidden>
+            Forget folder
+          </button>
+        </div>
+      </section>
+
+      <section class="bfa-popup__section" aria-labelledby="storage-usage-heading">
+        <h2 id="storage-usage-heading" class="bfa-popup__section-title">
+          Local storage
+        </h2>
+        <p id="storage-usage-summary" class="bfa-popup__storage-summary">
+          Checking storage…
+        </p>
+        <dl class="bfa-popup__storage-usage">
+          <div>
+            <dt id="storage-usage-local-label">Notes and settings</dt>
+            <dd>
+              <progress
+                id="storage-usage-local-meter"
+                class="bfa-popup__storage-meter"
+                max="1"
+                value="0"
+                aria-labelledby="storage-usage-local-label"
+                hidden></progress>
+              <span id="storage-usage-local">Checking…</span>
+            </dd>
+          </div>
+          <div>
+            <dt id="storage-usage-images-label">Images</dt>
+            <dd>
+              <progress
+                id="storage-usage-images-meter"
+                class="bfa-popup__storage-meter"
+                max="1"
+                value="0"
+                aria-labelledby="storage-usage-images-label"
+                hidden></progress>
+              <span id="storage-usage-images">Checking…</span>
+            </dd>
+          </div>
+        </dl>
+        <p class="bfa-popup__storage-note">
+          Notes and settings use Chrome's extension storage, capped at about 10 MB.
+          Images use IndexedDB. That line is Chrome's estimate for this extension,
+          including database overhead.
+        </p>
       </section>
 
       <section class="bfa-popup__section" aria-labelledby="stored-content-heading">

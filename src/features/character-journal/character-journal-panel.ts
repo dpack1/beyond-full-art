@@ -69,9 +69,11 @@ export interface PanelHandlers {
   onEdit: () => void;
   onImages: (files: readonly File[], position: {end: number; start: number}) => void;
   onInput: () => void;
+  onKeepBoth: () => void;
   onMention: (entryId: string) => void;
   onPick: (entryId: string) => void;
   onReload: () => void;
+  onStaleSave: () => void;
   onRemoveImage: (imageId: string) => void;
   onType: (type: JournalEntryType) => void;
   onViewImage: (imageId: string, returnFocus: HTMLElement) => void;
@@ -540,10 +542,17 @@ function appendBanners(
   }
 
   if (model.stale) {
-    const banner = bannerElement(doc, 'This note was updated in another window. Your draft is still here.');
-    const reload = button(doc, 'Reload saved note', 'bfa-journal-button');
+    const banner = bannerElement(
+        doc,
+        model.error ?? 'This note has a newer saved copy. Your draft is still here.',
+    );
+    const save = button(doc, 'Save', 'bfa-journal-button');
+    save.addEventListener('click', () => handlers.onStaleSave());
+    const reload = button(doc, 'Discard draft', 'bfa-journal-button');
     reload.addEventListener('click', () => handlers.onReload());
-    banner.append(reload);
+    const keepBoth = button(doc, 'Keep both', 'bfa-journal-button');
+    keepBoth.addEventListener('click', () => handlers.onKeepBoth());
+    banner.append(save, reload, keepBoth);
     body.prepend(banner);
     return;
   }

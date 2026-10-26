@@ -101,6 +101,7 @@ export function installCharacterArtControls(
     destroyed: false,
     fullArtMetadata: null as CharacterArtMetadata | null,
     isBusy: false,
+    loadedFullArtSha256: null as string | null,
     pendingSelectedFile: null as File | null,
     pendingSelectedFileCrop: null as PendingPortraitCropState | null,
     portraitCropMetadata: null as CharacterPortraitCropMetadata | null,
@@ -222,7 +223,11 @@ export function installCharacterArtControls(
     state.pendingSelectedFile = null;
     setStatus('Saving the selected portrait locally as full art...', 'info');
     render();
-    const result = await service.saveArt(characterId, selectedFile);
+    const result = await service.saveArt(
+        characterId,
+        selectedFile,
+        state.loadedFullArtSha256,
+    );
 
     if (!result.ok) {
       state.pendingSelectedFile = selectedFile;
@@ -415,6 +420,7 @@ export function installCharacterArtControls(
   async function refreshPreviewImage() {
     releasePreview(state.currentPreview);
     state.currentPreview = null;
+    state.loadedFullArtSha256 = null;
     if (state.fullArtMetadata === null) {
       return;
     }
@@ -432,6 +438,8 @@ export function installCharacterArtControls(
       resolution.releaseImageUrl?.();
       return;
     }
+
+    state.loadedFullArtSha256 = resolution.sha256 ?? null;
 
     state.currentPreview = {
       imageUrl: resolution.imageUrl,

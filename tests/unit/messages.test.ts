@@ -14,6 +14,7 @@ describe('character art messages', () => {
       characterId: '169418374',
       fileName: 'zurelda.png',
       height: 512,
+      loadedSha256: 'a'.repeat(64),
       mimeType: 'image/png',
       source: CHARACTER_ART_MESSAGE_SOURCE,
       type: 'art:save',
@@ -24,7 +25,23 @@ describe('character art messages', () => {
     expect(request?.type).toBe('art:save');
     if (request?.type === 'art:save') {
       expect(request.byteBuffer?.byteLength).toBe(8);
+      expect(request.loadedSha256).toBe('a'.repeat(64));
     }
+  });
+
+  it('rejects a malformed loaded full-art hash', () => {
+    expect(asCharacterArtRequest({
+      byteBase64: 'AQIDBAUGBwg=',
+      byteSize: 8,
+      characterId: '169418374',
+      fileName: 'zurelda.png',
+      height: 512,
+      loadedSha256: 'not-a-hash',
+      mimeType: 'image/png',
+      source: CHARACTER_ART_MESSAGE_SOURCE,
+      type: 'art:save',
+      width: 512,
+    })).toBeNull();
   });
 
   it('rejects an invalid save mime type', () => {

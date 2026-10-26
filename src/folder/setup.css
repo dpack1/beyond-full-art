@@ -1,0 +1,123 @@
+.bfa-folder-setup {
+  background:
+    radial-gradient(circle at top, rgba(189, 47, 54, 0.28), transparent 45%),
+    linear-gradient(180deg, #121821 0%, #0b1016 100%);
+  color: #f2eee7;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  margin: 0;
+}
+
+.bfa-folder-setup__main {
+  padding: 20px;
+}
+
+.bfa-folder-setup__eyebrow {
+  color: #d1b26d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.bfa-folder-setup__title {
+  font-size: 20px;
+  margin: 0 0 12px;
+}
+
+.bfa-folder-setup__copy {
+  color: #d5d0c5;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.bfa-folder-setup__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.bfa-folder-setup__button {
+  appearance: none;
+  background: rgba(31, 43, 55, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.bfa-folder-setup__button:hover,
+.bfa-folder-setup__button:focus-visible {
+  border-color: rgba(209, 178, 109, 0.7);
+  outline: none;
+}
+
+.bfa-folder-setup__button--primary {
+  background: #8c3a32;
+  border-color: rgba(209, 178, 109, 0.45);
+}
+
+.bfa-folder-setup__button[disabled] {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.bfa-folder-setup__status {
+  color: #d5d0c5;
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 16px 0 0;
+  min-height: 1.2em;
+}
+
+.bfa-folder-setup__status--error {
+  color: #ff928a;
+}
+
+.bfa-folder-setup__conflicts {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.bfa-folder-setup__conflicts-title {
+  font-size: 16px;
+  margin: 0;
+}
+
+.bfa-folder-setup__conflict {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px;
+}
+
+.bfa-folder-setup__conflict legend {
+  color: #f2eee7;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.bfa-folder-setup__conflict-revisions {
+  color: #aaa69d;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.bfa-folder-setup__conflict-choice {
+  align-items: center;
+  color: #d5d0c5;
+  display: flex;
+  font-size: 13px;
+  gap: 7px;
+}

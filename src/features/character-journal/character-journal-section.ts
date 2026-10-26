@@ -21,6 +21,7 @@ import {
   restoreNativeTabAfterJournal,
   setJournalTabSelected,
 } from '../../platform/dndbeyond/character-sheet-tabs-adapter';
+import {isFolderLibrary} from '../../platform/chrome/library-mode';
 
 export interface CharacterJournalSection {
   destroy(): void;
@@ -69,6 +70,9 @@ export function createCharacterJournalSection(
   const autocomplete = createWikiAutocomplete(doc, () => state.notes);
   let notes!: JournalNotes;
   const list = createJournalList(doc, {
+    onCheck: () => {
+      void checkFolder();
+    },
     onFilter: (types) => {
       state.filters = [...types];
       renderList();
@@ -127,6 +131,7 @@ export function createCharacterJournalSection(
     setTabActive(options.tab, true);
     list.root.hidden = false;
     paint();
+    void refreshCheckVisibility();
     state.stopTheme?.();
     state.stopTheme = observeSheetTheme(options.contentHost, paint);
     state.migration = 'loading';
@@ -334,6 +339,29 @@ export function createCharacterJournalSection(
       return;
     }
     renderList();
+  }
+
+  async function checkFolder(): Promise<void> {
+    if (state.characterId === null || !isShown()) {
+      return;
+    }
+    list.setCheckBusy(true);
+    try {
+      await reload();
+      notes.applyFolderCheck();
+    } catch (error) {
+      state.fileError = journalSaveErrorMessage(error);
+      list.setAlert(state.fileError);
+    } finally {
+      list.setCheckBusy(false);
+    }
+  }
+
+  async function refreshCheckVisibility(): Promise<void> {
+    const visible = await isFolderLibrary();
+    if (isShown()) {
+      list.setCheckVisible(visible);
+    }
   }
 
   function reloadIsCurrent(

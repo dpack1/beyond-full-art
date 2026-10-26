@@ -47,6 +47,7 @@ export interface JournalNoteFlags {
 }
 
 export interface JournalNotes {
+  applyFolderCheck(): void;
   cancelSave(): void;
   closePanel(options?: {restoreFocus?: boolean}): void;
   dismissFromOutside(): void;
@@ -218,6 +219,9 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       }
       scheduleSave();
     },
+    onKeepBoth: () => {
+      void keepBothStaleDraft();
+    },
     onMention: (entryId) => {
       followEntry(entryId);
     },
@@ -225,10 +229,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       followEntry(entryId);
     },
     onReload: () => {
-      if (state.panel !== null) {
-        state.panel.confirm = 'replace';
-        renderPanel();
-      }
+      void reloadOpenNote();
     },
     onRemoveImage: (imageId) => {
       void removeImage(imageId);
@@ -250,6 +251,12 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       };
       scheduleSave();
       renderPanel();
+    },
+    onStaleSave: () => {
+      if (state.panel !== null) {
+        state.panel.stale = false;
+        void savePanel();
+      }
     },
     onWiki: (name, resolution) => {
       if (state.panel === null || resolution === 'missing') {
@@ -546,6 +553,31 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       || draft.body !== state.panel.note.body;
   }
 
+  function applyFolderCheck(): void {
+    if (state.panel === null || state.panel.loadedUpdatedAt === null) {
+      return;
+    }
+    const folderNote = state.notes.find((note) => note.id === state.panel?.note.id);
+    if (folderNote === undefined || folderNote.updatedAt <= state.panel.loadedUpdatedAt) {
+      return;
+    }
+    if (isDirty()) {
+      state.panel.stale = true;
+      state.panel.status = 'error';
+      state.panel.error = 'The folder has a newer copy. Your draft is still here.';
+    } else {
+      state.panel.note = folderNote;
+      state.panel.loadedUpdatedAt = folderNote.updatedAt;
+      state.panel.stale = false;
+      state.panel.status = null;
+      state.panel.error = null;
+    }
+    renderPanel();
+    if (!state.panel.stale) {
+      syncOpenEditor(folderNote);
+    }
+  }
+
   function scheduleSave(): void {
     window.clearTimeout(saveTimer);
     if (state.panel?.mismatch || state.panel?.stale) {
@@ -712,6 +744,48 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       state.panel.confirm = null;
       state.panel.status = null;
       renderPanel();
+      syncOpenEditor(note);
+    }
+  }
+
+  function syncOpenEditor(note: JournalNote): void {
+    if (state.panel?.mode !== 'edit') {
+      return;
+    }
+    if (panel.titleField !== null) {
+      panel.titleField.value = note.title;
+    }
+    if (panel.textarea !== null) {
+      panel.textarea.value = note.body;
+      if (panel.textarea.parentElement !== null) {
+        panel.textarea.parentElement.dataset.value = note.body;
+      }
+    }
+  }
+
+  async function keepBothStaleDraft(): Promise<void> {
+    if (state.panel === null || state.characterId === null || !state.panel.stale) {
+      return;
+    }
+    const entryId = state.panel.note.id;
+    const draft = draftNote();
+    state.panel.status = 'saving';
+    state.panel.error = null;
+    renderPanel();
+    try {
+      await service.keepBoth({...draft, characterId: state.characterId});
+      if (state.panel === null || state.panel.note.id !== entryId) {
+        return;
+      }
+      await reloadOpenNote();
+    } catch (error) {
+      if (state.panel === null || state.panel.note.id !== entryId) {
+        return;
+      }
+      state.panel.stale = true;
+      state.panel.status = 'error';
+      state.panel.error = journalSaveErrorMessage(error);
+      renderPanel();
     }
   }
 
@@ -771,6 +845,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
   }
 
   return {
+    applyFolderCheck,
     cancelSave() {
       window.clearTimeout(saveTimer);
       saveTimer = 0;

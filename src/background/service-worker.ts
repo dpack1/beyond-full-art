@@ -1,4 +1,5 @@
 import {installJournalImageMessageHandler} from './journal-image-handler';
+import {installLibraryMessageHandler} from './library-handler';
 import type {
   CharacterArtMetadata,
   CharacterPortraitCropMetadata,
@@ -23,6 +24,18 @@ import {
   createSaveCharacterArtSuccessResponse,
 } from '../platform/chrome/messages';
 import {
+  deleteFolderArt,
+  libraryBlockedError,
+  listFolderArtMetadata,
+  readFolderArtBytes,
+  readFolderArtMetadata,
+  readFolderCropBytes,
+  readFolderCropMetadata,
+  resolveLibrary,
+  saveFolderCrop,
+  saveFolderFullArt,
+} from '../platform/chrome/folder-library';
+import {
   deleteStoredCharacterArtBlob,
   getStoredCharacterArtBlob,
   putStoredCharacterArtBlob,
@@ -38,6 +51,7 @@ import {
 } from '../platform/chrome/storage';
 
 installJournalImageMessageHandler();
+installLibraryMessageHandler();
 
 chrome.runtime.onMessage.addListener((rawMessage, _sender, sendResponse) => {
   const request = asCharacterArtRequest(rawMessage);
@@ -84,15 +98,15 @@ async function handleCharacterArtRequest(
       );
     case 'art:get-metadata':
       return createGetCharacterArtMetadataSuccessResponse(
-          await getStoredCharacterArtMetadata(request.characterId),
+          await readArtMetadata(request.characterId),
       );
     case 'art:list-metadata':
       return createListCharacterArtMetadataSuccessResponse(
-          await getAllStoredCharacterArtMetadata(),
+          await listArtMetadata(),
       );
     case 'art:get-crop-metadata':
       return createGetCharacterArtCropMetadataSuccessResponse(
-          await getStoredCharacterPortraitCropMetadata(request.characterId),
+          await readCropMetadata(request.characterId),
       );
     case 'art:save': {
       if (request.byteBuffer === undefined) {
@@ -105,6 +119,7 @@ async function handleCharacterArtRequest(
         characterId: request.characterId,
         fileName: request.fileName,
         height: request.height,
+        loadedSha256: request.loadedSha256,
         mimeType: request.mimeType,
         width: request.width,
       }));
@@ -140,6 +155,14 @@ function asErrorMessage(error: unknown, fallbackMessage: string): string {
 }
 
 async function deleteCharacterArt(characterId: string): Promise<void> {
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
+  if (library.kind === 'ready') {
+    await deleteFolderArt(library.directory, characterId);
+    return;
+  }
   const metadata = await getStoredCharacterArtMetadata(characterId);
   const cropMetadata = await getStoredCharacterPortraitCropMetadata(characterId);
   if (metadata === null) {
@@ -165,6 +188,25 @@ async function deleteCharacterArt(characterId: string): Promise<void> {
 }
 
 async function getCharacterArtImageData(characterId: string) {
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
+  if (library.kind === 'ready') {
+    const metadata = await readFolderArtMetadata(library.directory, characterId);
+    if (metadata === null) {
+      return null;
+    }
+    const bytes = await readFolderArtBytes(library.directory, characterId);
+    if (bytes === null) {
+      throw new Error('Stored full art could not be loaded.');
+    }
+    return {
+      byteBuffer: bytesToArrayBuffer(bytes),
+      fileName: metadata.fileName,
+      mimeType: metadata.mimeType,
+    };
+  }
   const metadata = await getStoredCharacterArtMetadata(characterId);
   if (metadata === null) {
     return null;
@@ -183,6 +225,25 @@ async function getCharacterArtImageData(characterId: string) {
 }
 
 async function getCharacterPortraitCropImageData(characterId: string) {
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
+  if (library.kind === 'ready') {
+    const metadata = await readFolderCropMetadata(library.directory, characterId);
+    if (metadata === null) {
+      return null;
+    }
+    const bytes = await readFolderCropBytes(library.directory, characterId);
+    if (bytes === null) {
+      throw new Error('Stored portrait crop could not be loaded.');
+    }
+    return {
+      byteBuffer: bytesToArrayBuffer(bytes),
+      fileName: metadata.fileName,
+      mimeType: metadata.mimeType,
+    };
+  }
   const metadata = await getStoredCharacterPortraitCropMetadata(characterId);
   if (metadata === null) {
     return null;
@@ -203,9 +264,16 @@ async function getCharacterPortraitCropImageData(characterId: string) {
 async function saveCharacterArt(
     input: SaveCharacterArtInput,
 ): Promise<CharacterArtMetadata> {
-  const existingMetadata = await getStoredCharacterArtMetadata(input.characterId);
-  const existingCropMetadata =
-    await getStoredCharacterPortraitCropMetadata(input.characterId);
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
+  const existingMetadata = library.kind === 'ready'
+    ? await readFolderArtMetadata(library.directory, input.characterId)
+    : await getStoredCharacterArtMetadata(input.characterId);
+  const existingCropMetadata = library.kind === 'ready'
+    ? await readFolderCropMetadata(library.directory, input.characterId)
+    : await getStoredCharacterPortraitCropMetadata(input.characterId);
   const createdAt = existingMetadata?.createdAt ?? new Date().toISOString();
   const nextBlobKey = createBlobKey(input.characterId);
   const nextMetadata: CharacterArtMetadata = {
@@ -222,6 +290,16 @@ async function saveCharacterArt(
   };
 
   const nextBlob = new Blob([input.byteBuffer], {type: input.mimeType});
+  if (library.kind === 'ready') {
+    await saveFolderFullArt(
+        library.directory,
+        nextMetadata,
+        new Uint8Array(input.byteBuffer),
+        undefined,
+        input.loadedSha256,
+    );
+    return nextMetadata;
+  }
 
   await putStoredCharacterArtBlob(nextBlobKey, nextBlob);
 
@@ -255,7 +333,13 @@ async function saveCharacterArt(
 async function saveCharacterPortraitCrop(
     input: SaveCharacterPortraitCropInput,
 ): Promise<CharacterPortraitCropMetadata> {
-  const fullArtMetadata = await getStoredCharacterArtMetadata(input.characterId);
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
+  const fullArtMetadata = library.kind === 'ready'
+    ? await readFolderArtMetadata(library.directory, input.characterId)
+    : await getStoredCharacterArtMetadata(input.characterId);
   if (fullArtMetadata === null) {
     throw new Error('Stored full art is required before creating a portrait crop.');
   }
@@ -264,8 +348,9 @@ async function saveCharacterPortraitCrop(
     throw new Error('Stored full art changed before the portrait crop could be saved.');
   }
 
-  const existingCropMetadata =
-    await getStoredCharacterPortraitCropMetadata(input.characterId);
+  const existingCropMetadata = library.kind === 'ready'
+    ? await readFolderCropMetadata(library.directory, input.characterId)
+    : await getStoredCharacterPortraitCropMetadata(input.characterId);
   const createdAt = existingCropMetadata?.createdAt ?? new Date().toISOString();
   const nextBlobKey = createBlobKey(input.characterId);
   const nextMetadata: CharacterPortraitCropMetadata = {
@@ -284,6 +369,14 @@ async function saveCharacterPortraitCrop(
   };
 
   const nextBlob = new Blob([input.byteBuffer], {type: input.mimeType});
+  if (library.kind === 'ready') {
+    await saveFolderCrop(
+        library.directory,
+        nextMetadata,
+        new Uint8Array(input.byteBuffer),
+    );
+    return nextMetadata;
+  }
   await putStoredCharacterArtBlob(nextBlobKey, nextBlob);
 
   try {
@@ -302,6 +395,45 @@ async function saveCharacterPortraitCrop(
   }
 
   return nextMetadata;
+}
+
+function bytesToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
+async function readArtMetadata(characterId: string) {
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
+  if (library.kind === 'ready') {
+    return readFolderArtMetadata(library.directory, characterId);
+  }
+  return getStoredCharacterArtMetadata(characterId);
+}
+
+async function readCropMetadata(characterId: string) {
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
+  if (library.kind === 'ready') {
+    return readFolderCropMetadata(library.directory, characterId);
+  }
+  return getStoredCharacterPortraitCropMetadata(characterId);
+}
+
+async function listArtMetadata() {
+  const library = await resolveLibrary();
+  if (library.kind === 'blocked') {
+    throw libraryBlockedError();
+  }
+  if (library.kind === 'ready') {
+    return listFolderArtMetadata(library.directory);
+  }
+  return getAllStoredCharacterArtMetadata();
 }
 
 function createBlobKey(characterId: string): string {

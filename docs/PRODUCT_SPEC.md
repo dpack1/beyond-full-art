@@ -72,6 +72,7 @@ As a user, I can upload the original full artwork for a character and have it st
 - Allow replacement via a later portrait upload and explicit deletion of stored art.
 - Allow downloading the locally stored full artwork from the fullscreen viewer.
 - Provide a popup inventory for locally stored full artwork, including per-item open, download, and delete actions.
+- Show `chrome.storage.local` usage against its quota, and the browser's IndexedDB estimate, in the popup.
 - Clearly communicate that uninstalling the extension removes locally stored art.
 
 ### Current implementation defaults
@@ -84,6 +85,13 @@ As a user, I can upload the original full artwork for a character and have it st
 - Stored full art can be downloaded from the fullscreen viewer without the Chrome `downloads` permission
 - Stored full art can also be listed, opened on D&D Beyond, downloaded, and deleted from the extension popup
 - The current implementation observes D&D Beyond's portrait upload input and native portrait-confirmation action, and does not add a separate extension-owned file picker
+- The popup can prepare one empty backup folder, or reconnect a folder that already has this extension's marker. A confirmed copy writes checked files into that folder. When those files match this browser, the player can remove the browser copies and save new art and notes in the folder. A mismatch leaves both copies in place
+- When the folder is the library, deleting art, a note, or a journal photo records a hashed tombstone. Deleted notes and photos are not read back, and the same note id cannot be recreated without an explicit restore.
+- Folder comparison uses character ID, record kind, record ID, note fingerprints, and image hashes. A changed shared ID or a local record covered by a folder tombstone requires a choice. Drive conflict-copy files are reported by name and never opened or deleted automatically.
+- When comparison finds additions without conflicts, setup can add the browser-only records, verify the merged folder, switch to folder mode, and remove the verified browser copies. A failed write or check keeps the browser copies.
+- Choosing a different library folder requires confirmation before the saved directory handle changes. Cancelling continues using the current folder.
+- Note, photo, full-art, and crop conflicts are resolved as one reviewed set. Every row requires a choice; note Keep both creates a new ID with an ` (other computer)` title suffix. Tombstones can remain deleted or restore the browser record. Rejected art bytes remain as checked, timestamped files recorded under `kept`. A photo conflict keeps both byte versions; the newer owning note keeps the original photo ID and the other retained note is remapped to a new photo ID.
+- The popup and open Journal can re-read the folder on demand. A dirty note is preserved when a newer folder copy appears and can be retried, discarded, or kept as an independent copy before the folder note loads. Full-art saves carry the SHA-256 loaded by the page and are refused if the folder revision changed.
 
 ### Deferred product decisions
 
@@ -287,7 +295,7 @@ character portrait, so I do not forget that companion is present.
 ## Non-goals for early phases
 
 - Rebuilding the D&D Beyond character sheet.
-- Cloud accounts or cloud sync.
+- A developer-operated cloud account or automatic sync. A user-chosen folder can be prepared for a later copy. Google Drive sync happens when that folder is inside Drive for Desktop.
 - Sharing artwork with other users.
 - AI image generation.
 - Automatically collecting images from unrelated pages.

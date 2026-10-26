@@ -107,10 +107,12 @@ function handlers(
       }
     },
     onInput: () => undefined,
+    onKeepBoth: () => undefined,
     onMention: () => undefined,
     onNext: () => undefined,
     onPick: () => undefined,
     onReload: () => undefined,
+    onStaleSave: () => undefined,
     onRemoveImage: () => undefined,
     onType: () => undefined,
     onViewImage: () => undefined,

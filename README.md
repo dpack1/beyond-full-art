@@ -38,15 +38,18 @@ The crop dialog frames a square from the stored full art, or from a file that ha
 
 ### Art download and removal
 
-When the viewer is showing stored full art, **Download full art** saves that file through a normal browser download. The same viewer can **Remove stored full art**. Removal deletes only the local copy. The D&D Beyond portrait stays as it is. Downloads use a temporary link and the existing `storage` permission.
+When the viewer is showing stored full art, **Download full art** saves that file through a normal browser download. The same viewer can **Remove stored full art**. Removal deletes the stored full art. The D&D Beyond portrait stays as it is. Downloads use a temporary link and the existing `storage` permission.
 
 ### Extension popup: settings and stored content
 
 Click the toolbar icon to open the popup.
 
-- **Improve character card portraits** upgrades small campaign and My Characters avatars to a sharper image URL. It is on by default.
-- **Character Journal tab** shows or hides the sheet's Journal tab. Turning it off does not delete entries. It is on by default.
-- **Companion portrait on character sheet** shows selection checkboxes in Extras and the chosen portrait beside the character portrait. Turning it off keeps the saved choice. It is on by default.
+- **Sharper card portraits** upgrades small campaign and My Characters avatars to a sharper image URL. It is on by default.
+- **Character Journal** shows or hides the sheet's Journal tab. Turning it off does not delete entries. It is on by default.
+- **Companion portrait** shows selection checkboxes in Extras and the chosen portrait beside the character portrait. Turning it off keeps the saved choice. It is on by default.
+- **Backup folder** prepares one empty folder, or reconnects a folder this extension already prepared. The setup window can copy art and notes into that folder, check the files, and then remove the copies in this browser. New art and notes save in the folder. **Check folder** re-reads it and refreshes the inventory. Put the folder inside Google Drive for Desktop if you want Drive to sync it.
+- When that folder is the library, deleting art or a journal entry records the deletion there. Deleted notes do not silently return, and their photo files are retained so setup can restore a browser copy explicitly.
+- **Local storage** shows how much of Chrome's about 10 MB extension cap notes and settings are using, and Chrome's separate IndexedDB estimate for images.
 - **Stored content** groups local full art and journals by character. Each character can be opened, its art downloaded or deleted, and its journal exported or imported. Journal exports are ZIP files with Markdown notes, photos, and versioned recovery data. **Export all journals** and **Import backup** support whole-extension recovery, including a fresh install with no stored characters yet.
 
 #### Back up and restore journals
@@ -178,16 +181,16 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 2. Choose **Download full art** or **Remove stored full art**.
 3. Or open the toolbar popup and use **Download** or **Delete** on that character's inventory row. **Open** goes to the character sheet.
 
-### Improve character card portraits
+### Sharper card portraits
 
 1. Click the extension icon in Chrome.
-2. Enable or disable **Improve character card portraits**.
+2. Enable or disable **Sharper card portraits**.
 3. Open a D&D Beyond campaign page or the My Characters page.
 4. When enabled, character cards progressively swap to a sharper portrait source after the page renders.
 
 ### Show a companion portrait
 
-1. Leave **Companion portrait on character sheet** enabled in the popup.
+1. Leave **Companion portrait** enabled in the popup.
 2. Open a character sheet and choose **Extras**.
 3. Check the small box on the Extra whose portrait should appear beside the character portrait.
 4. Click the companion portrait to open that Extra's native sidebar.
@@ -195,7 +198,7 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 
 ### Use the character journal
 
-1. Leave **Character Journal tab** enabled in the popup.
+1. Leave **Character Journal** enabled in the popup.
 2. Open a character sheet and choose **Journal**, immediately after **Extras**.
 3. Choose **Manage Notes** to create a note in the side panel. Pick its type there.
 4. Read the note in that panel. Markdown renders in read mode. **Edit** changes it. The note saves on its own. **Close**, in the pane chrome, returns to the list.
@@ -229,7 +232,8 @@ Toolbar popup
 | `src/platform/dndbeyond/` | URL parsing and the DOM adapters that import the map. |
 | `src/platform/chrome/` | Storage, IndexedDB, and runtime-message validation. |
 | `src/background/service-worker.ts` | Owns art reads and writes. Treat it as ephemeral. |
-| `src/popup/` | Toolbar popup: three settings and the stored-art inventory. |
+| `src/popup/` | Toolbar popup: three settings, the backup folder, the storage readout, and the stored-art inventory. |
+| `src/folder/` | Window where Chrome's directory picker prepares the backup folder. |
 | `src/shared/` | Small DOM, download, and result helpers. |
 | `tests/unit`, `tests/dom`, `tests/e2e` | Pure logic, jsdom fixtures, and Playwright extension fixtures. |
 | `docs/ddb-reference/` | Living reference for Matilda Greywolf's sheet: layout, tabs, theme, and the hooks the extension uses. |
@@ -331,9 +335,14 @@ Planned next:
 ## Known limits
 
 - No Chrome Web Store release yet.
-- Local art is tied to the browser where you installed the extension.
+- Until a backup folder is the library, art and notes are tied to the browser where the extension is installed. After that, the folder holds them. Popup settings stay on this browser.
 - Only one active full-art image is stored per character right now.
-- There is not yet a built-in storage dashboard or usage meter beyond the popup inventory summary.
+- The popup storage readout measures usage. It does not raise the cap. Notes and settings share Chrome's about 10 MB extension cap. Image bytes live in IndexedDB until a folder is the library, and that line is Chrome's estimate for this extension.
+- Choosing a backup folder prepares that folder. The setup window copies checked files, then asks to remove this browser's copies. It does not copy over a character the folder already has. If a note or photo was edited after the copy, both copies stay and this browser keeps saving locally. A new folder has to be empty. Drive sync requires the folder to be on disk, such as inside Google Drive for Desktop. An open sheet does not watch automatically; use **Check folder** in the popup or Journal.
+- Folder-library deletes leave checked tombstones. Setup can leave deleted or restore the browser copy for notes, photos, full art, and crops.
+- The extension compares browser and folder records by stable IDs, note contents, and image hashes. Setup can add non-conflicting browser-only records, verify them, and then use the folder. Drive conflict-copy filenames are reported without being opened. Every conflict requires a reviewed choice before writes begin.
+- Choosing another directory while a folder is already the library requires confirmation. Cancelling keeps the current folder connected.
+- Setup resolves notes by keeping the folder note, browser note, or both. Deleted records can stay deleted or be restored. For full art and crops, the selected image becomes current and the other checked bytes remain beside it as a timestamped `kept` file. Conflicting photos retain both byte versions; the version owned by the newer note keeps its id and the other note is remapped to a new photo id.
 - Journal photos are one image per add, in PNG, JPEG, or WebP. The note body places each one with `![[img:<id>|caption|width]]`. Files between 3 MB and 25 MB are resized before storage. Files over 25 MB are refused. Stored bytes stay at or under 3 MB. Export and import are available in the popup.
 - Journal ZIP folders use the stable D&D Beyond character ID. Using the full character name reliably is deferred.
 - A long journal title is cut off in the edit-mode input. A plain line right after a list item joins that bullet, which is ordinary markdown.
