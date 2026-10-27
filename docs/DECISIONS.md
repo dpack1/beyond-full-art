@@ -271,7 +271,7 @@ See the version 2 section in `docs/ARCHITECTURE.md`.
 
 The journal samples the character sheet's appearance. Version 1 mounted in the
 sheet's inner scroll pane. Version 2 does not. The section toolbar is the Extras search row: magnifier, field, funnel, and
-Manage Notes on one line. The note panel copies the Information Sidebar's
+New Note on one line. The note panel copies the Information Sidebar's
 markup and class names, recorded in `docs/ddb-reference/sidebar.md`, so the
 sheet stylesheet paints it. It does not copy the sheet's script, and it is
 not mounted inside the live sidebar. The dialog is `position: fixed` on the
@@ -477,7 +477,7 @@ Google Drive is not an API integration. If the chosen folder is inside Google
 Drive for Desktop, Drive syncs the files the extension writes there. Opening
 the sheet reads the folder as it is on disk. A sheet that is already open does
 not watch automatically. **Check folder** in the popup refreshes its status and
-inventory; the Journal action re-reads the current character without replacing
+inventory; **Sync folder** in the Journal re-reads the current character without replacing
 a dirty draft. Note saves reject a newer stored `updatedAt`, and full-art saves
 reject a current SHA-256 different from the page's loaded revision.
 

@@ -75,9 +75,6 @@ export function createCharacterJournalSection(
   const autocomplete = createWikiAutocomplete(doc, () => state.notes);
   let notes!: JournalNotes;
   const list = createJournalList(doc, {
-    onCheck: () => {
-      void checkFolder();
-    },
     onFilter: (types) => {
       state.filters = [...types];
       renderList();
@@ -97,6 +94,9 @@ export function createCharacterJournalSection(
     onSearch: (query) => {
       state.query = query;
       renderList();
+    },
+    onSync: () => {
+      void syncFolder();
     },
   });
   notes = installJournalNotes({
@@ -141,7 +141,7 @@ export function createCharacterJournalSection(
     setTabActive(options.tab, true);
     list.root.hidden = false;
     paint();
-    void refreshCheckVisibility();
+    void refreshSyncVisibility();
     state.stopTheme?.();
     state.stopTheme = observeSheetTheme(options.contentHost, paint);
     state.migration = 'loading';
@@ -351,11 +351,11 @@ export function createCharacterJournalSection(
     renderList();
   }
 
-  async function checkFolder(): Promise<void> {
+  async function syncFolder(): Promise<void> {
     if (state.characterId === null || !isShown()) {
       return;
     }
-    list.setCheckBusy(true);
+    list.setSyncBusy(true);
     try {
       await reload();
       notes.applyFolderCheck();
@@ -363,14 +363,14 @@ export function createCharacterJournalSection(
       state.fileError = journalSaveErrorMessage(error);
       list.setAlert(state.fileError);
     } finally {
-      list.setCheckBusy(false);
+      list.setSyncBusy(false);
     }
   }
 
-  async function refreshCheckVisibility(): Promise<void> {
+  async function refreshSyncVisibility(): Promise<void> {
     const visible = await isFolderLibrary();
     if (isShown()) {
-      list.setCheckVisible(visible);
+      list.setSyncVisible(visible);
     }
   }
 

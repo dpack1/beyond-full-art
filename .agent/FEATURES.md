@@ -25,12 +25,17 @@ Status: complete
 - Allows stored full art to be downloaded from the fullscreen viewer.
 - Lists stored full-art records in the extension popup with per-item open, download, and delete actions.
 - The popup reports notes-and-settings usage against Chrome's extension cap and the browser's IndexedDB estimate for images.
+
+### Folder library and cross-computer sync
+
+Status: complete
+
 - The popup can prepare one empty backup folder, or reconnect a folder this extension already prepared. Setup writes a marker and a `characters/` directory. A confirmed copy writes checked character files into that folder. When they match, the setup window can remove this browser's copies and save new art and notes in the folder. A mismatch leaves both copies in place.
 - Folder-library deletes write hashed tombstones into `character.json`. Deleted notes and photos stay hidden, accidental saves of the same note id are refused, and photo bytes remain available when setup restores a retained browser note.
 - The folder comparator classifies matching records, additions, changed shared IDs, and tombstoned browser records using note fingerprints and image hashes. Setup can union non-conflicting browser-only records, re-check the combined folder, and only then remove browser copies. Drive conflict siblings are reported without opening them.
 - Choosing a different directory while folder mode is active requires confirmation before the stored handle can be replaced. Cancelling keeps the current library.
 - Setup resolves every conflict only after each row has a choice. Notes support Keep folder, Keep browser, Keep both, Leave deleted, and Restore. Full-art and crop conflicts select the current image while storing the other bytes as a checked `kept` file. Photo conflicts retain both byte versions, give the losing version a new id, and remap its owning note.
-- **Check folder** in the popup refreshes folder status and inventory. The Journal action refreshes an open character without replacing a dirty draft. A stale draft can be retried, discarded, or copied with independent photo ids before loading the folder note. Full-art saves refuse to overwrite a folder revision different from the SHA-256 the page loaded.
+- **Check folder** in the popup refreshes folder status and inventory. The Journal's icon-only **Sync folder** action refreshes an open character without replacing a dirty draft. A stale draft can be retried, discarded, or copied with independent photo ids before loading the folder note. Full-art saves refuse to overwrite a folder revision different from the SHA-256 the page loaded.
 
 ### Portrait crop workflow
 
@@ -61,11 +66,13 @@ Journal ZIP backup and restore were approved after live export/import QA on
 - Adds a Journal tab on the character sheet, after Extras.
 - Opens each note in a slide-in panel that mirrors D&D Beyond's Information Sidebar.
 - Closes a note when the user clicks outside the slide-in panel, while protecting unsaved edits with the existing discard confirmation.
-- Searches, filters, and creates notes from a toolbar with search, Filter, and Manage Notes.
+- Searches, filters, and creates notes from a toolbar with search, Filter, and New Note.
+- Supports typed notes, Needs details markers, wiki-link autocomplete, unresolved-link placeholders, and backlinks between notes.
 - Shows compact title-and-created-date rows by default. Popup controls can add
   updated dates, text previews, and image thumbnails without changing what
   full note content search can find.
 - Reads markdown, and edits it with an icon toolbar and an edit toggle.
+- Autosaves edits, merges writes by note ID, preserves unreadable stored records, and refuses stale same-note saves.
 - Preserves progress through long notes when switching between reading and editing.
 - Exports every local journal as a ZIP with Markdown notes, photo files, and versioned `backup.json` recovery data.
 - Imports that backup globally or for one matching character while preserving newer local notes and existing photos.

@@ -46,7 +46,7 @@ test('saves light and dark journal screens beside the sheet reference', async ({
   });
   await page.keyboard.press('Escape');
 
-  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('button', {name: 'New Note'}).click();
   await page.getByRole('combobox', {name: 'Type'}).selectOption('npc');
   await page.getByRole('textbox', {name: 'Title'}).fill('Warden of the chapel');
   await page.getByRole('textbox', {name: 'Note', exact: true}).fill(NOTE_BODY);
@@ -68,7 +68,7 @@ test('saves light and dark journal screens beside the sheet reference', async ({
     path: path.join(BUILD_DIR, 'list-populated-dark-desktop.png'),
   });
 
-  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('button', {name: 'New Note'}).click();
   await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
   await expect(page.getByText('This note is not saved yet.')).toBeVisible();
   await page.screenshot({
@@ -120,7 +120,7 @@ test('saves light and dark journal screens beside the sheet reference', async ({
   await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
   await expect(page.getByRole('dialog')).toBeHidden();
 
-  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('button', {name: 'New Note'}).click();
   await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
   await expect(page.getByText('This note is not saved yet.')).toBeVisible();
   await page.screenshot({
@@ -154,7 +154,7 @@ async function openJournal(page: Page): Promise<void> {
   await page.locator('[data-bfa-character-journal-tab-item]').click({
     position: {x: 4, y: 4},
   });
-  await expect(page.getByRole('button', {name: 'Manage Notes'})).toBeVisible();
+  await expect(page.getByRole('button', {name: 'New Note'})).toBeVisible();
 }
 
 async function shotHeader(page: Page, name: string): Promise<void> {

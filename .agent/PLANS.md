@@ -1,7 +1,5 @@
 # Future Feature Plans
 
-The character journal shipped as beta in acd760c. Its plans stay here as history.
-
 The files under `.agent/plans/` are living implementation documents for future work that has not shipped yet. Shipped features are listed in `.agent/FEATURES.md`. The human runbook is `README.md`. D&D Beyond's sheet structure lives in `docs/ddb-reference/`.
 
 Completed work should move to `.agent/FEATURES.md` and the corresponding implementation plan should be removed.
@@ -53,5 +51,3 @@ Record decisions made during implementation and why.
 ```
 
 Keep future-feature plans current. Check off completed milestones, record discoveries, and adjust the approach when live-site evidence contradicts the original design.
-
-There is no active storage plan. [storage.md](plans/storage.md) is the history of the completed folder-library implementation. Do not rebuild it.

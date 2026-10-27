@@ -42,7 +42,10 @@ describe('character journal section', () => {
     expect(row?.querySelector('.ct-extras-filter__input')).not.toBeNull();
     expect(row?.querySelector('.ddbc-filter-svg')).not.toBeNull();
     expect(row?.querySelector('[aria-label="Filter"]')?.textContent?.trim()).toBe('');
-    expect(row?.querySelector('.bfa-journal-manage')?.textContent).toBe('Manage Notes');
+    expect(row?.querySelector('.bfa-journal-manage')?.textContent).toBe('New Note');
+    const sync = buttonNamed('Sync folder');
+    expect(sync?.textContent).toBe('');
+    expect(sync?.parentElement).toBe(row?.querySelector('.bfa-journal-manage')?.parentElement);
     expect(row?.contains(document.querySelector('.bfa-journal-filter'))).toBe(false);
 
     section.hide();
@@ -90,6 +93,26 @@ describe('character journal section', () => {
     expect(document.querySelector('.bfa-journal-row-updated')).toBeNull();
     expect(document.querySelector('.bfa-journal-thumb')).toBeNull();
 
+    section.destroy();
+  });
+
+  it('keeps note rows out of native button styling after a sheet repaint', async () => {
+    const nativeButton = document.querySelector<HTMLButtonElement>('#journal-tab');
+    nativeButton?.classList.add('ddbc-button');
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+    ]));
+    await showSection(section);
+
+    const row = document.querySelector<HTMLButtonElement>('.bfa-journal-row');
+    expect(row?.classList.contains('ddbc-button')).toBe(false);
+
+    const sheet = document.querySelector<HTMLElement>('.ct-character-sheet');
+    sheet?.style.setProperty('--sheet-scroll-state', 'scrolled');
+    await flush();
+
+    expect(row?.classList.contains('ddbc-button')).toBe(false);
+    expect(row?.hasAttribute('data-bfa-journal-button-class')).toBe(false);
     section.destroy();
   });
 
@@ -170,7 +193,7 @@ describe('character journal section', () => {
       updatedAt: '2026-10-27T00:00:00.000Z',
     };
 
-    buttonNamed('Check folder')?.click();
+    buttonNamed('Sync folder')?.click();
     await flush();
 
     expect(titleField().value).toBe('My unsaved draft');
@@ -191,7 +214,7 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('replaces a clean open editor when Check folder finds a newer note', async () => {
+  it('replaces a clean open editor when Sync folder finds a newer note', async () => {
     vi.stubGlobal('chrome', {
       runtime: {lastError: undefined},
       storage: {
@@ -218,7 +241,7 @@ describe('character journal section', () => {
       updatedAt: '2026-10-27T00:00:00.000Z',
     };
 
-    buttonNamed('Check folder')?.click();
+    buttonNamed('Sync folder')?.click();
     await flush();
 
     expect(titleField().value).toBe('Newer camp');
@@ -421,6 +444,37 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('discards an empty new note when clicking away without saving it', async () => {
+    let saves = 0;
+    const service = createFakeService([]);
+    const save = service.save.bind(service);
+    service.save = async (entry, loadedUpdatedAt) => {
+      saves += 1;
+      return save(entry, loadedUpdatedAt);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+    buttonNamed('New Note')?.click();
+
+    const type = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
+    if (type === null) {
+      throw new Error('Missing type control');
+    }
+    type.value = 'session';
+    type.dispatchEvent(new Event('change'));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    const outside = document.createElement('button');
+    outside.textContent = 'Outside action';
+    document.body.append(outside);
+    outside.click();
+
+    expect(saves).toBe(0);
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(document.querySelector('.bfa-journal-row')).toBeNull();
+    section.destroy();
+  });
+
   it('does not dismiss the note for clicks in the photo viewer', async () => {
     const section = createCharacterJournalSection(createFakeService([
       note({id: 'door', title: 'Locked door'}),
@@ -448,7 +502,7 @@ describe('character journal section', () => {
 
     expect(section.isShown()).toBe(true);
     expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
-    expect(buttonNamed('Manage Notes')).toBeDefined();
+    expect(buttonNamed('New Note')).toBeDefined();
     expect(buttonNamed('File note')).toBeUndefined();
     expect(buttonNamed('New note')).toBeUndefined();
     section.destroy();
@@ -540,7 +594,7 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('keeps the Manage Notes label readable against its fill', async () => {
+  it('keeps the New Note label readable against its fill', async () => {
     const sheet = document.querySelector<HTMLElement>('.ct-character-sheet');
     if (sheet === null) {
       throw new Error('Missing sheet');
@@ -552,16 +606,16 @@ describe('character journal section', () => {
     const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);
 
-    const manage = buttonNamed('Manage Notes');
+    const manage = buttonNamed('New Note');
     const root = document.querySelector<HTMLElement>('.bfa-character-journal-section');
     if (manage === undefined || root === null) {
-      throw new Error('Missing Manage Notes');
+      throw new Error('Missing New Note');
     }
     const foreground = root.style.getPropertyValue('--bfa-journal-background');
     const background = root.style.getPropertyValue('--bfa-journal-text');
     expect(
         colorsContrast(foreground, background),
-        `Manage Notes label ${foreground} on fill ${background} is below 4.5:1.`,
+        `New Note label ${foreground} on fill ${background} is below 4.5:1.`,
     ).toBe(true);
     expect(document.querySelector('.bfa-journal-chip')).toBeNull();
 
@@ -594,7 +648,7 @@ describe('character journal section', () => {
 
     expect(document.body.textContent).toContain('another character');
     expect(titles()).toContain('Old Gate');
-    buttonNamed('Manage Notes')?.click();
+    buttonNamed('New Note')?.click();
     await flush();
     expect(saved).toEqual([]);
     expect(document.body.textContent).toContain('Close the open note');
@@ -604,7 +658,7 @@ describe('character journal section', () => {
 
     expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
     expect(titles()).toEqual([]);
-    buttonNamed('Manage Notes')?.click();
+    buttonNamed('New Note')?.click();
     titleField().value = 'Arrived';
     titleField().dispatchEvent(new Event('input'));
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -659,7 +713,7 @@ describe('character journal section', () => {
   it('changes the note type without replacing the note body', async () => {
     const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);
-    buttonNamed('Manage Notes')?.click();
+    buttonNamed('New Note')?.click();
     const select = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
     const editor = document.querySelector<HTMLTextAreaElement>('.bfa-journal-editor');
     if (select === null || editor === null) {
@@ -943,10 +997,10 @@ describe('character journal section', () => {
     expect(row?.querySelector('.ct-extras-filter__icon')).not.toBeNull();
     expect(row?.querySelector('.live-search-box')).not.toBeNull();
     expect(row?.querySelector('svg')).not.toBeNull();
-    expect(row?.querySelector('.bfa-journal-manage')?.textContent).toBe('Manage Notes');
+    expect(row?.querySelector('.bfa-journal-manage')?.textContent).toBe('New Note');
     expect(row?.contains(document.querySelector('.bfa-journal-filter'))).toBe(false);
     expect(document.querySelector('.bfa-journal-quick-note')).toBeNull();
-    expect(live.querySelector('button')?.textContent ?? '').not.toBe('Manage Notes');
+    expect(live.querySelector('button')?.textContent ?? '').not.toBe('New Note');
 
     document.querySelector<HTMLElement>('[aria-label="Filter"]')?.click();
     const boxes = document.querySelectorAll<HTMLInputElement>('.bfa-journal-filter input');
@@ -1110,7 +1164,7 @@ function note(overrides: Partial<JournalNote> & Pick<JournalNote, 'id' | 'title'
 }
 
 function openNewSession(): void {
-  buttonNamed('Manage Notes')?.click();
+  buttonNamed('New Note')?.click();
   const select = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
   if (select === null) {
     throw new Error('Missing type control');

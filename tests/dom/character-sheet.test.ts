@@ -376,7 +376,7 @@ describe('character sheet enhancement', () => {
         '[data-bfa-character-journal-tab="true"]',
     )?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    buttonByText('Manage Notes')?.click();
+    buttonByText('New Note')?.click();
     const title = document.querySelector<HTMLInputElement>('.bfa-journal-title-field');
     if (title === null) {
       throw new Error('Missing journal title');
@@ -420,7 +420,7 @@ describe('character sheet enhancement', () => {
         '[data-bfa-character-journal-tab="true"]',
     )?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    buttonByText('Manage Notes')?.click();
+    buttonByText('New Note')?.click();
     const title = document.querySelector<HTMLInputElement>('.bfa-journal-title-field');
     if (title === null) {
       throw new Error('Missing journal title');

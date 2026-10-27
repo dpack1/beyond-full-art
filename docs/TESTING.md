@@ -129,7 +129,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 18. For a tombstoned note or full-art record that still exists in this browser, test Leave deleted and Restore.
 19. Create different full-art or crop bytes with the same record on each side. Confirm setup requires a choice, makes the chosen image current, and leaves the other bytes in a timestamped `kept` file listed with a SHA-256 in `character.json`. Then create different photo bytes under the same photo ID. Confirm setup offers Keep both, the newer owning note keeps the original photo ID, the other photo receives a new ID, and both retained notes render their own photo.
 20. While the folder is the library, click **Check folder** in the popup. Confirm its status shows the check time, newest folder change, saved-character count, and any Drive conflict-copy count, and that Stored content refreshes.
-21. Open a Journal note, make an unsaved edit, then change that note from another computer and let Drive finish. Click **Check folder** in the Journal. Confirm the draft remains visible and the newer-folder warning offers Save, Discard draft, and Keep both. Save is refused while stale. Discard draft loads the folder note. Keep both creates an ` (other computer)` note with independent photo IDs, then loads the folder note.
+21. Open a Journal note, make an unsaved edit, then change that note from another computer and let Drive finish. Click the **Sync folder** icon beside **New Note** in the Journal. Confirm the draft remains visible and the newer-folder warning offers Save, Discard draft, and Keep both. Save is refused while stale. Discard draft loads the folder note. Keep both creates an ` (other computer)` note with independent photo IDs, then loads the folder note.
 22. Open D&D Beyond's portrait manager so the extension loads current full art. Replace the folder's full-art file through the other computer, let Drive finish, then try to commit a different portrait from the already-open manager. Confirm the extension refuses the save and keeps the newly selected portrait pending.
 
 ## Full-art storage manual checklist
@@ -191,7 +191,7 @@ journal by the operating system's theme.
 1. Journal is the uppercase tab after Extras. One pointerdown on the label and on the padding opens it. The previous tab is not underlined, including when the sheet loaded on Actions. Selected Journal has the same single underline as a selected sibling tab.
 2. The list replaces the main pane. It is not inside a nested scroller.
 3. Light and Underdark, including a toggle while Journal is open. The toolbar matches the Extras search row. Fields stay dark in Underdark. Extras content is not visible inside Journal.
-4. Manage Notes creates one note in the sidebar. There is no second File note or New note control. Reload. The note is still there.
+4. New Note creates one note in the sidebar. There is no second File note control. Reload. The note is still there.
 5. Open an entry, read it, edit it, reload. The markdown survived.
 6. Create `[[Someone new]]` from autocomplete. The placeholder shows Needs details and appears under Mentioned in on the note that named them.
 7. Add a PNG under 3 MB at the cursor. The editor shows `![[img:<id>]]` there, and read mode shows the image inline. Move that line and the image follows. A file over 3 MB is resized and the note text remains. A file over 25 MB shows the size and the limit, and the note text remains.

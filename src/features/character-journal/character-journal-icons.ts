@@ -30,6 +30,15 @@ export function checkIcon(doc: Document): SVGElement {
   return journalIcon(doc, ['M2.8 8.2l3.2 3.2 7.2-7.4']);
 }
 
+export function syncIcon(doc: Document): SVGElement {
+  return journalIcon(doc, [
+    'M13.2 6A5.4 5.4 0 0 0 3.1 4.2',
+    'M3.1 1.8v2.4h2.4',
+    'M2.8 10A5.4 5.4 0 0 0 12.9 11.8',
+    'M12.9 14.2v-2.4h-2.4',
+  ]);
+}
+
 export const FORMAT_ICONS = {
   bold: ['M4 2.5h4.2a2.6 2.6 0 0 1 0 5.2H4z', 'M4 7.7h5a2.8 2.8 0 0 1 0 5.6H4z'],
   checkbox: ['M3 3.2h10v10H3z', 'M5.2 8.2l1.8 1.8 3.8-4'],
