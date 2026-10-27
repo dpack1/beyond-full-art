@@ -23,13 +23,13 @@ test('uses the journal for notes, photos, and search', async ({
 
   await page.getByRole('button', {name: 'Journal'}).click();
   await expect(page.getByText('No notes', {exact: true})).toBeVisible();
-  await expect(page.getByRole('button', {name: 'Manage Notes'})).toBeVisible();
+  await expect(page.getByRole('button', {name: 'New Note'})).toBeVisible();
   await page.screenshot({
     fullPage: true,
     path: path.join(ARTIFACT_DIR, 'journal-empty.png'),
   });
 
-  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('button', {name: 'New Note'}).click();
   await page.getByRole('combobox', {name: 'Type'}).selectOption('session');
   await page.getByRole('textbox', {name: 'Title'}).fill('The locked door');
   await page.getByRole('textbox', {name: 'Note', exact: true}).fill([
@@ -97,7 +97,7 @@ test('uses the journal for notes, photos, and search', async ({
   await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
   await expect(page.getByRole('dialog')).toBeHidden();
 
-  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('button', {name: 'New Note'}).click();
   await page.getByRole('combobox', {name: 'Type'}).selectOption('place');
   await page.getByRole('textbox', {name: 'Title'}).fill('Market day');
   await page.getByRole('textbox', {name: 'Note', exact: true}).fill('Bought rope and rations before the rain.');

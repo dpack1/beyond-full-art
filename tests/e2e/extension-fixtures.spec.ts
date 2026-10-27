@@ -124,7 +124,7 @@ test('adds a local character journal tab with persisted entries', async ({
   await expect(page.locator('[data-testid="native-character-panel"]')).toBeHidden();
   await expect(page.getByRole('searchbox', {name: 'Search notes'})).toBeVisible();
 
-  await page.getByRole('button', {name: 'Manage Notes'}).click();
+  await page.getByRole('button', {name: 'New Note'}).click();
   await page.getByRole('textbox', {name: 'Title'}).fill('Session note');
   await page.getByRole('textbox', {name: 'Note', exact: true}).fill('Matilda wrote this locally.');
   await expect(page.getByText('Saved', {exact: true})).toBeVisible();
@@ -170,7 +170,7 @@ test('keeps the character journal reachable across viewport sizes', async ({
         .toBeVisible();
     await expect(page.getByRole('searchbox', {name: 'Search notes'}), viewport.name)
         .toBeVisible();
-    await expect(page.getByRole('button', {name: 'Manage Notes'}), viewport.name)
+    await expect(page.getByRole('button', {name: 'New Note'}), viewport.name)
         .toBeVisible();
     await expect(page.getByRole('button', {name: 'Filter'}), viewport.name)
         .toBeVisible();

@@ -1,5 +1,6 @@
 import {journalCategoryLabel, type JournalCategory} from './character-journal-query';
 import {createSectionToolbar} from './character-journal-toolbar';
+import {syncIcon} from './character-journal-icons';
 import type {JournalEntryType} from './character-journal-types';
 
 type JournalFilterType = Exclude<JournalCategory, 'all'>;
@@ -18,11 +19,11 @@ export interface JournalRowModel {
 }
 
 export interface JournalListHandlers {
-  onCheck: () => void;
   onFilter: (types: readonly JournalEntryType[]) => void;
   onManage: () => void;
   onOpen: (entryId: string, returnFocus: HTMLElement) => void;
   onSearch: (query: string) => void;
+  onSync: () => void;
 }
 
 const FILTER_TYPES: readonly JournalFilterType[] = [
@@ -38,12 +39,12 @@ export interface JournalListView {
   disconnect(): void;
   root: HTMLElement;
   searchField: HTMLInputElement;
-  setCheckBusy(busy: boolean): void;
-  setCheckVisible(visible: boolean): void;
   setAlert(message: string | null): void;
   setFilters(types: readonly JournalEntryType[]): void;
   setMessage(message: string | null, tone: 'alert' | 'muted' | 'notice'): void;
   setRows(rows: readonly JournalRowModel[]): void;
+  setSyncBusy(busy: boolean): void;
+  setSyncVisible(visible: boolean): void;
 }
 
 export function createJournalList(
@@ -59,11 +60,14 @@ export function createJournalList(
   toolbar.className = 'bfa-journal-section-toolbar';
   const chrome = createSectionToolbar(doc);
   const {filterButton, manageButton, row, searchField} = chrome;
-  const checkButton = doc.createElement('button');
-  checkButton.className = 'bfa-journal-button bfa-journal-check-folder';
-  checkButton.hidden = true;
-  checkButton.type = 'button';
-  checkButton.textContent = 'Check folder';
+  const syncButton = doc.createElement('button');
+  syncButton.className = 'bfa-journal-icon-button bfa-journal-sync-folder';
+  syncButton.hidden = true;
+  syncButton.type = 'button';
+  syncButton.title = 'Sync folder';
+  syncButton.setAttribute('aria-label', 'Sync folder');
+  syncButton.append(syncIcon(doc));
+  placeSyncButton(doc, row, manageButton, syncButton);
 
   const filter = doc.createElement('div');
   filter.className = 'bfa-journal-filter';
@@ -86,7 +90,7 @@ export function createJournalList(
     filter.append(option);
   }
 
-  toolbar.append(row, checkButton, filter);
+  toolbar.append(row, filter);
 
   const alert = doc.createElement('p');
   alert.className = 'bfa-journal-alert';
@@ -144,7 +148,7 @@ export function createJournalList(
     closeFilter();
     handlers.onManage();
   });
-  checkButton.addEventListener('click', handlers.onCheck);
+  syncButton.addEventListener('click', handlers.onSync);
 
   return {
     disconnect() {
@@ -152,13 +156,6 @@ export function createJournalList(
     },
     root,
     searchField,
-    setCheckBusy(busy) {
-      checkButton.disabled = busy;
-      checkButton.textContent = busy ? 'Checking folder…' : 'Check folder';
-    },
-    setCheckVisible(visible) {
-      checkButton.hidden = !visible;
-    },
     setAlert(text) {
       alert.hidden = text === null;
       alert.textContent = text ?? '';
@@ -186,6 +183,16 @@ export function createJournalList(
         list.append(renderRow(doc, row, handlers.onOpen));
       }
     },
+    setSyncBusy(busy) {
+      syncButton.disabled = busy;
+      syncButton.dataset.busy = busy ? 'true' : 'false';
+      const label = busy ? 'Syncing folder' : 'Sync folder';
+      syncButton.title = label;
+      syncButton.setAttribute('aria-label', label);
+    },
+    setSyncVisible(visible) {
+      syncButton.hidden = !visible;
+    },
   };
 
   function selectedTypes(): JournalEntryType[] {
@@ -196,6 +203,25 @@ export function createJournalList(
     filter.hidden = true;
     filterButton.setAttribute('aria-expanded', 'false');
   }
+}
+
+function placeSyncButton(
+    doc: Document,
+    row: HTMLElement,
+    manageButton: HTMLButtonElement,
+    syncButton: HTMLButtonElement,
+): void {
+  const parent = manageButton.parentElement;
+  if (parent !== null && parent !== row) {
+    parent.classList.add('bfa-journal-toolbar-actions');
+    parent.insertBefore(syncButton, manageButton);
+    return;
+  }
+
+  const actions = doc.createElement('div');
+  actions.className = 'bfa-journal-toolbar-actions';
+  row.insertBefore(actions, manageButton);
+  actions.append(syncButton, manageButton);
 }
 
 function renderRow(

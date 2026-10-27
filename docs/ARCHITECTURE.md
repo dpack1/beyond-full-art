@@ -230,12 +230,12 @@ concealed the same way, and the previous display is restored when Journal
 closes.
 
 The section toolbar is the Extras row: magnifier, search field, funnel, then
-Manage Notes, on one line. The markup and classes are the ones observed on
+New Note, on one line. The markup and classes are the ones observed on
 the Extras filter (`SHEET_SECTION_FILTER_SELECTOR` in `selectors.ts`). A live
 row is cloned when that tab is mounted; otherwise the same markup is built
 from those strings so the sheet stylesheet can paint it. The site header
 search is not used. Type filters sit behind the funnel and can be combined.
-An empty selection shows every note. Manage Notes opens the note panel. That
+An empty selection shows every note. New Note opens the note panel. That
 is the only create path.
 
 The panel is appended to `document.body`, beside the native sidebar portal, so
@@ -454,8 +454,8 @@ browser.
 
 A note edited after the copy does not match, so cleanup refuses and this
 browser keeps saving locally until setup unions or resolves it. The popup's
-**Check folder** reads commit status and refreshes its inventory. The Journal
-action reopens the current character; a clean panel adopts a newer note and a
+**Check folder** reads commit status and refreshes its inventory. The Journal's
+**Sync folder** action reopens the current character; a clean panel adopts a newer note and a
 dirty panel keeps its draft and becomes stale. Note save compares
 `loadedUpdatedAt`. Full-art save compares the SHA-256 the page loaded with the
 current commit before writing.

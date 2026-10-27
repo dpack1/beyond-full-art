@@ -609,6 +609,14 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     const entryId = state.panel.note.id;
     const loadedUpdatedAt = state.panel.loadedUpdatedAt;
     const draft = draftNote();
+    if (
+      loadedUpdatedAt === null
+      && draft.title.trim() === ''
+      && draft.body.trim() === ''
+      && draft.images.length === 0
+    ) {
+      return;
+    }
     state.panel.status = 'saving';
     renderPanel();
     try {

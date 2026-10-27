@@ -184,6 +184,29 @@
   flex: 0 0 auto;
 }
 
+.bfa-journal-toolbar-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.bfa-journal-sync-folder {
+  color: var(--bfa-journal-text);
+  height: 36px;
+  opacity: 0.72;
+  width: 36px;
+}
+
+.bfa-journal-sync-folder[data-busy='true'] svg {
+  animation: bfa-journal-sync-spin 800ms linear infinite;
+}
+
+@keyframes bfa-journal-sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .bfa-journal-toolbar-row .bfa-journal-search {
   background: transparent;
   border: 0;
@@ -776,6 +799,7 @@
 @media (max-width: 760px) {
   .bfa-journal-button,
   .bfa-journal-row,
+  .bfa-journal-sync-folder,
   .bfa-journal-toolbar-row:not([data-bfa-journal-native-chrome]) .bfa-journal-filter-button,
   .bfa-journal-toolbar-row:not([data-bfa-journal-native-chrome]) .bfa-journal-manage,
   .bfa-journal-toolbar-row:not([data-bfa-journal-native-chrome]) .bfa-journal-search {
@@ -803,5 +827,9 @@
   .bfa-journal-button,
   .bfa-journal-row {
     transition: none;
+  }
+
+  .bfa-journal-sync-folder[data-busy='true'] svg {
+    animation: none;
   }
 }

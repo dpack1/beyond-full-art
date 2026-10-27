@@ -200,7 +200,7 @@ a single long native notes field.
 - Let the user search titles, `#tags`, note text, and photo file names.
 - Filter the list from a Filter button. Sessions, NPCs, Places, Items,
   Quests, and Backstory can be selected together. An empty selection shows
-  every note. Manage Notes is the only way to create a note.
+  every note. New Note is the only way to create a note.
 - Keep one local journal per character. There is no character cap.
 - Link notes with `[[Name]]`. A unique title opens that note. A missing title
   can become a placeholder. Duplicate titles ask which note to open.

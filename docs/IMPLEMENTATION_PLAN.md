@@ -56,7 +56,7 @@ Current implementation slice:
 - a read-only folder comparison engine for matches, additions, changed records, tombstones, and unopened Drive conflict siblings,
 - setup union for non-conflicting additions, with post-write verification before browser cleanup, and confirmation before switching an active library folder,
 - conflict review with complete-choice gating: notes support keep-folder, keep-browser, keep-both, deleted, and restore; full art and crops preserve rejected bytes as checked `kept` files; photo conflicts preserve both versions and remap the losing photo and note references,
-- popup and Journal folder checks, dirty-draft preservation and Keep both, note `updatedAt` guards, and full-art loaded-SHA guards,
+- popup folder checks and the Journal sync action, dirty-draft preservation and Keep both, note `updatedAt` guards, and full-art loaded-SHA guards,
 - optional sharper character-card portrait URLs on campaign pages and the My Characters page,
 - focused unit, DOM fixture, and local Playwright fixture coverage.
 
@@ -160,7 +160,7 @@ Current shipped beta implementation (version 2):
 - image bytes in extension-origin IndexedDB,
 - ZIP export from the popup, with Markdown notes, photo files, and raw versioned recovery data,
 - popup import for all journals or one matching character, merging supported notes without replacing newer local versions,
-- the Extras search row (magnifier, field, funnel, Manage Notes) on one line, `[[Name]]` links, and autosave,
+- the Extras search row (magnifier, field, funnel, New Note) on one line, `[[Name]]` links, and autosave,
 - unit, DOM fixture, and Playwright coverage.
 
 ### Exit criteria

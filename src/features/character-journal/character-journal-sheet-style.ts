@@ -132,6 +132,7 @@ function replaceMarkedClass(
   const next = className.split(/\s+/).filter((name) => name !== '' && !/hidden/i.test(name));
   for (const element of root.querySelectorAll<HTMLElement>(selector)) {
     if (
+      element.classList.contains('bfa-journal-row') ||
       element.closest('[data-bfa-journal-pane-control], [data-bfa-journal-native-chrome]') !== null
     ) {
       continue;

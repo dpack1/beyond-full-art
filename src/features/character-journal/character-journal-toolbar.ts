@@ -109,9 +109,9 @@ function finishToolbar(
   manageButton.setAttribute('data-bfa-journal-button-class', manageButton.className);
   const content = manageButton.querySelector('span');
   if (content === null) {
-    manageButton.textContent = 'Manage Notes';
+    manageButton.textContent = 'New Note';
   } else {
-    content.textContent = 'Manage Notes';
+    content.textContent = 'New Note';
   }
   return {filterButton, manageButton, row, searchField};
 }
@@ -128,7 +128,7 @@ function createManageButton(doc: Document): HTMLButtonElement {
   button.className = SHEET_MANAGE_BUTTON_CLASS;
   const content = doc.createElement('span');
   content.className = SHEET_MANAGE_BUTTON_CONTENT_CLASS;
-  content.textContent = 'Manage Notes';
+  content.textContent = 'New Note';
   button.append(content);
   return button;
 }
