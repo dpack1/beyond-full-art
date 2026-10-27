@@ -30,6 +30,9 @@ describe('character journal section', () => {
     await showSection(section);
 
     expect(getContentHost().querySelector('.bfa-character-journal-section')).not.toBeNull();
+    expect(getComputedStyle(
+        getContentHost().querySelector<HTMLElement>('.bfa-character-journal-section')!,
+    ).backgroundColor).toBe('rgba(0, 0, 0, 0)');
     expect(getNativePanel().hidden).toBe(true);
     expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No notes');
     expect(document.querySelector('[data-bfa-journal-panel]')?.hasAttribute('hidden')).toBe(true);
@@ -62,10 +65,81 @@ describe('character journal section', () => {
     search.dispatchEvent(new Event('input'));
 
     expect(titles()).toEqual(['Locked door']);
+    expect(document.querySelector('.bfa-journal-row-preview')).toBeNull();
     search.value = 'nope';
     search.dispatchEvent(new Event('input'));
     expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No matches');
     section.destroy();
+  });
+
+  it('shows a quiet created date and keeps optional summary details hidden', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({
+        body: 'A locked door under the chapel.',
+        id: 'door',
+        title: 'Locked door',
+        updatedAt: '2026-10-27T00:00:00.000Z',
+      }),
+    ]));
+    await showSection(section);
+
+    const created = document.querySelector<HTMLTimeElement>('.bfa-journal-row-created');
+    expect(created?.dateTime).toBe('2026-10-12T00:00:00.000Z');
+    expect(created?.textContent).not.toMatch(/created/i);
+    expect(document.querySelector('.bfa-journal-row-preview')).toBeNull();
+    expect(document.querySelector('.bfa-journal-row-updated')).toBeNull();
+    expect(document.querySelector('.bfa-journal-thumb')).toBeNull();
+
+    section.destroy();
+  });
+
+  it('renders optional list details when their preferences are enabled', async () => {
+    const originalCreateObjectUrl = URL.createObjectURL;
+    const originalRevokeObjectUrl = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => 'blob:journal-thumb');
+    URL.revokeObjectURL = vi.fn();
+    const service = createFakeService([
+      note({
+        body: 'A locked door under the chapel.',
+        featuredImageId: 'door-photo',
+        id: 'door',
+        images: [{
+          altText: 'door.png',
+          blobKey: 'bfa.journal.image.door-photo',
+          byteSize: 1,
+          fileName: 'door.png',
+          height: 1,
+          id: 'door-photo',
+          mimeType: 'image/png',
+          width: 1,
+        }],
+        title: 'Locked door',
+        updatedAt: '2026-10-27T00:00:00.000Z',
+      }),
+    ]);
+    service.getImage = async () => ({
+      byteBuffer: new Uint8Array([1]).buffer,
+      mimeType: 'image/png',
+    });
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+
+    section.setListPreferences({
+      showPreview: true,
+      showThumbnail: true,
+      showUpdatedDate: true,
+    });
+
+    expect(document.querySelector('.bfa-journal-row-preview')?.textContent)
+        .toContain('locked door under the chapel');
+    expect(document.querySelector('.bfa-journal-row-updated')?.textContent)
+        .toMatch(/^Updated /);
+    expect(document.querySelector<HTMLImageElement>('.bfa-journal-thumb img')?.src)
+        .toBe('blob:journal-thumb');
+
+    section.destroy();
+    URL.createObjectURL = originalCreateObjectUrl;
+    URL.revokeObjectURL = originalRevokeObjectUrl;
   });
 
   it('checks the folder without replacing a dirty draft', async () => {

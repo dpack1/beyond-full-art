@@ -151,6 +151,8 @@ Current shipped beta implementation (version 2):
 
 - extension-owned `Journal` tab inserted after D&D Beyond's `Extras` tab,
 - popup preference to enable or disable the inserted Journal tab,
+- compact title-and-created-date rows, with popup preferences for updated
+  dates, text previews, and image thumbnails,
 - journal list in the sheet content region, beside the tab strip,
 - right-hand note panel on `document.body`, responsive up to 400px wide, close and back in the edge chrome, theme color sampled from the sheet,
 - local markdown notes keyed by D&D Beyond character ID, schema version 2,
@@ -174,6 +176,7 @@ Current shipped beta implementation (version 2):
 - Failed saves preserve unsaved text in the editor.
 - Failed deletes preserve the entry.
 - Journal data is never written to page-origin storage.
+- Hiding previews or thumbnails never removes note content from search.
 
 ## Phase 6, companion portrait from Extras
 

@@ -199,6 +199,22 @@ export function journalRowPreview(note: JournalNote): string {
   return journalPlainText(note.body);
 }
 
+export function formatJournalListDate(
+    timestamp: string,
+    locale?: string,
+): string | null {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
 function journalSearchText(note: JournalNote): string {
   return [
     note.title,

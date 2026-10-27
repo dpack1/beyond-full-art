@@ -26,6 +26,10 @@ import {
   getCharacterJournalEnabled,
 } from '../platform/chrome/storage';
 import {
+  getJournalListPreferences,
+  JOURNAL_LIST_PREFERENCES_KEY,
+} from '../platform/chrome/journal-list-preferences';
+import {
   observePanelPortraits,
   type PortraitTarget,
 } from '../platform/dndbeyond/portrait-adapter';
@@ -80,6 +84,7 @@ export function installCharacterSheetEnhancement(
   const journalCleanups = new Set<Cleanup>();
   let activeControls: CharacterArtControlsController | null = null;
   let journalSyncGeneration = 0;
+  let journalListSyncGeneration = 0;
   let knownCharacterHref = doc.location.href;
   let releaseJournalBinding: Cleanup | null = null;
   let stopObservingJournalTabs: Cleanup | null = null;
@@ -279,17 +284,35 @@ export function installCharacterSheetEnhancement(
       CHARACTER_JOURNAL_ENABLED_KEY,
       syncJournalEnabledState,
   );
+  const syncJournalListPreferences = async () => {
+    const generation = ++journalListSyncGeneration;
+    try {
+      const preferences = await getJournalListPreferences();
+      if (generation === journalListSyncGeneration) {
+        journalSection.setListPreferences(preferences);
+      }
+    } catch {
+      // The compact defaults remain active when preferences cannot be read.
+    }
+  };
+  const stopJournalListPreferenceListener = installStorageListener(
+      JOURNAL_LIST_PREFERENCES_KEY,
+      syncJournalListPreferences,
+  );
   void syncJournalEnabledState();
+  void syncJournalListPreferences();
 
   return () => {
     stopObservingPortraitManagers();
     stopObserving();
     stopJournalStorageListener();
+    stopJournalListPreferenceListener();
     doc.defaultView?.removeEventListener('popstate', syncCharacterRoute);
     if (routeTimer !== undefined) {
       doc.defaultView?.clearInterval(routeTimer);
     }
     journalSyncGeneration += 1;
+    journalListSyncGeneration += 1;
     companionPortrait.cleanup();
     tearDownJournalChrome();
     for (const cleanup of cleanups) {

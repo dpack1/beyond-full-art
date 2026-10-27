@@ -62,6 +62,9 @@ Journal ZIP backup and restore were approved after live export/import QA on
 - Opens each note in a slide-in panel that mirrors D&D Beyond's Information Sidebar.
 - Closes a note when the user clicks outside the slide-in panel, while protecting unsaved edits with the existing discard confirmation.
 - Searches, filters, and creates notes from a toolbar with search, Filter, and Manage Notes.
+- Shows compact title-and-created-date rows by default. Popup controls can add
+  updated dates, text previews, and image thumbnails without changing what
+  full note content search can find.
 - Reads markdown, and edits it with an icon toolbar and an edit toggle.
 - Preserves progress through long notes when switching between reading and editing.
 - Exports every local journal as a ZIP with Markdown notes, photo files, and versioned `backup.json` recovery data.

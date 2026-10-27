@@ -14,6 +14,11 @@ import {
   getCompanionPortraitEnabled,
   setCompanionPortraitEnabled,
 } from '../platform/chrome/companion-portrait-storage';
+import {
+  getJournalListPreferences,
+  setJournalListPreferences,
+  type JournalListPreferences,
+} from '../platform/chrome/journal-list-preferences';
 
 const SETTINGS_STYLE_ATTRIBUTE_NAME = 'data-bfa-popup-styles';
 const HIDDEN_STATUS_CLASS_NAME = 'bfa-popup__status--hidden';
@@ -62,6 +67,7 @@ export async function initializePopup(doc: Document): Promise<void> {
       });
     });
     installJournalPreferenceSync(journalCheckbox, journalStatus);
+    await installJournalListPreferences(doc, journalStatus);
   }
 
   const companionCheckbox = doc.querySelector<HTMLInputElement>(
@@ -95,6 +101,50 @@ export async function initializePopup(doc: Document): Promise<void> {
     installStorageUsage(doc),
     installStoredContent(doc),
   ]);
+}
+
+async function installJournalListPreferences(
+    doc: Document,
+    status: HTMLParagraphElement,
+): Promise<void> {
+  const controls: Record<keyof JournalListPreferences, HTMLInputElement | null> = {
+    showPreview: doc.querySelector<HTMLInputElement>('#character-journal-show-preview'),
+    showThumbnail: doc.querySelector<HTMLInputElement>('#character-journal-show-thumbnail'),
+    showUpdatedDate: doc.querySelector<HTMLInputElement>(
+        '#character-journal-show-updated-date',
+    ),
+  };
+  if (Object.values(controls).some((control) => control === null)) {
+    return;
+  }
+
+  let preferences = await getJournalListPreferences();
+  for (const key of preferenceKeys()) {
+    const control = controls[key];
+    if (control === null) {
+      continue;
+    }
+    control.checked = preferences[key];
+    control.addEventListener('change', () => {
+      const previous = preferences;
+      const next = {...preferences, [key]: control.checked};
+      preferences = next;
+      control.disabled = true;
+      void setJournalListPreferences(next).then(() => {
+        renderStatus(status, 'Journal list details updated.', false);
+      }).catch((error: unknown) => {
+        preferences = previous;
+        control.checked = previous[key];
+        renderStatus(status, asErrorMessage(error), true);
+      }).finally(() => {
+        control.disabled = false;
+      });
+    });
+  }
+}
+
+function preferenceKeys(): Array<keyof JournalListPreferences> {
+  return ['showPreview', 'showThumbnail', 'showUpdatedDate'];
 }
 async function handleCheckboxChange(options: {
   checkbox: HTMLInputElement;

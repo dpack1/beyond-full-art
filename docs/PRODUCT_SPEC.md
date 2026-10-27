@@ -219,6 +219,10 @@ a single long native notes field.
 - Journal photo bytes are stored in extension-origin IndexedDB.
 - The Character Journal tab is enabled by default and controlled by
   `bfa.preferences.characterJournalEnabled` in `chrome.storage.local`.
+- Journal rows show the title and an unlabeled, visually quiet creation date
+  by default. Updated dates, text previews, and image thumbnails are separate
+  global popup preferences and default to hidden. Search still checks the
+  complete note body and photo filenames regardless of those display choices.
 - New notes are markdown plus an image list (schema version 2). Version 1
   block entries migrate once per character, after a backup that is not
   overwritten.
