@@ -41,7 +41,7 @@
   --bfa-journal-border: #d0d0d0;
   --bfa-journal-selected: #f7f4f1;
   --bfa-journal-line: rgba(36, 37, 39, 0.16);
-  background: var(--bfa-journal-background);
+  background: transparent;
   color: var(--bfa-journal-text);
   display: grid;
   font: inherit;
@@ -563,17 +563,30 @@
   align-items: center;
   display: grid;
   gap: 8px 12px;
-  grid-template-columns: minmax(0, 1fr) 48px;
+  grid-template-columns: minmax(0, 1fr);
   padding: 8px;
   text-transform: none;
   width: 100%;
 }
 
+.bfa-journal-row--with-thumb {
+  grid-template-columns: minmax(0, 1fr) 48px;
+}
+
+.bfa-journal-row-text {
+  align-items: start;
+  display: grid;
+  gap: 3px 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
 .bfa-journal-row-title-line,
 .bfa-journal-tag {
+  align-items: center;
   display: inline-flex;
   gap: 6px;
-  align-items: center;
+  min-width: 0;
 }
 
 .bfa-journal-tag {
@@ -592,16 +605,46 @@
 
 .bfa-journal-row-title {
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bfa-journal-row-preview,
-.bfa-journal-mention,
 .bfa-journal-message,
 .bfa-journal-status,
 .bfa-journal-alert {
   color: var(--bfa-journal-muted);
   font-size: 13px;
   margin: 0;
+}
+
+.bfa-journal-row-preview {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  overflow: hidden;
+}
+
+.bfa-journal-row-dates {
+  align-items: flex-end;
+  color: var(--bfa-journal-muted);
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  gap: 1px;
+  grid-column: 2;
+  grid-row: 1;
+  line-height: 1.3;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bfa-journal-row-updated {
+  opacity: 0.82;
 }
 
 .bfa-journal-alert,
@@ -743,15 +786,8 @@
     align-items: stretch;
   }
 
-  .bfa-journal-row {
+  .bfa-journal-row--with-thumb {
     grid-template-columns: minmax(0, 1fr) 72px;
-  }
-
-  .bfa-journal-row-preview {
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    display: -webkit-box;
-    overflow: hidden;
   }
 
   .bfa-journal-thumb,

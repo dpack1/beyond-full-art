@@ -264,6 +264,11 @@ same day. It is the 2024 five-tab sheet (Actions, Spells, Inventory, Features
 `.agent/design/journal-v2/reference/live-sheet-light.png`. The tab matcher
 accepts that shorter label set and the classic seven-tab set.
 
+The inline Journal section stays transparent so the sheet content pane's
+character artwork and theme remain visible, matching native sections such as
+Extras. Individual fields and dialogs still use sampled surface tokens where
+they need their own readable fill.
+
 Theme comes from the sheet: `ct-theme-dark`, a class ending in `dark-mode`,
 `data-theme` or `data-appearance`, then background luminance. The journal does
 not read `prefers-color-scheme`. Accent, border, and the active-tab underline
@@ -512,10 +517,18 @@ characters/<characterId>/tombstones/portrait-crop.json
 
 ```text
 bfa.preferences.characterJournalEnabled
+bfa.preferences.characterJournalListDetails
 bfa.characterJournal.schemaVersion
 bfa.characterJournal.entries.<characterId>
 bfa.characterJournal.backup.v1.<characterId>
 ```
+
+`bfa.preferences.characterJournalListDetails` is a small object with boolean
+`showUpdatedDate`, `showPreview`, and `showThumbnail` fields. Missing or
+malformed fields default to false. The content script observes this key and
+re-renders the open list without reloading the sheet. These fields affect only
+row presentation; search continues to index the full title, body, and photo
+filenames.
 
 Each character key stores an array of notes. Writes re-read that array and
 merge by id, keeping the newer `updatedAt`, so a stale snapshot does not erase

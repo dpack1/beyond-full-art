@@ -526,3 +526,26 @@ Why:
   existing extension-origin store that can hold it.
 - Writing `bfa.library.mode` before the browser delete means a crash still
   reads the folder instead of an empty browser.
+
+## ADR-028: Journal list details are optional presentation preferences
+
+Status: Accepted
+
+Journal rows show only the note title, a quiet unlabeled creation date, and an
+actionable Needs details badge by default. The popup offers independent global
+preferences for the updated date, plain-text preview, and image thumbnail.
+All three optional details default to hidden. Changing them re-renders an open
+Journal without changing a note or requiring a page reload.
+
+Search always indexes the full title, markdown body, and photo filenames. A
+hidden preview or thumbnail is a presentation choice, not a search filter.
+
+Why:
+
+- The journal list should stay short and scannable as the number of notes
+  grows.
+- Creation time is useful context without needing a visible label on every
+  row.
+- Players who value richer summaries can opt into only the details they use.
+- One global preference object keeps display choices out of character records
+  and avoids a journal schema migration.

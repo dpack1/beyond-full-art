@@ -45,7 +45,7 @@ When the viewer is showing stored full art, **Download full art** saves that fil
 Click the toolbar icon to open the popup.
 
 - **Sharper card portraits** upgrades small campaign and My Characters avatars to a sharper image URL. It is on by default.
-- **Character Journal** shows or hides the sheet's Journal tab. Turning it off does not delete entries. It is on by default.
+- **Character Journal** shows or hides the sheet's Journal tab. Turning it off does not delete entries. It is on by default. Its list is compact by default; optional controls add updated dates, text previews, and image thumbnails.
 - **Companion portrait** shows selection checkboxes in Extras and the chosen portrait beside the character portrait. Turning it off keeps the saved choice. It is on by default.
 - **Backup folder** prepares one empty folder, or reconnects a folder this extension already prepared. The setup window can copy art and notes into that folder, check the files, and then remove the copies in this browser. New art and notes save in the folder. **Check folder** re-reads it and refreshes the inventory. Put the folder inside Google Drive for Desktop if you want Drive to sync it.
 - When that folder is the library, deleting art or a journal entry records the deletion there. Deleted notes do not silently return, and their photo files are retained so setup can restore a browser copy explicitly.
@@ -75,7 +75,7 @@ On a character sheet, the extension enlarges the header portrait and adds a litt
 
 ### Character journal
 
-On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. This is the shipped beta. Search, **Filter**, and **Manage Notes** sit on one toolbar. Choosing a note opens a slide-in panel that mirrors the Information Sidebar in [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). Read mode renders markdown. **Edit** switches to the source, with an icon toolbar. Photos sit in the note as `![[img:<id>|caption|width]]`, inserted at the cursor by the image button, paste, or drop. PNG, JPEG, and WebP files over 3 MB are resized (longest edge 2048px) and stored under 3 MB. A file over 25 MB is refused. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. The tab, the list, and the panel follow the sheet's light and dark appearance. Nothing is written to D&D Beyond notes, backstory, or extras. The UI lives in `src/features/character-journal/`.
+On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. This is the shipped beta. Search, **Filter**, and **Manage Notes** sit on one toolbar. The list shows each title with a quiet creation date by default; popup settings can additionally show the updated date, text preview, and image thumbnail. Search always checks the complete note content even when its preview is hidden. Choosing a note opens a slide-in panel that mirrors the Information Sidebar in [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). Read mode renders markdown. **Edit** switches to the source, with an icon toolbar. Photos sit in the note as `![[img:<id>|caption|width]]`, inserted at the cursor by the image button, paste, or drop. PNG, JPEG, and WebP files over 3 MB are resized (longest edge 2048px) and stored under 3 MB. A file over 25 MB is refused. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. The tab, the list, and the panel follow the sheet's light and dark appearance. Nothing is written to D&D Beyond notes, backstory, or extras. The UI lives in `src/features/character-journal/`.
 
 ### Not built yet
 
@@ -199,12 +199,13 @@ The build writes a loadable extension to `dist/`. Chrome loads those compiled fi
 ### Use the character journal
 
 1. Leave **Character Journal** enabled in the popup.
-2. Open a character sheet and choose **Journal**, immediately after **Extras**.
-3. Choose **Manage Notes** to create a note in the side panel. Pick its type there.
-4. Read the note in that panel. Markdown renders in read mode. **Edit** changes it. The note saves on its own. **Close**, in the pane chrome, returns to the list.
-5. Search titles, tags, and text. **Filter** selects one or more types. `[[Name]]` links to another note. A missing name stays unresolved until autocomplete creates it.
-6. Use **Image**, paste, or drop a PNG, JPEG, or WebP photo while editing. The note gains `![[img:<id>]]` at the cursor. Add `|caption` or `|300` (pixels) inside the brackets to set the caption or width. Cut and paste that embed to move the picture. A photo over 3 MB is resized to fit. A photo over 25 MB is refused, and the note text stays.
-7. Choose a native D&D Beyond tab to return to the sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
+2. Leave the list compact, or enable **Updated date**, **Text preview**, and **Image thumbnail** under **Journal list details**.
+3. Open a character sheet and choose **Journal**, immediately after **Extras**.
+4. Choose **Manage Notes** to create a note in the side panel. Pick its type there.
+5. Read the note in that panel. Markdown renders in read mode. **Edit** changes it. The note saves on its own. **Close**, in the pane chrome, returns to the list.
+6. Search titles, tags, and complete note text. **Filter** selects one or more types. `[[Name]]` links to another note. A missing name stays unresolved until autocomplete creates it.
+7. Use **Image**, paste, or drop a PNG, JPEG, or WebP photo while editing. The note gains `![[img:<id>]]` at the cursor. Add `|caption` or `|300` (pixels) inside the brackets to set the caption or width. Cut and paste that embed to move the picture. A photo over 3 MB is resized to fit. A photo over 25 MB is refused, and the note text stays.
+8. Choose a native D&D Beyond tab to return to the sheet. Disabling the popup setting hides the Journal tab and leaves the saved entries in place.
 
 ## Developer runbook
 

@@ -24,6 +24,10 @@ const companionStorageMocks = vi.hoisted(() => ({
   getCompanionPortraitEnabled: vi.fn(),
   setCompanionPortraitEnabled: vi.fn(),
 }));
+const journalListPreferenceMocks = vi.hoisted(() => ({
+  getJournalListPreferences: vi.fn(),
+  setJournalListPreferences: vi.fn(),
+}));
 const storageUsageMocks = vi.hoisted(() => ({
   readExtensionStorageUsage: vi.fn(),
 }));
@@ -36,6 +40,10 @@ vi.mock(
     () => companionStorageMocks,
 );
 vi.mock('../../src/platform/chrome/storage-usage', () => storageUsageMocks);
+vi.mock(
+    '../../src/platform/chrome/journal-list-preferences',
+    () => journalListPreferenceMocks,
+);
 
 import {initializePopup} from '../../src/popup/settings';
 import {folderCheckMessage} from '../../src/popup/backup-folder';
@@ -59,6 +67,12 @@ describe('popup settings', () => {
     storageMocks.mergeImportedCharacterJournalRecords.mockResolvedValue(undefined);
     storageMocks.setCampaignCardPortraitUpgradeEnabled.mockResolvedValue(undefined);
     storageMocks.setCharacterJournalEnabled.mockResolvedValue(undefined);
+    journalListPreferenceMocks.getJournalListPreferences.mockResolvedValue({
+      showPreview: false,
+      showThumbnail: false,
+      showUpdatedDate: false,
+    });
+    journalListPreferenceMocks.setJournalListPreferences.mockResolvedValue(undefined);
     companionStorageMocks.getCompanionPortraitEnabled.mockResolvedValue(true);
     companionStorageMocks.setCompanionPortraitEnabled.mockResolvedValue(undefined);
     messageMocks.deleteStoredCharacterArt.mockResolvedValue(undefined);
@@ -236,6 +250,19 @@ describe('popup settings', () => {
         .toBe('Character Journal tab enabled.');
   });
 
+  it('stores optional character journal list details independently', async () => {
+    await initializePopup(document);
+
+    document.querySelector<HTMLInputElement>('#character-journal-show-preview')?.click();
+    await nextTask();
+
+    expect(journalListPreferenceMocks.setJournalListPreferences).toHaveBeenCalledWith({
+      showPreview: true,
+      showThumbnail: false,
+      showUpdatedDate: false,
+    });
+  });
+
   it('toggles the companion portrait setting', async () => {
     companionStorageMocks.getCompanionPortraitEnabled.mockResolvedValue(false);
 
@@ -405,6 +432,9 @@ function createPopupFixture(): string {
       <input id="campaign-card-portrait-upgrade" type="checkbox">
       <p id="campaign-card-portrait-upgrade-status"></p>
       <input id="character-journal-enabled" type="checkbox">
+      <input id="character-journal-show-updated-date" type="checkbox">
+      <input id="character-journal-show-preview" type="checkbox">
+      <input id="character-journal-show-thumbnail" type="checkbox">
       <p id="character-journal-status"></p>
       <input id="companion-portrait-enabled" type="checkbox">
       <p id="companion-portrait-status"></p>

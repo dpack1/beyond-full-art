@@ -5,14 +5,16 @@ import type {JournalEntryType} from './character-journal-types';
 type JournalFilterType = Exclude<JournalCategory, 'all'>;
 
 export interface JournalRowModel {
+  createdAt: string;
+  createdDate: string;
   id: string;
   label: string;
-  mention: string | null;
   needsDetails: boolean;
-  preview: string;
+  preview: string | null;
   thumbUrl: string | null;
   title: string;
-  typeLabel: string;
+  updatedAt: string | null;
+  updatedDate: string | null;
 }
 
 export interface JournalListHandlers {
@@ -211,44 +213,53 @@ function renderRow(
   text.className = 'bfa-journal-row-text';
   const titleLine = doc.createElement('span');
   titleLine.className = 'bfa-journal-row-title-line';
-  const tag = doc.createElement('span');
-  tag.className = 'bfa-journal-tag';
-  tag.textContent = row.typeLabel;
-  titleLine.append(tag);
+  const title = doc.createElement('span');
+  title.className = 'bfa-journal-row-title';
+  title.textContent = row.title;
+  titleLine.append(title);
   if (row.needsDetails) {
     const needs = doc.createElement('span');
     needs.className = 'bfa-journal-tag bfa-journal-tag-needs';
     needs.textContent = 'Needs details';
     titleLine.append(needs);
   }
-  const title = doc.createElement('span');
-  title.className = 'bfa-journal-row-title';
-  title.textContent = row.title;
-  titleLine.append(title);
+
+  const dates = doc.createElement('span');
+  dates.className = 'bfa-journal-row-dates';
+  const created = doc.createElement('time');
+  created.className = 'bfa-journal-row-created';
+  created.dateTime = row.createdAt;
+  created.textContent = row.createdDate;
+  dates.append(created);
+  if (row.updatedDate !== null && row.updatedAt !== null) {
+    const updated = doc.createElement('time');
+    updated.className = 'bfa-journal-row-updated';
+    updated.dateTime = row.updatedAt;
+    updated.textContent = `Updated ${row.updatedDate}`;
+    dates.append(updated);
+  }
+
   text.append(titleLine);
-  if (row.preview !== '') {
+  if (row.preview !== null && row.preview !== '') {
     const preview = doc.createElement('span');
     preview.className = 'bfa-journal-row-preview';
     preview.textContent = previewJournal(row.preview);
     text.append(preview);
   }
-  if (row.mention !== null) {
-    const mention = doc.createElement('span');
-    mention.className = 'bfa-journal-mention';
-    mention.textContent = row.mention;
-    text.append(mention);
-  }
+  text.append(dates);
 
-  const thumb = doc.createElement('span');
-  thumb.className = 'bfa-journal-thumb';
   if (row.thumbUrl !== null) {
+    const thumb = doc.createElement('span');
+    thumb.className = 'bfa-journal-thumb';
     const image = doc.createElement('img');
     image.alt = '';
     image.src = row.thumbUrl;
     thumb.append(image);
+    buttonElement.classList.add('bfa-journal-row--with-thumb');
+    buttonElement.append(text, thumb);
+  } else {
+    buttonElement.append(text);
   }
-
-  buttonElement.append(text, thumb);
   buttonElement.addEventListener('click', () => {
     onOpen(row.id, buttonElement);
   });

@@ -3,14 +3,13 @@ import {fitJournalToVisiblePane} from './character-journal-pane';
 import {createWikiAutocomplete} from './character-journal-autocomplete';
 import {ensureJournalStyles, removeJournalStyles} from './character-journal-elements';
 import {journalSaveErrorMessage} from './character-journal-errors';
-import {mentionCounts} from './character-journal-links';
 import {createJournalList, type JournalRowModel} from './character-journal-list';
 import {previewJournalText} from './character-journal-markdown';
 import {installJournalNotes, type JournalNotes, type OpenPanel} from './character-journal-notes';
 import {createJournalPhotoViewer} from './character-journal-photo-viewer';
 import {
   journalEmptyLabel,
-  journalTypeLabel,
+  formatJournalListDate,
   visibleJournalNotes,
 } from './character-journal-query';
 import {applyCopiedControlClasses, paintJournalSurface} from './character-journal-sheet-style';
@@ -22,12 +21,17 @@ import {
   setJournalTabSelected,
 } from '../../platform/dndbeyond/character-sheet-tabs-adapter';
 import {isFolderLibrary} from '../../platform/chrome/library-mode';
+import {
+  DEFAULT_JOURNAL_LIST_PREFERENCES,
+  type JournalListPreferences,
+} from '../../platform/chrome/journal-list-preferences';
 
 export interface CharacterJournalSection {
   destroy(): void;
   hide(): void;
   isShown(): boolean;
   requestHide(onHidden?: () => void, onCancel?: () => void): void;
+  setListPreferences(preferences: JournalListPreferences): void;
   show(options: CharacterJournalSectionShowOptions): Promise<void>;
   syncRoute(characterId: CharacterId | null): void;
 }
@@ -59,6 +63,7 @@ export function createCharacterJournalSection(
     fileError: null as string | null,
     filters: [] as JournalEntryType[],
     migration: 'current' as 'current' | 'failed' | 'loading' | 'migrated',
+    listPreferences: {...DEFAULT_JOURNAL_LIST_PREFERENCES},
     notes: [] as JournalNote[],
     panel: null as OpenPanel | null,
     query: '',
@@ -119,7 +124,12 @@ export function createCharacterJournalSection(
     }
   });
 
-  return {destroy, hide, isShown, requestHide, show, syncRoute};
+  return {destroy, hide, isShown, requestHide, setListPreferences, show, syncRoute};
+
+  function setListPreferences(preferences: JournalListPreferences): void {
+    state.listPreferences = {...preferences};
+    renderList();
+  }
 
   async function show(options: CharacterJournalSectionShowOptions): Promise<void> {
     const generation = ++showGeneration;
@@ -393,8 +403,7 @@ export function createCharacterJournalSection(
     }
 
     const visible = visibleJournalNotes(state.notes, state.filters, state.query);
-    const counts = mentionCounts(state.notes);
-    list.setRows(visible.map((note) => rowModel(note, counts.get(note.id) ?? 0)));
+    list.setRows(visible.map(rowModel));
     const notice = state.filters.length === 0
       && state.query.trim() === ''
       && state.notes.some((note) => note.type === 'unset' && !note.needsDetails);
@@ -407,17 +416,22 @@ export function createCharacterJournalSection(
     }
   }
 
-  function rowModel(note: JournalNote, mentions: number): JournalRowModel {
-    const typeLabel = journalTypeLabel(note.type);
+  function rowModel(note: JournalNote): JournalRowModel {
+    const createdDate = formatJournalListDate(note.createdAt) ?? '';
+    const updatedDate = state.listPreferences.showUpdatedDate
+      ? formatJournalListDate(note.updatedAt)
+      : null;
     return {
+      createdAt: note.createdAt,
+      createdDate,
       id: note.id,
-      label: `${typeLabel}, ${note.title}${note.needsDetails ? ', needs details' : ''}`,
-      mention: mentions > 0 ? `Mentioned in ${mentions}` : null,
+      label: `${note.title}, ${createdDate}${note.needsDetails ? ', needs details' : ''}`,
       needsDetails: note.needsDetails,
-      preview: previewJournalText(note.body),
-      thumbUrl: thumbUrl(note),
+      preview: state.listPreferences.showPreview ? previewJournalText(note.body) : null,
+      thumbUrl: state.listPreferences.showThumbnail ? thumbUrl(note) : null,
       title: note.title,
-      typeLabel,
+      updatedAt: updatedDate !== null && updatedDate !== createdDate ? note.updatedAt : null,
+      updatedDate: updatedDate !== createdDate ? updatedDate : null,
     };
   }
 
