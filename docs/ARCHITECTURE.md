@@ -514,6 +514,7 @@ the current IndexedDB handle is unchanged.
 
 ```text
 beyond-full-art.json
+settings.json
 characters/<characterId>/character.json
 characters/<characterId>/full-art.<png|jpg|webp>
 characters/<characterId>/portrait-crop.<png|jpg|webp>

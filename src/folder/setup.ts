@@ -38,6 +38,7 @@ import {
   type ResolveFolderConflictsResult,
 } from '../platform/chrome/folder-library-conflicts';
 import {getStoredBackupFolder} from '../platform/chrome/indexed-db';
+import {syncFolderSettings} from '../platform/chrome/folder-settings';
 import {isFolderLibrary} from '../platform/chrome/library-mode';
 
 const STYLE_ATTRIBUTE_NAME = 'data-bfa-folder-setup-styles';
@@ -320,6 +321,7 @@ async function presentFolder(
     if (await actions.isSavingInFolder()) {
       copy.hidden = true;
       status.textContent = savingInFolderMessage(folderName);
+      await syncFolderSettings();
       return;
     }
     let comparison: LibraryComparison;
@@ -704,6 +706,7 @@ async function runAdopt(
     status.textContent = describeAdoptResult(folderName, result);
     if (!failed) {
       copy.hidden = true;
+      await syncFolderSettings();
     }
   } catch {
     if (!current()) {

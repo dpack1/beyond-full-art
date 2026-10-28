@@ -6,6 +6,7 @@ import {
 } from '../platform/chrome/backup-folder';
 import {listCommittedCharacterIds} from '../platform/chrome/backup-folder-copy';
 import {getStoredBackupFolder} from '../platform/chrome/indexed-db';
+import {syncFolderSettings} from '../platform/chrome/folder-settings';
 import {isFolderLibrary} from '../platform/chrome/library-mode';
 import {
   readFolderLibraryStatus,
@@ -55,6 +56,9 @@ async function refresh(
       || !savingInFolder
       || connection.permission !== 'granted';
     status.classList.remove(ERROR_CLASS_NAME);
+    if (savingInFolder && connection?.permission === 'granted') {
+      await syncFolderSettings();
+    }
     status.textContent = connectionMessage(
         connection,
         await copiedCharacterCount(connection),
@@ -82,6 +86,7 @@ async function checkFolder(
     }
     const result = await readFolderLibraryStatus(stored.handle);
     status.classList.remove(ERROR_CLASS_NAME);
+    await syncFolderSettings();
     status.textContent = folderCheckMessage(stored.handle.name, result);
     doc.dispatchEvent(new Event('bfa-folder-checked'));
   } catch (error) {
