@@ -1,5 +1,6 @@
 import {installJournalImageMessageHandler} from './journal-image-handler';
 import {installLibraryMessageHandler} from './library-handler';
+import {installFolderSettingsSync} from '../platform/chrome/folder-settings';
 import type {
   CharacterArtMetadata,
   CharacterPortraitCropMetadata,
@@ -52,6 +53,7 @@ import {
 
 installJournalImageMessageHandler();
 installLibraryMessageHandler();
+installFolderSettingsSync();
 
 chrome.runtime.onMessage.addListener((rawMessage, _sender, sendResponse) => {
   const request = asCharacterArtRequest(rawMessage);

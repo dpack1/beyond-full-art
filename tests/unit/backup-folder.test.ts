@@ -31,6 +31,11 @@ describe('backup folder selection', () => {
     ])).toBe('owned');
     expect(classifyBackupFolderEntries([
       'beyond-full-art.json',
+      'settings.json',
+      'characters',
+    ])).toBe('owned');
+    expect(classifyBackupFolderEntries([
+      'beyond-full-art.json',
       'notes.txt',
     ])).toBe('occupied');
   });

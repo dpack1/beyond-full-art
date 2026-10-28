@@ -132,6 +132,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 21. Open a Journal note, make an unsaved edit, then change that note from another computer and let Drive finish. Click the **Sync folder** icon beside **New Note** in the Journal. Confirm the draft remains visible and the newer-folder warning offers Save, Discard draft, and Keep both. Save is refused while stale. Discard draft loads the folder note. Keep both creates an ` (other computer)` note with independent photo IDs, then loads the folder note.
 22. Open D&D Beyond's portrait manager so the extension loads current full art. Replace the folder's full-art file through the other computer, let Drive finish, then try to commit a different portrait from the already-open manager. Confirm the extension refuses the save and keeps the newly selected portrait pending.
 23. On a browser that restores the folder handle as `prompt` (Brave does this), the popup says the folder is selected and access is still needed. Click **Choose folder** and allow access. Confirm the directory picker can stay closed, the popup says art and notes are saved in that folder, and the sheet reads those files. Nothing is copied into this browser.
+24. Change a popup toggle and a companion checkbox, then open the same folder in another browser and allow access. Those choices match. `settings.json` is the only new file at the folder root.
 
 ## Full-art storage manual checklist
 

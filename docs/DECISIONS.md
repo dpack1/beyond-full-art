@@ -437,7 +437,10 @@ then activates the matching row.
 Status: Accepted. After the player confirms, a checked folder is where full
 art, crops, journal notes, and journal photos are saved. Browser copies of
 those records are removed only when every one of them still matches the
-folder. Preferences and the directory handle stay on this browser.
+folder. The directory handle stays on this browser. Popup toggles, journal
+list details, and the chosen companion for each character are also written to
+`settings.json` in that folder. A newer copy wins. Opening the folder on
+another browser applies that file, and a change on this browser writes it back.
 
 The popup can connect one directory that the user chooses. Chrome's directory
 picker runs in `folder/setup.html`, because the toolbar popup closes when the

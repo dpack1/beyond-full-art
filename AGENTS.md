@@ -163,7 +163,7 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - Do not request `webRequest`, `unlimitedStorage`, or `downloads` before the feature that needs them is implemented.
 - Do not execute remote code.
 - Keep stored artwork on this machine unless a product decision explicitly adds cloud sync. ADR-027: after a verified match, the chosen folder is the library for art, crops, notes, and photos. Preferences stay in `chrome.storage.local`. The directory handle stays in IndexedDB. `bfa.library.mode` is `folder` only after that match, and it is written before the browser copies are removed.
-- Store preferences in `chrome.storage.local`. While the library is still this browser, art and crop metadata and journal note text live there too.
+- Store preferences in `chrome.storage.local`. While the folder is the library, `settings.json` keeps a copy of the popup toggles, journal list details, and companion choices. The newer copy wins. While the library is still this browser, art and crop metadata and journal note text live in `chrome.storage.local` too.
 - Store full image bytes in extension-origin IndexedDB until the folder is the library. After that, image bytes live in the folder. Do not store image bytes in `chrome.storage.local`.
 - Do not use page-origin localStorage or IndexedDB from a content script for extension data.
 - Treat the service worker as ephemeral. Persist state instead of relying on global memory.

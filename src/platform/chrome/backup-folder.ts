@@ -5,6 +5,7 @@ import {
 } from './indexed-db';
 
 export const BACKUP_FOLDER_MARKER_NAME = 'beyond-full-art.json';
+export const BACKUP_FOLDER_SETTINGS_NAME = 'settings.json';
 export const BACKUP_FOLDER_CHARACTERS_DIRECTORY = 'characters';
 export const BACKUP_FOLDER_FORMAT = 'beyond-full-art-folder';
 export const BACKUP_FOLDER_PICKER_ID = 'beyond-full-art-backup';
@@ -48,7 +49,9 @@ export function classifyBackupFolderEntries(
 
   const hasMarker = meaningful.includes(BACKUP_FOLDER_MARKER_NAME);
   const onlyExtensionEntries = meaningful.every((name) =>
-    name === BACKUP_FOLDER_MARKER_NAME || name === BACKUP_FOLDER_CHARACTERS_DIRECTORY);
+    name === BACKUP_FOLDER_MARKER_NAME
+    || name === BACKUP_FOLDER_SETTINGS_NAME
+    || name === BACKUP_FOLDER_CHARACTERS_DIRECTORY);
   return hasMarker && onlyExtensionEntries ? 'owned' : 'occupied';
 }
 

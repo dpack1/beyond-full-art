@@ -64,7 +64,10 @@ As a user, I can upload the original full artwork for a character and have it st
 - Save the selected portrait-upload file locally as full art when the user confirms the native D&D Beyond portrait change, without blocking or modifying D&D Beyond's upload behavior.
 - Associate one active full-art image with a character ID.
 - Store image bytes locally in extension-origin IndexedDB.
-- Store metadata and preferences in `chrome.storage.local`.
+- Store metadata and preferences in `chrome.storage.local`. When the folder
+  is the library, the same preferences are copied to `settings.json` there:
+  the popup toggles, the journal list details, and each character's chosen
+  companion. The newer copy is kept.
 - Display the stored full artwork in the fullscreen viewer when available.
 - Fall back to the D&D Beyond portrait when no full artwork is stored.
 - Improve small D&D Beyond character-card avatar image URLs on campaign pages
