@@ -8,6 +8,8 @@ export function journalSaveErrorMessage(error: unknown): string {
     message.includes('still here')
     || message.includes('still on screen')
     || message.includes('Try again')
+    || message.includes('folder')
+    || message.includes('allow access')
   ) {
     return message;
   }

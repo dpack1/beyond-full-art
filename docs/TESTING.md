@@ -120,7 +120,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 9. Reload the extension, reopen the popup, and confirm it says art and notes are saved in that folder. The inventory should list the same character. Reload the sheet and confirm the portrait and journal still open.
 10. Save a new journal note and confirm the note file appears under that character in the folder, and that this browser's extension storage no longer holds the note text.
 11. If the copy is already in the folder and this browser still has its copies, open **Choose folder** again and accept the prompt to remove the browser copies. Declining leaves those copies in place.
-12. With the folder as the library, delete a journal note that contains a photo. Confirm its note JSON is removed, hashed note and image entries appear in `character.json`, tombstone JSON appears under `journal/tombstones/`, and the photo file remains under `journal/images/`.
+12. With the folder as the library, delete a journal note that contains a photo. Confirm its note JSON is removed and a note tombstone appears under `journal/tombstones/`. The photo file remains under `journal/images/`, `journal/photos.json` still names it, and Journal Photos still shows it. No image tombstone is written for that delete.
 13. Reload the sheet and confirm the deleted note stays absent. If another browser still has the note, reconnect it through setup and confirm the conflict screen can leave it deleted or restore it explicitly.
 14. Add a different note in this browser while the prepared folder contains another note. Reopen setup, confirm **Add records and use folder**, then confirm both notes remain in the folder and the browser copies are removed only after the files check.
 15. Place `note-id (1).json` beside a managed note file. Setup should report the Drive conflict copy without parsing or deleting it.
@@ -131,6 +131,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 20. While the folder is the library, click **Check folder** in the popup. Confirm its status shows the check time, newest folder change, saved-character count, and any Drive conflict-copy count, and that Stored content refreshes.
 21. Open a Journal note, make an unsaved edit, then change that note from another computer and let Drive finish. Click the **Sync folder** icon beside **New Note** in the Journal. Confirm the draft remains visible and the newer-folder warning offers Save, Discard draft, and Keep both. Save is refused while stale. Discard draft loads the folder note. Keep both creates an ` (other computer)` note with independent photo IDs, then loads the folder note.
 22. Open D&D Beyond's portrait manager so the extension loads current full art. Replace the folder's full-art file through the other computer, let Drive finish, then try to commit a different portrait from the already-open manager. Confirm the extension refuses the save and keeps the newly selected portrait pending.
+23. On a browser that restores the folder handle as `prompt` (Brave does this), the popup says the folder is selected and access is still needed. Click **Choose folder** and allow access. Confirm the directory picker can stay closed, the popup says art and notes are saved in that folder, and the sheet reads those files. Nothing is copied into this browser.
 
 ## Full-art storage manual checklist
 
@@ -194,7 +195,7 @@ journal by the operating system's theme.
 4. New Note creates one note in the sidebar. There is no second File note control. Reload. The note is still there.
 5. Open an entry, read it, edit it, reload. The markdown survived.
 6. Create `[[Someone new]]` from autocomplete. The placeholder shows Needs details and appears under Mentioned in on the note that named them.
-7. Add a PNG under 3 MB at the cursor. The editor shows `![[img:<id>]]` there, and read mode shows the image inline. Move that line and the image follows. A file over 3 MB is resized and the note text remains. A file over 25 MB shows the size and the limit, and the note text remains.
+7. Add a PNG under 3 MB at the cursor with Image, then Upload photo. The editor shows `![[img:<id>]]` there, and read mode shows the image inline. Move that line and the image follows. A file over 3 MB is resized and the note text remains. A file over 25 MB shows the size and the limit, and the note text remains. Image also offers From photos. Notes is selected when Journal opens, and Photos sits above the search row. Remove from note leaves the photo in Photos. Delete photo names the notes that use it, removes it from those notes, and leaves the notes.
 8. Unsaved edit, switch to Spells, choose to keep editing. The confirm was on screen. The draft is still there.
 9. Turn the popup setting off, keep editing, then close. The Journal tab leaves.
 10. If the live sheet can change character without a reload, a note in progress does not appear on the next character.

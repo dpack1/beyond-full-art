@@ -83,22 +83,43 @@ export function backupFolderLabel(handle: {name?: string} | null): string {
 export async function readDirectoryPermission(
     handle: object,
 ): Promise<BackupFolderPermission> {
-  // The DOM lib used here does not declare queryPermission. Chrome does.
-  const queryPermission = (handle as {
+  return readPermission(handle, 'queryPermission');
+}
+
+export async function ensureDirectoryPermission(
+    handle: object,
+): Promise<BackupFolderPermission> {
+  const current = await readDirectoryPermission(handle);
+  if (current !== 'prompt') {
+    return current;
+  }
+
+  // A handle restored from IndexedDB stays `prompt` until this runs inside
+  // the Choose folder click. The directory picker is a later step.
+  return readPermission(handle, 'requestPermission');
+}
+
+async function readPermission(
+    handle: object,
+    methodName: 'queryPermission' | 'requestPermission',
+): Promise<BackupFolderPermission> {
+  // The DOM lib used here does not declare these File System Access methods.
+  const method = (handle as {
     queryPermission?: (descriptor: {mode: 'readwrite'}) => Promise<PermissionState>;
-  }).queryPermission;
-  if (typeof queryPermission !== 'function') {
-    return 'unknown';
+    requestPermission?: (descriptor: {mode: 'readwrite'}) => Promise<PermissionState>;
+  })[methodName];
+  if (typeof method !== 'function') {
+    return methodName === 'queryPermission' ? 'unknown' : 'prompt';
   }
 
   try {
-    const state = await queryPermission.call(handle, {mode: 'readwrite'});
+    const state = await method.call(handle, {mode: 'readwrite'});
     if (state === 'granted' || state === 'prompt' || state === 'denied') {
       return state;
     }
     return 'unknown';
   } catch {
-    return 'unknown';
+    return methodName === 'queryPermission' ? 'unknown' : 'prompt';
   }
 }
 

@@ -422,7 +422,17 @@ quota on a note write is still reported with the image size.
 ## Backup folder
 
 The popup's **Choose folder** button opens `folder/setup.html` in its own
-window. That page calls `showDirectoryPicker`. An empty folder receives
+window. That page calls `showDirectoryPicker`. Chrome, Edge, and Opera
+expose that picker with no extra setting. Brave hides it until
+`brave://flags/#file-system-access-api` is set to Enabled and Brave is
+relaunched. Another Chromium browser that hides it may list File System
+Access API on its own flags page. A handle loaded from IndexedDB often has
+permission `prompt`. The popup and the setup window call `requestPermission`
+from the Choose folder click before opening the directory picker again.
+The setup window is a popup, so it moves to the bottom-right corner while
+that allow question is open, then returns to where it was.
+Reads stay blocked until that permission is `granted`. The folder's files
+stay in the folder. An empty folder receives
 `beyond-full-art.json` (format `beyond-full-art-folder`, schema version 1)
 and a `characters/` directory. A folder that already has that marker can be
 chosen again. Any other contents are refused.
@@ -447,10 +457,12 @@ toggles, the companion portrait selection, and the directory handle stay.
 From then on the service worker reads and writes full art, crops, notes, and
 photos in the folder. Content scripts reach notes through `library:*`
 messages. Journal photo puts include the character id so the file can be
-placed before the note is saved. If the folder permission is `prompt` or
-`denied`, or the handle is missing, reads and writes fail with a message to
-choose the folder again. They do not create a new empty library in the
-browser.
+placed before the note is saved. A `denied` handle, a missing handle, or a
+`prompt` handle whose `characters/` directory cannot be opened blocks reads
+and writes. The journal shows that allow-access message. A `prompt` handle
+that can still open `characters/` is used, because the service worker often
+reports `prompt` after the extension page has already been allowed. A blocked
+folder does not create a new empty library in the browser.
 
 A note edited after the copy does not match, so cleanup refuses and this
 browser keeps saving locally until setup unions or resolves it. The popup's
@@ -508,6 +520,7 @@ characters/<characterId>/portrait-crop.<png|jpg|webp>
 characters/<characterId>/full-art-kept-<UTC stamp>.<png|jpg|webp>
 characters/<characterId>/portrait-crop-kept-<UTC stamp>.png
 characters/<characterId>/journal/notes/<noteId>.json
+characters/<characterId>/journal/photos.json
 characters/<characterId>/journal/images/<imageId>.<png|jpg|webp>
 characters/<characterId>/journal/tombstones/<noteId>.json
 characters/<characterId>/journal/tombstones/image-<imageId>.json
@@ -521,6 +534,7 @@ bfa.preferences.characterJournalListDetails
 bfa.characterJournal.schemaVersion
 bfa.characterJournal.entries.<characterId>
 bfa.characterJournal.backup.v1.<characterId>
+bfa.journal.library.<characterId>
 ```
 
 `bfa.preferences.characterJournalListDetails` is a small object with boolean
@@ -560,11 +574,16 @@ interface JournalNote {
 `![[img:<id>]]`, with an optional caption and pixel width
 (`![[img:<id>|caption|300]]`). Older bodies may still use
 `![name](bfa-journal-image:<id>)`, and that still renders. `images` store the
-blob key, file name, and type. They do not store bytes. An image id that the
-body no longer mentions is marked `orphanedAt` on save and its blob is deleted
-on a save at least 30 seconds later. Opening the journal appends
-`![[img:<id>]]` for an image that was never mentioned and is not already
-orphaned. Opening a character that still has version 1
+blob key, file name, and type for the photos that note embeds. They do not
+store bytes. The character catalog, `bfa.journal.library.<characterId>` or
+`journal/photos.json`, lists every photo for that character, including photos
+in no note. Opening the journal copies note photos into that catalog and keeps
+their ids. A save that drops an embed removes the photo from that note and
+leaves the file in the catalog. Deleting the note does the same. Delete photo
+removes the catalog id, strips the embed from every note that uses it, and
+deletes the blob. If that blob delete fails, the catalog entry is written
+back. Opening the journal still appends `![[img:<id>]]` for an image that is
+still on the note and was never mentioned. Opening a character that still has version 1
 entries writes `bfa.characterJournal.backup.v1.<characterId>` first, and that
 backup is never overwritten. The version 1 shape is:
 

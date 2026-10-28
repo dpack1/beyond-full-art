@@ -2,6 +2,7 @@ import setupStyles from './setup.css?raw';
 import {
   BACKUP_FOLDER_PICKER_ID,
   connectBackupFolder,
+  ensureDirectoryPermission,
   readDirectoryPermission,
   type BackupFolderPermission,
   type ConnectBackupFolderResult,
@@ -41,6 +42,12 @@ import {isFolderLibrary} from '../platform/chrome/library-mode';
 
 const STYLE_ATTRIBUTE_NAME = 'data-bfa-folder-setup-styles';
 
+export const FOLDER_PICKER_UNAVAILABLE_MESSAGE =
+  'The folder picker did not open. Chrome, Edge, and Opera allow it with no extra setting. Brave blocks it until you open brave://flags/#file-system-access-api, set File System Access API to Enabled, and relaunch Brave. In another Chromium browser, open its flags page, search for File System Access API, set it to Enabled if it is listed, and relaunch. Then choose the folder again. Nothing was changed.';
+
+export const FOLDER_PERMISSION_NEEDED_MESSAGE =
+  'This browser has not allowed the folder yet. Choose it again and allow access when asked. Nothing was changed.';
+
 interface StoredFolderAccess {
   directory: FileSystemDirectoryHandle;
   permission: BackupFolderPermission;
@@ -79,6 +86,9 @@ export async function initializeFolderSetup(
   }
 
   const actions = resolveActions(options);
+  if (options.pickDirectory === undefined && !canShowDirectoryPicker(doc.defaultView)) {
+    status.textContent = FOLDER_PICKER_UNAVAILABLE_MESSAGE;
+  }
   let generation = 0;
   close.addEventListener('click', () => {
     window.close();
@@ -133,6 +143,23 @@ async function chooseFolder(
   copy.hidden = true;
   status.classList.remove('bfa-folder-setup__status--error');
   try {
+    const restored = await restoredPromptFolder(actions);
+    if (restored !== null) {
+      if (!current()) {
+        return;
+      }
+      await presentFolder(
+          current,
+          choose,
+          copy,
+          status,
+          restored,
+          restored.name,
+          'reconnected',
+          actions,
+      );
+      return;
+    }
     const directory = await actions.pickDirectory();
     if (await actions.isSavingInFolder()) {
       const stored = await actions.readStoredFolder();
@@ -170,13 +197,28 @@ async function chooseFolder(
       return;
     }
     status.classList.add('bfa-folder-setup__status--error');
-    status.textContent = error instanceof DOMException && error.name === 'AbortError'
-      ? 'No folder was chosen. Nothing was changed.'
-      : 'The folder could not be set up. Nothing on this browser was changed.';
+    status.textContent = folderChoiceFailureMessage(error);
   } finally {
     if (current()) {
       choose.disabled = false;
     }
+  }
+}
+
+async function restoredPromptFolder(
+    actions: FolderSetupActions,
+): Promise<FileSystemDirectoryHandle | null> {
+  try {
+    const stored = await actions.readStoredFolder();
+    if (stored === null || stored.permission !== 'prompt') {
+      return null;
+    }
+    const permission = await allowDirectory(stored.directory);
+    return permission === 'granted' || permission === 'unknown'
+      ? stored.directory
+      : null;
+  } catch {
+    return null;
   }
 }
 
@@ -212,8 +254,12 @@ async function offerStoredFolder(
   if (!current() || stored === null) {
     return;
   }
-  if (stored.permission === 'prompt' || stored.permission === 'denied') {
-    status.textContent = `Choose “${stored.directory.name}” again before continuing. Nothing was changed.`;
+  if (stored.permission === 'prompt') {
+    status.textContent = `“${stored.directory.name}” is selected. Choose it and allow access when asked. Nothing was changed.`;
+    return;
+  }
+  if (stored.permission === 'denied') {
+    status.textContent = `This browser blocked “${stored.directory.name}”. Choose it again and allow access. Nothing was changed.`;
     return;
   }
   await presentFolder(
@@ -708,21 +754,180 @@ async function readStoredFolderAccess(): Promise<StoredFolderAccess | null> {
   };
 }
 
-async function pickBackupDirectory(): Promise<FileSystemDirectoryHandle> {
-  const showDirectoryPicker = (window as Window & {
+function canShowDirectoryPicker(win: Window | null): boolean {
+  return typeof directoryPicker(win) === 'function';
+}
+
+function directoryPicker(win: Window | null): ((options: {
+  id?: string;
+  mode?: 'readwrite';
+}) => Promise<FileSystemDirectoryHandle>) | undefined {
+  if (win === null) {
+    return undefined;
+  }
+  return (win as Window & {
     showDirectoryPicker?: (options: {
       id?: string;
       mode?: 'readwrite';
     }) => Promise<FileSystemDirectoryHandle>;
   }).showDirectoryPicker;
+}
+
+function folderChoiceFailureMessage(error: unknown): string {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return 'No folder was chosen. Nothing was changed.';
+  }
+  if (error instanceof Error && (
+    error.message === FOLDER_PICKER_UNAVAILABLE_MESSAGE
+    || error.message === FOLDER_PERMISSION_NEEDED_MESSAGE
+  )) {
+    return error.message;
+  }
+  if (error instanceof DOMException && (
+    error.name === 'SecurityError' || error.name === 'NotAllowedError'
+  )) {
+    return FOLDER_PICKER_UNAVAILABLE_MESSAGE;
+  }
+  return 'The folder could not be set up. Nothing on this browser was changed.';
+}
+
+async function pickBackupDirectory(): Promise<FileSystemDirectoryHandle> {
+  const showDirectoryPicker = directoryPicker(window);
   if (typeof showDirectoryPicker !== 'function') {
-    throw new Error('This version of Chrome cannot choose a folder.');
+    throw new Error(FOLDER_PICKER_UNAVAILABLE_MESSAGE);
   }
 
-  return showDirectoryPicker.call(window, {
+  const directory = await showDirectoryPicker.call(window, {
     id: BACKUP_FOLDER_PICKER_ID,
     mode: 'readwrite',
   });
+  const permission = await allowDirectory(directory);
+  if (permission === 'denied' || permission === 'prompt') {
+    throw new Error(FOLDER_PERMISSION_NEEDED_MESSAGE);
+  }
+  return directory;
+}
+
+async function allowDirectory(handle: object): Promise<BackupFolderPermission> {
+  const current = await readDirectoryPermission(handle);
+  if (current !== 'prompt') {
+    return current;
+  }
+
+  // The setup window is a popup, so it stays above Brave's allow question.
+  // Park it in the corner until that question is answered.
+  announcePermissionStepAside();
+  const place = await stepAsideForPermissionPrompt();
+  try {
+    return await ensureDirectoryPermission(handle);
+  } finally {
+    await restoreSetupWindow(place);
+  }
+}
+
+function announcePermissionStepAside(): void {
+  const status = document.querySelector('#folder-setup-status');
+  if (status === null) {
+    return;
+  }
+  status.classList.remove('bfa-folder-setup__status--error');
+  status.textContent = 'Allow access in the browser question. This window moves aside until you answer.';
+}
+
+interface SetupWindowPlace {
+  height?: number;
+  id: number;
+  left?: number;
+  top?: number;
+  width?: number;
+}
+
+function chromeWindowApi(): {
+  getCurrent: () => Promise<chrome.windows.Window>;
+  update: (windowId: number, info: chrome.windows.UpdateInfo) => Promise<chrome.windows.Window | undefined>;
+} | null {
+  if (
+    typeof chrome === 'undefined'
+    || chrome.windows?.getCurrent === undefined
+    || chrome.windows.update === undefined
+  ) {
+    return null;
+  }
+  return {
+    getCurrent: () => chrome.windows.getCurrent(),
+    update: (windowId, info) => chrome.windows.update(windowId, info),
+  };
+}
+
+async function stepAsideForPermissionPrompt(): Promise<SetupWindowPlace | null> {
+  const windowsApi = chromeWindowApi();
+  if (windowsApi === null) {
+    return null;
+  }
+  try {
+    const current = await windowsApi.getCurrent();
+    if (current.id === undefined) {
+      return null;
+    }
+    const place: SetupWindowPlace = {
+      id: current.id,
+    };
+    if (current.left !== undefined) {
+      place.left = current.left;
+    }
+    if (current.top !== undefined) {
+      place.top = current.top;
+    }
+    if (current.width !== undefined) {
+      place.width = current.width;
+    }
+    if (current.height !== undefined) {
+      place.height = current.height;
+    }
+    await windowsApi.update(current.id, parkedWindowBounds(place));
+    return place;
+  } catch {
+    return null;
+  }
+}
+
+function parkedWindowBounds(place: SetupWindowPlace): chrome.windows.UpdateInfo {
+  if (place.width === undefined || place.height === undefined) {
+    return {focused: false, state: 'minimized'};
+  }
+  return {
+    focused: false,
+    left: Math.max(0, Math.round(screen.availWidth - place.width - 12)),
+    top: Math.max(0, Math.round(screen.availHeight - place.height - 12)),
+  };
+}
+
+async function restoreSetupWindow(place: SetupWindowPlace | null): Promise<void> {
+  if (place === null) {
+    return;
+  }
+  const windowsApi = chromeWindowApi();
+  if (windowsApi === null) {
+    return;
+  }
+  const info: chrome.windows.UpdateInfo = {focused: true, state: 'normal'};
+  if (place.left !== undefined) {
+    info.left = place.left;
+  }
+  if (place.top !== undefined) {
+    info.top = place.top;
+  }
+  if (place.width !== undefined) {
+    info.width = place.width;
+  }
+  if (place.height !== undefined) {
+    info.height = place.height;
+  }
+  try {
+    await windowsApi.update(place.id, info);
+  } catch {
+    // The setup window can stay where the user left it.
+  }
 }
 
 function ensureStyles(doc: Document): void {

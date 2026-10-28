@@ -37,7 +37,7 @@ test('opens the live-shaped journal on the first click in dark and light themes'
   await expect(journal).toBeVisible();
   await expect(page.getByText('No notes', {exact: true})).toBeVisible();
   await expect(journalItem).toHaveClass(/ddbc-tab-list__nav-item--is-active/);
-  await expect(page.locator('.ddbc-tab-list__nav-item--is-active')).toHaveCount(1);
+  await expect(page.locator('.ddbc-tab-list__nav-item--is-active:not(.bfa-journal-photo-switch__tab)')).toHaveCount(1);
   await expect(page.locator('.ddbc-tab-list__content > .bfa-character-journal-section'))
       .toBeVisible();
   await expect(page.locator('#sheet-nav')).not.toHaveAttribute('data-sheet-pointerdowns');

@@ -93,6 +93,8 @@ The journal queries `ddbc-tab-list__nav-item` and the active class when it sampl
 
 In light mode the inactive main-tab labels read as gray (about `#75838b`) and the active label is near-black (about `#13191d`). The secondary row sits on a light gray track (about `#eceeef`). **from-screenshot**
 
+Inventory's My Inventory / Party Inventory switch is a different control from that pill row. It renders when the character is in a campaign. Verified 2026-10-28 from character-app `main.4ccf1602.js` and `main.fd608b62.css` on public character 4741434. The row is a `div` with `styles_tabList__fix2X styles_fullwidth__tseG2 styles_themed__Plffn styles_tabList__eedTo`, then a `menu.styles_tabs__aTttL` of `li` > `button.styles_tabButton__wvSLf`. Each button is `role="radio"` with `aria-checked`. The row sets `--tab-count` and `--tab-active-position`. The selected half is the character theme color, with a bar under it. `styles_tabList__eedTo` stretches that block to the section height; the journal keeps the class and sets the block's height back to auto. These `styles_*` names are build output and change with the bundle. **from-code**
+
 ## Section and box markup
 
 The selector map asks the live check for `ct-primary-box` on the boxed regions (ability scores, saving throws, skills, the tabbed content box, and the blocks like them). The class is not readable from the screenshots. **from-code**

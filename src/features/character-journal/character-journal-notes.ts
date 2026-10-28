@@ -1,6 +1,7 @@
 import type {CharacterId} from '../character-art/art-types';
 import {restoreFocus} from '../fullscreen-viewer/focus';
 import {journalImageEmbed} from './character-journal-embeds';
+import {createJournalPhotoPicker} from './character-journal-photos';
 import {journalSaveErrorMessage} from './character-journal-errors';
 import {mentionCounts, resolveWikiTitle, wikiLinkNames} from './character-journal-links';
 import type {JournalListView} from './character-journal-list';
@@ -10,7 +11,7 @@ import {createJournalPhotoViewer} from './character-journal-photo-viewer';
 import {journalTypeLabel} from './character-journal-query';
 import {applyCopiedControlClasses, paintJournalSurface} from './character-journal-sheet-style';
 import type {CharacterJournalService} from './character-journal-service';
-import type {JournalEntryType, JournalNote} from './character-journal-types';
+import type {JournalEntryType, JournalImage, JournalNote} from './character-journal-types';
 import {normalizeJournalEntryTitle, validateJournalImageFile} from './character-journal-types';
 import type {WikiAutocomplete} from './character-journal-autocomplete';
 
@@ -53,7 +54,9 @@ export interface JournalNotes {
   dismissFromOutside(): void;
   finishPendingHide(): void;
   isDirty(): boolean;
+  leaveNote(then: () => void): void;
   openNew(type: JournalEntryType, returnFocus: HTMLElement): void;
+  release(): void;
   openNote(note: JournalNote, mode: 'edit' | 'read', returnFocus: HTMLElement | null, history: string[]): void;
   panel: JournalPanelView;
   renderPanel(): void;
@@ -66,9 +69,11 @@ export interface JournalNotesDeps {
   flags: JournalNoteFlags;
   hide: () => void;
   hydrateImages: (notes: readonly JournalNote[]) => Promise<void>;
+  libraryPhotos: () => readonly JournalImage[];
   list: JournalListView;
   photoUrls: Map<string, string>;
   photoViewer: ReturnType<typeof createJournalPhotoViewer>;
+  refreshPhotos: () => Promise<void>;
   reload: () => Promise<void>;
   renderList: () => void;
   service: CharacterJournalService;
@@ -82,9 +87,11 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     flags,
     hide,
     hydrateImages,
+    libraryPhotos,
     list,
     photoUrls,
     photoViewer,
+    refreshPhotos,
     reload,
     renderList,
     service,
@@ -92,6 +99,8 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
   } = deps;
   let saveTimer = 0;
   let outsideDiscardPending = false;
+  let afterClose: (() => void) | null = null;
+  const photoPicker = createJournalPhotoPicker(doc);
 
   const panel = createJournalPanel(doc, {
     onBack: () => {
@@ -151,6 +160,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
 
       if (!accepted) {
         outsideDiscardPending = false;
+        afterClose = null;
         const cancel = flags.hideCancel;
         flags.hideCancel = null;
         cancel?.();
@@ -172,7 +182,10 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       }
 
       if (kind === 'discard') {
-        closePanel({restoreFocus: !outsideDiscardPending});
+        const next = afterClose;
+        afterClose = null;
+        closePanel({restoreFocus: !outsideDiscardPending && next === null});
+        next?.();
         return;
       }
 
@@ -209,6 +222,19 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     },
     onImages: (files, position) => {
       void addImages(files, position);
+    },
+    onLibraryPick: (position) => {
+      photoPicker.open({
+        onPick: (imageId) => {
+          void insertLibraryPhoto(imageId, position);
+        },
+        photos: libraryPhotos().map((image) => ({
+          fileName: image.fileName,
+          id: image.id,
+          url: photoUrls.get(image.blobKey) ?? null,
+        })),
+        returnFocus: panel.textarea,
+      });
     },
     onInput: () => {
       if (state.panel !== null) {
@@ -379,6 +405,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     state.panel = null;
     state.fileError = null;
     panel.root.hidden = true;
+    photoPicker.close();
     list.root.inert = false;
     list.setAlert(null);
     outsideDiscardPending = false;
@@ -722,6 +749,41 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     state.panel.imageError = lastError;
     renderPanel();
     renderList();
+    await refreshPhotos();
+  }
+
+  async function insertLibraryPhoto(
+      imageId: string,
+      position: {end: number; start: number},
+  ): Promise<void> {
+    if (state.panel === null) {
+      return;
+    }
+    try {
+      const saved = await service.insertPhoto(draftNote(), imageId, position);
+      state.panel.note = saved;
+      state.panel.loadedUpdatedAt = saved.updatedAt;
+      state.panel.imageError = null;
+      state.notes = upsert(state.notes, saved);
+      renderPanel();
+      renderList();
+      if (panel.textarea !== null) {
+        const known = libraryPhotos().find((image) => image.id === imageId);
+        const embed = journalImageEmbed(imageId, known?.fileName);
+        const at = saved.body.indexOf(embed, position.start);
+        const cursor = at === -1 ? saved.body.length : at + embed.length;
+        panel.replaceEditor(saved.body, {end: cursor, start: cursor});
+      }
+      await refreshPhotos();
+    } catch (error) {
+      if (state.panel === null) {
+        return;
+      }
+      state.panel.imageError = error instanceof Error
+        ? error.message
+        : 'That photo could not be added.';
+      renderPanel();
+    }
   }
 
   async function removeImage(imageId: string): Promise<void> {
@@ -735,6 +797,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     state.notes = upsert(state.notes, saved);
     renderPanel();
     renderList();
+    await refreshPhotos();
   }
 
   async function reloadOpenNote(): Promise<void> {
@@ -830,14 +893,29 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     const editable = state.panel.mode === 'edit';
     photoViewer.open({
       allowRemove: editable,
+      ...(editable
+        ? {confirmText: 'Remove this photo from the note? It stays in Photos.'}
+        : {}),
       fallbackFocus: panel.root,
       imageUrl: url,
       label: image.fileName,
       onRemove: async () => {
         await removeImage(imageId);
       },
+      removeLabel: 'Remove from note',
       returnFocus,
     });
+  }
+
+  function leaveNote(then: () => void): void {
+    if (state.panel === null || !isDirty()) {
+      closePanel();
+      then();
+      return;
+    }
+    afterClose = then;
+    state.panel.confirm = 'discard';
+    renderPanel();
   }
 
   function filingCharacterId(): CharacterId | null {
@@ -862,9 +940,13 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     dismissFromOutside,
     finishPendingHide,
     isDirty,
+    leaveNote,
     openNew,
     openNote,
     panel,
+    release() {
+      photoPicker.destroy();
+    },
     renderPanel,
     savePanel,
   };

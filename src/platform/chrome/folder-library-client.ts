@@ -1,10 +1,18 @@
 const LIBRARY_MESSAGE_SOURCE = 'beyond-full-art-library';
 
 interface LibrarySuccess {
+  present?: boolean;
   records: unknown[];
   source: typeof LIBRARY_MESSAGE_SOURCE;
   type: 'library:notes:success';
 }
+
+type LibraryMessageType =
+  | 'library:list-notes'
+  | 'library:read-notes'
+  | 'library:read-photos'
+  | 'library:write-notes'
+  | 'library:write-photos';
 
 interface LibraryError {
   message: string;
@@ -46,25 +54,50 @@ export async function writeFolderJournalRecords(
   });
 }
 
+export async function readFolderPhotoCatalog(
+    characterId: string,
+): Promise<unknown[] | null> {
+  const response = await sendLibraryMessage({
+    characterId,
+    source: LIBRARY_MESSAGE_SOURCE,
+    type: 'library:read-photos',
+  });
+  return response.present === false ? null : response.records;
+}
+
+export async function writeFolderPhotoCatalog(
+    characterId: string,
+    images: readonly unknown[],
+): Promise<void> {
+  await sendLibraryMessage({
+    characterId,
+    records: images,
+    source: LIBRARY_MESSAGE_SOURCE,
+    type: 'library:write-photos',
+  });
+}
+
 export function isLibraryRequest(value: unknown): value is {
   characterId?: string;
   records?: unknown[];
   source: typeof LIBRARY_MESSAGE_SOURCE;
-  type: 'library:list-notes' | 'library:read-notes' | 'library:write-notes';
+  type: LibraryMessageType;
 } {
   if (!isRecord(value) || value.source !== LIBRARY_MESSAGE_SOURCE) {
     return false;
   }
   return value.type === 'library:list-notes'
     || value.type === 'library:read-notes'
-    || value.type === 'library:write-notes';
+    || value.type === 'library:read-photos'
+    || value.type === 'library:write-notes'
+    || value.type === 'library:write-photos';
 }
 
 async function sendLibraryMessage(message: {
   characterId?: string;
   records?: readonly unknown[];
   source: typeof LIBRARY_MESSAGE_SOURCE;
-  type: 'library:list-notes' | 'library:read-notes' | 'library:write-notes';
+  type: LibraryMessageType;
 }): Promise<LibrarySuccess> {
   if (typeof chrome === 'undefined' || chrome.runtime?.sendMessage === undefined) {
     throw new Error('The folder library could not be reached.');

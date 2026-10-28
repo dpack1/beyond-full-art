@@ -367,9 +367,9 @@ place, at most the panel width, keeping the aspect ratio.
 Older notes may still contain `![name](bfa-journal-image:<id>)`. That syntax
 still renders. A photo record that is not mentioned by either syntax gets
 `![[img:<id>]]` appended when the journal opens, so a picture that used to sit
-under the text is not dropped. Deleting the embed marks the blob orphaned on
-the next save and deletes it on a save at least 30 seconds later, which leaves
-room to undo. Deleting the note deletes its blobs immediately.
+under the text is not dropped. ADR-029 replaces the later rule that deleted
+an unlinked photo after 30 seconds. Taking a photo out of a note, or deleting
+the note, leaves the file in the character's Photos library.
 
 ## ADR-025: Journal export is one portable ZIP
 
@@ -465,9 +465,12 @@ saving on this browser. Declining the cleanup prompt does the same.
 An empty folder with nothing saved in the browser can be confirmed as the
 place new art and notes are saved. An existing folder and an empty browser
 can be confirmed the same way, without copying files back into the browser.
-Later saves and reads go through the service worker to that folder. If Chrome
-has not granted the folder, the sheet asks the player to choose it again and
-does not fall back to an empty browser copy.
+Later saves and reads go through the service worker to that folder. If this
+browser has not granted the folder, the sheet asks the player to choose it
+again and allow access, and does not fall back to an empty browser copy. A
+handle loaded from IndexedDB is often still `prompt`. Choose folder calls
+`requestPermission` from that click before opening the directory picker
+again. The folder's files stay in the folder.
 
 Forgetting the folder removes only the handle on this browser. Files in the
 folder stay there. The library mode stays `folder`, so the sheet keeps asking
@@ -536,6 +539,41 @@ actionable Needs details badge by default. The popup offers independent global
 preferences for the updated date, plain-text preview, and image thumbnail.
 All three optional details default to hidden. Changing them re-renders an open
 Journal without changing a note or requiring a page reload.
+
+## ADR-029: A journal photo belongs to the character
+
+Status: Accepted
+
+A photo belongs to the open character, not to one note. The same id can be in
+many notes or in none. The note still stores the image record it embeds, and
+the body still uses `![[img:<id>]]`. The character catalog is the list of
+photos: `{schemaVersion: 1, images: JournalImage[]}` at
+`bfa.journal.library.<characterId>` while the library is this browser, and
+`characters/<characterId>/journal/photos.json` when the folder is the library.
+The catalog stores metadata only. Bytes stay in the existing image store.
+
+Opening the journal copies photos that are still on notes into the catalog and
+keeps their ids. Saving a note that no longer mentions a photo removes it from
+that note and leaves it in the catalog. Deleting a note does the same. Delete
+photo removes the id from the catalog, strips it from every note that uses it,
+and deletes the blob. If the blob delete fails, the catalog entry is put back.
+In folder mode the existing image tombstone hides the file. Opening the
+journal does not put a tombstoned id back.
+
+The folder file is read together with this browser's catalog. The folder copy
+wins when both have the same id. An id that exists only on this browser is
+kept, so a failed folder write does not hide the photo here. Another computer
+can still show a photo its own catalog remembers after this computer deleted
+it from the folder file, until that computer opens the journal and rewrites
+its catalog. Export of unused photos, and conflict choices for `photos.json`,
+are not part of this decision.
+
+Journal opens on Notes. Photos is the other view. The switch is the Inventory
+full-width tab row (My Inventory / Party Inventory): two equal labels, the
+sheet's muted color until selected, and the character theme color on the
+selected label and the bar under it. It copies that live row when it is on
+the page, and otherwise uses the tab-list classes verified 2026-10-28. It
+sits above Search, Filter, Sync folder, and New Note or Add photo.
 
 Search always indexes the full title, markdown body, and photo filenames. A
 hidden preview or thumbnail is a presentation choice, not a search filter.

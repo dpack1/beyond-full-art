@@ -3,7 +3,18 @@ import {fitJournalToVisiblePane} from './character-journal-pane';
 import {createWikiAutocomplete} from './character-journal-autocomplete';
 import {ensureJournalStyles, removeJournalStyles} from './character-journal-elements';
 import {journalSaveErrorMessage} from './character-journal-errors';
+import {
+  libraryEmptyMessage,
+  notesUsingPhoto,
+  photoDeleteQuestion,
+  visibleLibraryPhotos,
+  type JournalPhotoUse,
+} from './character-journal-library';
 import {createJournalList, type JournalRowModel} from './character-journal-list';
+import {
+  createJournalPhotoGrid,
+  createJournalPhotoSwitch,
+} from './character-journal-photos';
 import {previewJournalText} from './character-journal-markdown';
 import {installJournalNotes, type JournalNotes, type OpenPanel} from './character-journal-notes';
 import {createJournalPhotoViewer} from './character-journal-photo-viewer';
@@ -15,7 +26,7 @@ import {
 import {applyCopiedControlClasses, paintJournalSurface} from './character-journal-sheet-style';
 import type {CharacterJournalService} from './character-journal-service';
 import {applySheetTheme, observeSheetTheme} from './character-journal-theme';
-import type {JournalEntryType, JournalNote} from './character-journal-types';
+import type {JournalEntryType, JournalImage, JournalNote} from './character-journal-types';
 import {
   restoreNativeTabAfterJournal,
   setJournalTabSelected,
@@ -66,7 +77,11 @@ export function createCharacterJournalSection(
     listPreferences: {...DEFAULT_JOURNAL_LIST_PREFERENCES},
     notes: [] as JournalNote[],
     panel: null as OpenPanel | null,
+    photoFilter: 'all' as JournalPhotoUse,
+    photoQuery: '',
+    photos: [] as JournalImage[],
     query: '',
+    view: 'notes' as 'notes' | 'photos',
     routeId: null as CharacterId | null,
     stopTheme: null as (() => void) | null,
     tab: null as HTMLElement | null,
@@ -80,6 +95,10 @@ export function createCharacterJournalSection(
       renderList();
     },
     onManage: () => {
+      if (state.view === 'photos') {
+        addPhotoInput.click();
+        return;
+      }
       notes.openNew(
           'unset',
           list.root.querySelector<HTMLElement>('.bfa-journal-manage') ?? list.root,
@@ -91,7 +110,16 @@ export function createCharacterJournalSection(
         notes.openNote(note, 'read', returnFocus, []);
       }
     },
+    onPhotoFilter: (use) => {
+      state.photoFilter = use;
+      renderPhotos();
+    },
     onSearch: (query) => {
+      if (state.view === 'photos') {
+        state.photoQuery = query;
+        renderPhotos();
+        return;
+      }
       state.query = query;
       renderList();
     },
@@ -105,14 +133,35 @@ export function createCharacterJournalSection(
     flags,
     hide,
     hydrateImages,
+    libraryPhotos: () => state.photos,
     list,
     photoUrls,
     photoViewer,
+    refreshPhotos,
     reload,
     renderList,
     service,
     state,
   });
+  const photoSwitch = createJournalPhotoSwitch(doc, (view) => {
+    selectView(view);
+  });
+  const photoGrid = createJournalPhotoGrid(doc);
+  const addPhotoInput = doc.createElement('input');
+  addPhotoInput.className = 'bfa-journal-library-file-input';
+  addPhotoInput.type = 'file';
+  addPhotoInput.accept = 'image/png,image/jpeg,image/webp';
+  addPhotoInput.hidden = true;
+  addPhotoInput.tabIndex = -1;
+  addPhotoInput.addEventListener('change', () => {
+    const file = addPhotoInput.files?.[0];
+    addPhotoInput.value = '';
+    if (file !== undefined) {
+      void addLibraryPhoto(file);
+    }
+  });
+  list.root.prepend(photoSwitch.root);
+  list.root.append(photoGrid.root, addPhotoInput);
   doc.body.append(notes.panel.root);
   doc.addEventListener('click', keepNotePanelDocked, true);
   doc.addEventListener('click', keepNotePanelDocked);
@@ -135,6 +184,16 @@ export function createCharacterJournalSection(
     const generation = ++showGeneration;
     state.characterId = options.characterId;
     state.routeId = options.characterId;
+    state.view = 'notes';
+    state.photoQuery = '';
+    state.photoFilter = 'all';
+    photoSwitch.adoptLiveNav();
+    photoSwitch.setSelected('notes');
+    list.setMode('notes');
+    list.setPhotoUse('all');
+    list.setManageLabel('New Note');
+    list.setSearchValue('');
+    photoGrid.root.hidden = true;
     state.contentHost = options.contentHost;
     state.tab = options.tab;
     mount(options.contentHost);
@@ -153,8 +212,10 @@ export function createCharacterJournalSection(
       }
 
       state.notes = opened.notes;
+      state.photos = opened.photos;
       state.migration = opened.migration === 'failed' ? 'failed' : 'current';
       await hydrateImages(opened.notes);
+      await hydratePhotos(opened.photos);
     } catch (error) {
       if (generation !== showGeneration) {
         return;
@@ -256,6 +317,7 @@ export function createCharacterJournalSection(
     revokePhotoUrls();
     list.disconnect();
     list.root.remove();
+    notes.release();
     notes.panel.root.remove();
     removeJournalStyles(doc);
   }
@@ -343,8 +405,10 @@ export function createCharacterJournalSection(
     }
 
     state.notes = opened.notes;
+    state.photos = opened.photos;
     state.migration = opened.migration === 'failed' ? 'failed' : 'current';
     await hydrateImages(opened.notes);
+    await hydratePhotos(opened.photos);
     if (!reloadIsCurrent(request, generation, characterId)) {
       return;
     }
@@ -385,6 +449,123 @@ export function createCharacterJournalSection(
       && request === reloadSerial;
   }
 
+  function selectView(view: 'notes' | 'photos'): void {
+    const apply = (): void => {
+      state.view = view;
+      photoSwitch.setSelected(view);
+      list.setMode(view);
+      list.setManageLabel(view === 'photos' ? 'Add photo' : 'New Note');
+      list.setSearchValue(view === 'photos' ? state.photoQuery : state.query);
+      photoGrid.root.hidden = view !== 'photos';
+      if (view === 'photos') {
+        renderPhotos();
+      } else {
+        renderList();
+      }
+    };
+    if (view === 'photos' && state.panel !== null) {
+      notes.leaveNote(apply);
+      return;
+    }
+    apply();
+  }
+
+  function renderPhotos(): void {
+    if (state.view !== 'photos') {
+      return;
+    }
+    const visible = visibleLibraryPhotos(
+        state.photos,
+        state.notes,
+        state.photoQuery,
+        state.photoFilter,
+    );
+    photoGrid.setPhotos(visible.map((photo) => ({
+      fileName: photo.fileName,
+      id: photo.id,
+      url: photoUrls.get(photo.blobKey) ?? null,
+    })), (imageId, returnFocus) => {
+      openLibraryPhoto(imageId, returnFocus);
+    });
+    list.setMessage(
+        libraryEmptyMessage(
+            state.photos.length,
+            visible.length,
+            state.photoQuery,
+            state.photoFilter,
+        ),
+        'muted',
+    );
+    list.setAlert(state.fileError);
+  }
+
+  async function refreshPhotos(): Promise<void> {
+    if (state.characterId === null) {
+      return;
+    }
+    state.photos = await service.listPhotos(state.characterId);
+    await hydratePhotos(state.photos);
+    renderPhotos();
+  }
+
+  async function addLibraryPhoto(file: File): Promise<void> {
+    if (state.characterId === null) {
+      return;
+    }
+    state.fileError = null;
+    try {
+      await service.addPhoto(state.characterId, file);
+      await refreshPhotos();
+    } catch (error) {
+      state.fileError = journalSaveErrorMessage(error);
+      list.setAlert(state.fileError);
+    }
+  }
+
+  function openLibraryPhoto(imageId: string, returnFocus: HTMLElement): void {
+    const image = state.photos.find((candidate) => candidate.id === imageId);
+    const url = image === undefined ? null : photoUrls.get(image.blobKey) ?? null;
+    if (image === undefined || url === null) {
+      return;
+    }
+    const used = notesUsingPhoto(state.notes, image.id);
+    photoViewer.open({
+      confirmText: photoDeleteQuestion(used.map((note) => note.title)),
+      fallbackFocus: list.root,
+      imageUrl: url,
+      label: image.fileName,
+      notes: used.map((note) => ({id: note.id, title: note.title})),
+      onOpenNote: (noteId) => {
+        photoViewer.close();
+        const note = state.notes.find((candidate) => candidate.id === noteId);
+        if (note !== undefined) {
+          notes.openNote(note, 'read', returnFocus, []);
+        }
+      },
+      onRemove: async () => {
+        if (state.characterId === null) {
+          return;
+        }
+        const result = await service.deletePhoto(state.characterId, image.id);
+        state.notes = result.notes;
+        state.photos = result.photos;
+        if (state.panel !== null) {
+          const open = result.notes.find((note) => note.id === state.panel?.note.id);
+          if (open !== undefined) {
+            state.panel.note = open;
+            state.panel.loadedUpdatedAt = open.updatedAt;
+            notes.renderPanel();
+          }
+        }
+        renderPhotos();
+        renderList();
+      },
+      removeLabel: 'Delete photo',
+      returnFocus,
+      unusedText: 'Not in a note yet.',
+    });
+  }
+
   function renderList(): void {
     const loading = state.migration === 'loading';
     const failed = state.migration === 'failed';
@@ -407,6 +588,10 @@ export function createCharacterJournalSection(
     const notice = state.filters.length === 0
       && state.query.trim() === ''
       && state.notes.some((note) => note.type === 'unset' && !note.needsDetails);
+    if (state.view === 'photos') {
+      renderPhotos();
+      return;
+    }
     if (notice) {
       list.setMessage('Earlier notes are uncategorized.', 'notice');
     } else if (visible.length === 0) {
@@ -435,20 +620,30 @@ export function createCharacterJournalSection(
     };
   }
 
+  async function hydratePhotos(photos: readonly JournalImage[]): Promise<void> {
+    await Promise.all(photos.map(async (image) => {
+      await rememberPhotoUrl(image);
+    }));
+  }
+
   async function hydrateImages(notes: readonly JournalNote[]): Promise<void> {
     await Promise.all(notes.flatMap((note) => note.images.map(async (image) => {
-      if (photoUrls.has(image.blobKey)) {
-        return;
-      }
-
-      const stored = await service.getImage(image.blobKey);
-      if (stored === null) {
-        return;
-      }
-
-      const url = URL.createObjectURL(new Blob([stored.byteBuffer], {type: stored.mimeType}));
-      photoUrls.set(image.blobKey, url);
+      await rememberPhotoUrl(image);
     })));
+  }
+
+  async function rememberPhotoUrl(image: JournalImage): Promise<void> {
+    if (photoUrls.has(image.blobKey)) {
+      return;
+    }
+
+    const stored = await service.getImage(image.blobKey);
+    if (stored === null) {
+      return;
+    }
+
+    const url = URL.createObjectURL(new Blob([stored.byteBuffer], {type: stored.mimeType}));
+    photoUrls.set(image.blobKey, url);
   }
 
   function thumbUrl(note: JournalNote): string | null {
@@ -484,7 +679,10 @@ export function createCharacterJournalSection(
       || path.includes(notes.panel.root)
       || path.includes(list.root)
       || path.some((node) =>
-        node instanceof Element && node.classList.contains('bfa-journal-photo-viewer'))
+        node instanceof Element && (
+          node.classList.contains('bfa-journal-photo-viewer')
+          || node.classList.contains('bfa-journal-photo-picker')
+        ))
     ) {
       return;
     }

@@ -1,13 +1,14 @@
 // @vitest-environment node
 
 import {IDBFactory} from 'fake-indexeddb';
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 
 import {
   classifyBackupFolderEntries,
   connectBackupFolder,
   forgetBackupFolder,
   parseBackupFolderMarker,
+  ensureDirectoryPermission,
   readBackupFolderConnection,
   readDirectoryPermission,
 } from '../../src/platform/chrome/backup-folder';
@@ -139,6 +140,30 @@ describe('backup folder selection', () => {
         throw new Error('unavailable');
       },
     })).resolves.toBe('unknown');
+  });
+
+  it('asks for permission when the saved folder is still prompting', async () => {
+    const requestPermission = vi.fn().mockResolvedValue('granted');
+
+    await expect(ensureDirectoryPermission({
+      queryPermission: async () => 'prompt',
+      requestPermission,
+    })).resolves.toBe('granted');
+    expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
+  });
+
+  it('leaves a granted or denied folder alone', async () => {
+    const requestPermission = vi.fn();
+
+    await expect(ensureDirectoryPermission({
+      queryPermission: async () => 'granted',
+      requestPermission,
+    })).resolves.toBe('granted');
+    await expect(ensureDirectoryPermission({
+      queryPermission: async () => 'denied',
+      requestPermission,
+    })).resolves.toBe('denied');
+    expect(requestPermission).not.toHaveBeenCalled();
   });
 });
 

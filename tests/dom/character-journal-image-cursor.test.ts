@@ -107,6 +107,7 @@ function handlers(
       }
     },
     onInput: () => undefined,
+    onLibraryPick: () => undefined,
     onKeepBoth: () => undefined,
     onMention: () => undefined,
     onNext: () => undefined,
