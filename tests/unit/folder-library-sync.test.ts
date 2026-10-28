@@ -11,6 +11,7 @@ import {
   readFolderCropBytes,
   readFolderArtMetadata,
   readFolderJournalImage,
+  libraryDirectoryIsOpen,
   readFolderNotes,
   restoreFolderNote,
   saveFolderFullArt,
@@ -43,6 +44,41 @@ import {resolveFolderNoteConflicts} from '../../src/platform/chrome/folder-libra
 
 beforeEach(() => {
   (globalThis as {chrome?: unknown}).chrome = {runtime: {lastError: undefined}};
+});
+
+describe('folder library permission', () => {
+  it('opens a folder the worker still reports as prompting', async () => {
+    const opened = await libraryDirectoryIsOpen({
+      async getDirectoryHandle() {
+        return {} as FileSystemDirectoryHandle;
+      },
+    }, 'prompt');
+
+    expect(opened).toBe(true);
+  });
+
+  it('stays closed when the prompt folder cannot be opened', async () => {
+    const opened = await libraryDirectoryIsOpen({
+      async getDirectoryHandle() {
+        throw new DOMException('Not allowed', 'NotAllowedError');
+      },
+    }, 'prompt');
+
+    expect(opened).toBe(false);
+  });
+
+  it('does not open a folder this browser denied', async () => {
+    let touched = false;
+    const opened = await libraryDirectoryIsOpen({
+      async getDirectoryHandle() {
+        touched = true;
+        return {} as FileSystemDirectoryHandle;
+      },
+    }, 'denied');
+
+    expect(touched).toBe(false);
+    expect(opened).toBe(false);
+  });
 });
 
 describe('folder library tombstones', () => {

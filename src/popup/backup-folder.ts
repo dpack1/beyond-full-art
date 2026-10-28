@@ -1,4 +1,5 @@
 import {
+  ensureDirectoryPermission,
   forgetBackupFolder,
   readBackupFolderConnection,
   type BackupFolderConnection,
@@ -13,6 +14,8 @@ import {
 
 const ERROR_CLASS_NAME = 'bfa-popup__status--error';
 
+let storedPromptHandle: object | null = null;
+
 export async function installBackupFolder(doc: Document): Promise<void> {
   const choose = doc.querySelector<HTMLButtonElement>('#backup-folder-choose');
   const check = doc.querySelector<HTMLButtonElement>('#backup-folder-check');
@@ -23,7 +26,7 @@ export async function installBackupFolder(doc: Document): Promise<void> {
   }
 
   choose.addEventListener('click', () => {
-    void openSetup(choose, status);
+    void openSetup(choose, check, forget, status, doc);
   });
   check.addEventListener('click', () => {
     void checkFolder(check, status, doc);
@@ -42,6 +45,11 @@ async function refresh(
   try {
     const connection = await readBackupFolderConnection();
     const savingInFolder = await isFolderLibrary();
+    storedPromptHandle = null;
+    if (connection?.permission === 'prompt') {
+      const stored = await getStoredBackupFolder();
+      storedPromptHandle = stored?.handle ?? null;
+    }
     forget.hidden = connection === null;
     check.hidden = connection === null
       || !savingInFolder
@@ -53,6 +61,7 @@ async function refresh(
         savingInFolder,
     );
   } catch {
+    storedPromptHandle = null;
     forget.hidden = true;
     check.hidden = true;
     status.classList.add(ERROR_CLASS_NAME);
@@ -87,10 +96,19 @@ async function checkFolder(
 
 async function openSetup(
     choose: HTMLButtonElement,
+    check: HTMLButtonElement,
+    forget: HTMLButtonElement,
     status: HTMLParagraphElement,
+    doc: Document,
 ): Promise<void> {
   choose.disabled = true;
   try {
+    const handle = storedPromptHandle;
+    if (handle !== null && await ensureDirectoryPermission(handle) === 'granted') {
+      await refresh(check, forget, status);
+      doc.dispatchEvent(new Event('bfa-folder-checked'));
+      return;
+    }
     await openBackupFolderSetupWindow();
     status.classList.remove(ERROR_CLASS_NAME);
   } catch (error) {
@@ -160,7 +178,7 @@ export async function openBackupFolderSetupWindow(): Promise<void> {
   });
 }
 
-function connectionMessage(
+export function connectionMessage(
     connection: BackupFolderConnection | null,
     copiedCharacterCount: number | null,
     savingInFolder: boolean,
@@ -170,14 +188,14 @@ function connectionMessage(
   }
   if (connection.permission === 'denied' || connection.permission === 'prompt') {
     if (savingInFolder) {
-      return `Choose “${connection.folderName}” again. Art and notes stay in that folder, and nothing new is saved on this browser until Chrome can use it.`;
+      return `“${connection.folderName}” is selected. Allow access to show the art and notes saved in that folder. Choose the folder and allow access when asked.`;
     }
   }
   if (connection.permission === 'denied') {
-    return `Chrome blocked “${connection.folderName}”. Choose that folder again to allow access.`;
+    return `This browser blocked “${connection.folderName}”. Choose that folder again and allow access.`;
   }
   if (connection.permission === 'prompt') {
-    return `Choose “${connection.folderName}” again so Chrome can write to it.`;
+    return `Choose “${connection.folderName}” again and allow access so this browser can write to it.`;
   }
   if (savingInFolder) {
     return `“${connection.folderName}” is where art and notes are saved. This browser is not keeping a second copy.`;

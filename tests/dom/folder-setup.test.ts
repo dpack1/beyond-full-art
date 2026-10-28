@@ -1,6 +1,10 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
-import {initializeFolderSetup} from '../../src/folder/setup';
+import {
+  FOLDER_PERMISSION_NEEDED_MESSAGE,
+  FOLDER_PICKER_UNAVAILABLE_MESSAGE,
+  initializeFolderSetup,
+} from '../../src/folder/setup';
 import type {LibraryItem} from '../../src/platform/chrome/backup-folder-decision';
 
 describe('backup folder setup window', () => {
@@ -43,6 +47,22 @@ describe('backup folder setup window', () => {
 
     expect(document.querySelector('#folder-setup-status')?.textContent)
         .toContain('Create a blank folder');
+  });
+
+  it('says the folder picker is blocked when this browser cannot open it', async () => {
+    document.body.innerHTML = setupMarkup();
+    await initializeFolderSetup(document, {
+      readStoredFolder: async () => null,
+    });
+
+    expect(document.querySelector('#folder-setup-status')?.textContent)
+        .toBe(FOLDER_PICKER_UNAVAILABLE_MESSAGE);
+
+    document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
+    await nextTask();
+
+    expect(document.querySelector('#folder-setup-status')?.textContent)
+        .toBe(FOLDER_PICKER_UNAVAILABLE_MESSAGE);
   });
 
   it('leaves everything in place when the picker is cancelled', async () => {
@@ -391,6 +411,135 @@ describe('backup folder setup window', () => {
     expect(document.querySelector('[data-bfa-folder-conflicts]')).toBeNull();
     expect(document.querySelector('#folder-setup-status')?.textContent)
         .toContain('Applied the conflict choices');
+  });
+
+  it('moves the setup window aside while Brave asks for access', async () => {
+    document.body.innerHTML = setupMarkup();
+    const order: string[] = [];
+    const requestPermission = vi.fn().mockImplementation(async () => {
+      order.push('request');
+      expect(document.querySelector('#folder-setup-status')?.textContent)
+          .toBe('Allow access in the browser question. This window moves aside until you answer.');
+      return 'granted';
+    });
+    const directory = {
+      name: 'Beyond-Full-Art',
+      queryPermission: vi.fn().mockResolvedValue('prompt'),
+      requestPermission,
+    } as unknown as FileSystemDirectoryHandle;
+    const update = vi.fn().mockImplementation(async () => {
+      order.push('update');
+      return {};
+    });
+    vi.stubGlobal('chrome', {
+      windows: {
+        getCurrent: vi.fn().mockResolvedValue({
+          height: 560,
+          id: 7,
+          left: 100,
+          top: 80,
+          width: 440,
+        }),
+        update,
+      },
+    });
+    Object.defineProperty(window.screen, 'availWidth', {configurable: true, value: 1400});
+    Object.defineProperty(window.screen, 'availHeight', {configurable: true, value: 900});
+    Object.assign(window, {
+      showDirectoryPicker: vi.fn().mockResolvedValue(directory),
+    });
+
+    await initializeFolderSetup(document, {
+      connect: vi.fn().mockResolvedValue({
+        folderName: 'Beyond-Full-Art',
+        kind: 'reconnected',
+      }),
+      isSavingInFolder: async () => true,
+      listCommitted: async () => new Set(['172153137']),
+      readBrowserItems: async () => [],
+      readStoredFolder: async () => null,
+    });
+    document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
+    await flush();
+
+    expect(order).toEqual(['update', 'request', 'update']);
+    expect(update).toHaveBeenNthCalledWith(1, 7, {focused: false, left: 948, top: 328});
+    expect(update).toHaveBeenNthCalledWith(2, 7, {
+      focused: true,
+      height: 560,
+      left: 100,
+      state: 'normal',
+      top: 80,
+      width: 440,
+    });
+    expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
+  });
+
+  it('reads the saved folder once this browser allows it', async () => {
+    document.body.innerHTML = setupMarkup();
+    const requestPermission = vi.fn().mockResolvedValue('granted');
+    const directory = {
+      name: 'Beyond-Full-Art',
+      queryPermission: vi.fn().mockResolvedValue('prompt'),
+      requestPermission,
+    } as unknown as FileSystemDirectoryHandle;
+    const pickDirectory = vi.fn();
+    await initializeFolderSetup(document, {
+      isSavingInFolder: async () => true,
+      listCommitted: async () => new Set(['172153137']),
+      pickDirectory,
+      readBrowserItems: async () => [],
+      readStoredFolder: async () => ({directory, permission: 'prompt'}),
+    });
+
+    document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
+    await flush();
+
+    expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
+    expect(pickDirectory).not.toHaveBeenCalled();
+    expect(document.querySelector('#folder-setup-status')?.textContent)
+        .toBe('“Beyond-Full-Art” is where art and notes are saved. This browser is not keeping a second copy.');
+  });
+
+  it('opens the picker when the saved folder stays blocked', async () => {
+    document.body.innerHTML = setupMarkup();
+    const directory = {
+      name: 'Beyond-Full-Art',
+      queryPermission: async () => 'prompt',
+      requestPermission: async () => 'prompt',
+    } as unknown as FileSystemDirectoryHandle;
+    const picked = {name: 'Other folder'} as FileSystemDirectoryHandle;
+    const pickDirectory = vi.fn().mockResolvedValue(picked);
+    const connect = vi.fn().mockResolvedValue({kind: 'occupied'});
+    await initializeFolderSetup(document, {
+      confirmSwitch: () => true,
+      connect,
+      isSavingInFolder: async () => true,
+      pickDirectory,
+      readStoredFolder: async () => ({directory, permission: 'prompt'}),
+    });
+
+    document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
+    await flush();
+
+    expect(pickDirectory).toHaveBeenCalledOnce();
+    expect(connect).toHaveBeenCalledWith(picked);
+  });
+
+  it('keeps the allow-access message when the chosen folder is still blocked', async () => {
+    document.body.innerHTML = setupMarkup();
+    await initializeFolderSetup(document, {
+      pickDirectory: async () => {
+        throw new Error(FOLDER_PERMISSION_NEEDED_MESSAGE);
+      },
+      readStoredFolder: async () => null,
+    });
+
+    document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
+    await nextTask();
+
+    expect(document.querySelector('#folder-setup-status')?.textContent)
+        .toBe(FOLDER_PERMISSION_NEEDED_MESSAGE);
   });
 
   it('keeps the current library folder when a folder switch is declined', async () => {

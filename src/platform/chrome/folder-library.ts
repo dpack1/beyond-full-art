@@ -8,6 +8,7 @@ import {
   isCharacterPortraitCropMetadata,
 } from '../../features/character-art/art-types';
 import {
+  isJournalImage,
   isJournalNote,
   type JournalNote,
 } from '../../features/character-journal/character-journal-types';
@@ -16,6 +17,7 @@ import {
   backupFolderLabel,
   parseBackupFolderMarker,
   readDirectoryPermission,
+  type BackupFolderPermission,
 } from './backup-folder';
 import {getStoredBackupFolder} from './indexed-db';
 import {FOLDER_LIBRARY_BLOCKED_MESSAGE, readLibraryMode} from './library-mode';
@@ -82,14 +84,26 @@ export async function resolveLibrary(): Promise<LibraryTarget> {
   }
   const folderName = backupFolderLabel(stored.handle);
   const permission = await readDirectoryPermission(stored.handle);
-  if (permission === 'denied' || permission === 'prompt') {
+  if (!await libraryDirectoryIsOpen(stored.handle, permission)) {
     return {folderName, kind: 'blocked'};
   }
+  return {directory: stored.handle, kind: 'ready'};
+}
+
+export async function libraryDirectoryIsOpen(
+    handle: Pick<FileSystemDirectoryHandle, 'getDirectoryHandle'>,
+    permission: BackupFolderPermission,
+): Promise<boolean> {
+  // A service worker often still reports `prompt` after the extension page
+  // was allowed. Opening characters/ is the check that this handle can be read.
+  if (permission === 'denied') {
+    return false;
+  }
   try {
-    await stored.handle.getDirectoryHandle(BACKUP_FOLDER_CHARACTERS_DIRECTORY);
-    return {directory: stored.handle, kind: 'ready'};
+    await handle.getDirectoryHandle(BACKUP_FOLDER_CHARACTERS_DIRECTORY);
+    return true;
   } catch {
-    return {folderName, kind: 'blocked'};
+    return false;
   }
 }
 
@@ -850,6 +864,64 @@ function tombstoneLocation(
     directories: ['tombstones'],
     name: kind === 'full-art' ? 'full-art.json' : 'portrait-crop.json',
   };
+}
+
+const PHOTO_CATALOG_FILE_NAME = 'photos.json';
+
+export async function readFolderPhotoCatalogFile(
+    directory: FileSystemDirectoryHandle,
+    characterId: string,
+): Promise<{images: unknown[]; present: boolean}> {
+  const characterDirectory = await characterDirectoryHandle(directory, characterId, false);
+  const journal = characterDirectory === null
+    ? null
+    : await nestedDirectory(characterDirectory, ['journal'], false);
+  if (journal === null) {
+    return {images: [], present: false};
+  }
+
+  let handle: FileSystemFileHandle;
+  try {
+    handle = await journal.getFileHandle(PHOTO_CATALOG_FILE_NAME);
+  } catch {
+    return {images: [], present: false};
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await (await handle.getFile()).text());
+  } catch {
+    throw new Error('The photo library in the folder could not be read.');
+  }
+  return {images: catalogImageRecords(parsed), present: true};
+}
+
+export async function writeFolderPhotoCatalogFile(
+    directory: FileSystemDirectoryHandle,
+    characterId: string,
+    images: readonly unknown[],
+): Promise<void> {
+  const characterDirectory = await characterDirectoryHandle(directory, characterId, true);
+  const journal = characterDirectory === null
+    ? null
+    : await nestedDirectory(characterDirectory, ['journal'], true);
+  if (characterDirectory === null || journal === null) {
+    throw new Error('The photo library folder could not be created.');
+  }
+  const kept = images.filter(isJournalImage);
+  await writeAndCheck(
+      journal,
+      PHOTO_CATALOG_FILE_NAME,
+      utf8(`${JSON.stringify({images: kept, schemaVersion: 1}, null, 2)}\n`),
+  );
+}
+
+function catalogImageRecords(value: unknown): unknown[] {
+  if (typeof value !== 'object' || value === null || !('images' in value)) {
+    return [];
+  }
+  const images = (value as {images?: unknown}).images;
+  return Array.isArray(images) ? images : [];
 }
 
 async function characterDirectoryHandle(

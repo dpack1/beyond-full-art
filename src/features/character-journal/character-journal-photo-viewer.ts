@@ -1,12 +1,22 @@
 import {restoreFocus, trapTabKey} from '../fullscreen-viewer/focus';
 
+export interface JournalPhotoViewerNote {
+  id: string;
+  title: string;
+}
+
 export interface JournalPhotoViewerOpenOptions {
   allowRemove?: boolean;
+  confirmText?: string;
   fallbackFocus: HTMLElement | null;
   imageUrl: string;
   label: string;
+  notes?: readonly JournalPhotoViewerNote[];
+  onOpenNote?: (noteId: string) => void;
   onRemove: () => Promise<void>;
+  removeLabel?: string;
   returnFocus: HTMLElement | null;
+  unusedText?: string;
 }
 
 export interface JournalPhotoViewer {
@@ -50,16 +60,21 @@ export function createJournalPhotoViewer(doc: Document): JournalPhotoViewer {
   const caption = doc.createElement('figcaption');
   caption.className = 'bfa-journal-photo-viewer__caption';
 
+  const usage = doc.createElement('div');
+  usage.className = 'bfa-journal-photo-viewer__usage';
+
   const status = doc.createElement('p');
   status.className = 'bfa-journal-photo-viewer__status';
   status.setAttribute('aria-live', 'polite');
 
   controls.append(removeButton, closeButton);
-  figure.append(image, caption);
+  figure.append(image, caption, usage);
   dialog.append(controls, figure, status);
   overlay.append(dialog);
   doc.body.append(overlay);
 
+  let confirmed = false;
+  let confirmText = '';
   let fallbackFocus: HTMLElement | null = null;
   let onRemove: (() => Promise<void>) | null = null;
   let returnFocus: HTMLElement | null = null;
@@ -102,6 +117,8 @@ export function createJournalPhotoViewer(doc: Document): JournalPhotoViewer {
       return !overlay.hidden;
     },
     open(options) {
+      confirmed = false;
+      confirmText = options.confirmText ?? '';
       fallbackFocus = options.fallbackFocus;
       onRemove = options.onRemove;
       returnFocus = options.returnFocus;
@@ -112,6 +129,8 @@ export function createJournalPhotoViewer(doc: Document): JournalPhotoViewer {
       status.textContent = '';
       removeButton.disabled = false;
       removeButton.hidden = options.allowRemove === false;
+      removeButton.textContent = options.removeLabel ?? 'Remove photo';
+      renderUsage(options);
       overlay.hidden = false;
       closeButton.focus();
     },
@@ -133,8 +152,44 @@ export function createJournalPhotoViewer(doc: Document): JournalPhotoViewer {
     restoreFocus(focusTarget);
   }
 
+  function renderUsage(options: JournalPhotoViewerOpenOptions): void {
+    usage.replaceChildren();
+    const notes = options.notes ?? [];
+    if (options.onOpenNote === undefined && options.unusedText === undefined) {
+      usage.hidden = true;
+      return;
+    }
+    usage.hidden = false;
+    if (notes.length === 0) {
+      const empty = doc.createElement('p');
+      empty.textContent = options.unusedText ?? 'Not in a note yet.';
+      usage.append(empty);
+      return;
+    }
+    const label = doc.createElement('p');
+    label.textContent = 'Used in';
+    const list = doc.createElement('div');
+    list.className = 'bfa-journal-photo-viewer__notes';
+    for (const note of notes) {
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.className = 'bfa-journal-button';
+      button.textContent = note.title;
+      button.addEventListener('click', () => {
+        options.onOpenNote?.(note.id);
+      });
+      list.append(button);
+    }
+    usage.append(label, list);
+  }
+
   async function removePhoto(): Promise<void> {
     if (onRemove === null) {
+      return;
+    }
+    if (confirmText !== '' && !confirmed) {
+      confirmed = true;
+      status.textContent = confirmText;
       return;
     }
 

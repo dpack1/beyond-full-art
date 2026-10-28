@@ -50,7 +50,9 @@
   min-height: 0;
   min-width: 0;
   overflow-y: auto;
-  padding: 18px 16px 28px;
+  /* Inventory's section starts at the content box edge. Extra inset here
+     leaves a gap above the Notes/Photos row and narrows it. */
+  padding: 0 0 12px;
   width: 100%;
 }
 
@@ -147,7 +149,7 @@
 
 @media (max-width: 760px) {
   .bfa-character-journal-section {
-    padding: 14px 12px 22px;
+    padding: 0 0 12px;
   }
 }
 
@@ -363,6 +365,10 @@
   text-transform: none;
 }
 
+.bfa-journal-filter-option[hidden] {
+  display: none;
+}
+
 .bfa-journal-button,
 .bfa-journal-row,
 .bfa-journal-mention-button {
@@ -448,6 +454,7 @@
   flex-wrap: nowrap;
   gap: 2px;
   margin: 0;
+  position: relative;
 }
 
 .bfa-journal-sticky-tools .bfa-journal-status {
@@ -582,6 +589,10 @@
   gap: 4px;
 }
 
+.bfa-journal-list[hidden] {
+  display: none;
+}
+
 .bfa-journal-row {
   align-items: center;
   display: grid;
@@ -705,7 +716,8 @@
 
 .bfa-journal-panel[hidden],
 .bfa-journal-panel [hidden],
-.bfa-journal-file-input {
+.bfa-journal-file-input,
+.bfa-journal-library-file-input {
   display: none !important;
 }
 
@@ -832,4 +844,91 @@
   .bfa-journal-sync-folder[data-busy='true'] svg {
     animation: none;
   }
+
+  .bfa-journal-photo-switch menu::after {
+    transition: none;
+  }
+}
+
+.bfa-journal-photo-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+}
+
+.bfa-journal-photo-grid[hidden] {
+  display: none;
+}
+
+.bfa-journal-photo-tile {
+  aspect-ratio: 1;
+  background: transparent;
+  border: 1px solid var(--bfa-journal-border, #c8c2b4);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+}
+
+.bfa-journal-photo-tile img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.bfa-journal-image-menu {
+  background: var(--bfa-journal-surface, #fff);
+  border: 1px solid var(--bfa-journal-border, #c8c2b4);
+  display: grid;
+  left: 0;
+  padding: 6px;
+  position: absolute;
+  top: 100%;
+  z-index: 2;
+}
+
+.bfa-journal-image-menu[hidden] {
+  display: none;
+}
+
+.bfa-journal-photo-picker {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 30;
+}
+
+.bfa-journal-photo-picker[hidden] {
+  display: none;
+}
+
+.bfa-journal-photo-picker__dialog {
+  background: var(--bfa-journal-surface, #fff);
+  color: inherit;
+  display: grid;
+  gap: 12px;
+  max-height: min(80vh, 640px);
+  overflow: auto;
+  padding: 16px;
+  width: min(520px, calc(100vw - 32px));
+}
+
+.bfa-journal-photo-picker__search {
+  font: inherit;
+  min-height: 36px;
+  width: 100%;
+}
+
+.bfa-journal-photo-viewer__usage {
+  display: grid;
+  gap: 8px;
+}
+
+.bfa-journal-photo-viewer__notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

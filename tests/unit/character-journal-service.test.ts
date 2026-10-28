@@ -1,17 +1,18 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 
-import {JOURNAL_IMAGE_ORPHAN_GRACE_MS} from '../../src/features/character-journal/character-journal-embeds';
+import {journalSaveErrorMessage} from '../../src/features/character-journal/character-journal-errors';
 import {createCharacterJournalService} from '../../src/features/character-journal/character-journal-service';
 import type {JournalImageStore} from '../../src/features/character-journal/character-journal-service';
 import type {JournalImage, JournalNote} from '../../src/features/character-journal/character-journal-types';
 import type {StoredJournalImage} from '../../src/platform/chrome/journal-messages';
+import {FOLDER_LIBRARY_BLOCKED_MESSAGE} from '../../src/platform/chrome/library-mode';
 
 describe('character journal service', () => {
   beforeEach(() => {
     installChrome();
   });
 
-  it('saves text, keeps that text when a photo is attached, and removes the photo blob', async () => {
+  it('saves text, keeps that text when a photo is attached, and keeps the photo after it leaves the note', async () => {
     const blobs = new Map<string, StoredJournalImage>();
     const service = createCharacterJournalService({
       createId: sequence(['image-1']),
@@ -41,8 +42,9 @@ describe('character journal service', () => {
 
     const withoutPhoto = await service.removeImage(withPhoto, withPhoto.images[0]?.id ?? '');
     expect(withoutPhoto.images).toEqual([]);
-    expect(blobs.size).toBe(0);
-    expect(await service.getImage('missing')).toBeNull();
+    expect(blobs.size).toBe(1);
+    const photos = await service.listPhotos('169418374');
+    expect(photos.map((photo) => photo.id)).toEqual(['image-1']);
   });
 
   it('refuses a save loaded before the current stored note', async () => {
@@ -102,6 +104,43 @@ describe('character journal service', () => {
     expect(blobs.has('bfa.journal.image.photo-1')).toBe(true);
   });
 
+  it('deletes a shared photo from every note and keeps the notes', async () => {
+    const blobs = new Map<string, StoredJournalImage>();
+    const service = createCharacterJournalService({
+      createId: sequence(['image-1']),
+      imageStore: memoryStore(blobs),
+      now: () => new Date('2026-10-13T12:00:00.000Z'),
+    });
+    const first = await service.save(note({
+      body: 'Rain on the tent.',
+      id: 'note-1',
+      title: 'Camp',
+    }), null);
+    const second = await service.save(note({
+      body: 'The chapel door.',
+      id: 'note-2',
+      title: 'Chapel',
+    }), null);
+    if (first.kind !== 'saved' || second.kind !== 'saved') {
+      throw new Error('expected both notes to save');
+    }
+
+    const withPhoto = await service.attachImage(
+        first.note,
+        new File(['photo-bytes'], 'camp.png', {type: 'image/png'}),
+    );
+    const shared = await service.insertPhoto(second.note, 'image-1');
+    expect(blobs.size).toBe(1);
+    expect(shared.images.map((image) => image.id)).toEqual(['image-1']);
+
+    const deleted = await service.deletePhoto('169418374', 'image-1');
+    expect(blobs.size).toBe(0);
+    expect(deleted.photos).toEqual([]);
+    expect(deleted.notes.map((entry) => entry.title).sort()).toEqual(['Camp', 'Chapel']);
+    expect(deleted.notes.every((entry) => entry.images.length === 0)).toBe(true);
+    expect(deleted.notes.every((entry) => !entry.body.includes('image-1'))).toBe(true);
+  });
+
   it('inserts a photo embed at the cursor', async () => {
     const blobs = new Map<string, StoredJournalImage>();
     const service = createCharacterJournalService({
@@ -127,13 +166,12 @@ describe('character journal service', () => {
     expect(blobs.size).toBe(1);
   });
 
-  it('keeps an orphaned photo until a later save, then deletes it', async () => {
-    let clock = new Date('2026-10-13T12:00:00.000Z');
+  it('keeps a photo in the library when the note text no longer mentions it', async () => {
     const blobs = new Map<string, StoredJournalImage>();
     const service = createCharacterJournalService({
       createId: sequence(['image-1']),
       imageStore: memoryStore(blobs),
-      now: () => clock,
+      now: () => new Date('2026-10-13T12:00:00.000Z'),
     });
     const saved = await service.save(note({
       body: 'Rain on the tent.',
@@ -153,48 +191,15 @@ describe('character journal service', () => {
       body: 'Rain on the tent.',
     }, withPhoto.updatedAt);
     if (stripped.kind !== 'saved') {
-      throw new Error('expected the orphan mark to save');
+      throw new Error('expected the note to save');
     }
 
-    expect(stripped.note.images).toHaveLength(1);
-    expect(stripped.note.images[0]?.orphanedAt).toBe('2026-10-13T12:00:00.000Z');
+    expect(stripped.note.images).toEqual([]);
     expect(blobs.size).toBe(1);
-
-    clock = new Date(clock.getTime() + JOURNAL_IMAGE_ORPHAN_GRACE_MS - 1);
-    const held = await service.save(stripped.note, stripped.note.updatedAt);
-    if (held.kind !== 'saved') {
-      throw new Error('expected the grace save');
-    }
-    expect(held.note.images).toHaveLength(1);
-    expect(blobs.size).toBe(1);
-
-    const restored = await service.save({
-      ...held.note,
-      body: withPhoto.body,
-    }, held.note.updatedAt);
-    if (restored.kind !== 'saved') {
-      throw new Error('expected the undo save');
-    }
-    expect(restored.note.images[0]?.orphanedAt).toBeUndefined();
-    expect(blobs.size).toBe(1);
-
-    const marked = await service.save({
-      ...restored.note,
-      body: 'Rain on the tent.',
-    }, restored.note.updatedAt);
-    if (marked.kind !== 'saved') {
-      throw new Error('expected a new orphan mark');
-    }
-    clock = new Date(Date.parse(marked.note.images[0]?.orphanedAt ?? '') + JOURNAL_IMAGE_ORPHAN_GRACE_MS);
-    const gone = await service.save(marked.note, marked.note.updatedAt);
-    if (gone.kind !== 'saved') {
-      throw new Error('expected the cleanup save');
-    }
-    expect(gone.note.images).toEqual([]);
-    expect(blobs.size).toBe(0);
+    expect((await service.listPhotos('169418374')).map((photo) => photo.id)).toEqual(['image-1']);
   });
 
-  it('deletes an orphaned photo immediately when the note is deleted', async () => {
+  it('keeps the photo when its note is deleted', async () => {
     const blobs = new Map<string, StoredJournalImage>();
     const service = createCharacterJournalService({
       createId: sequence(['image-1']),
@@ -217,7 +222,8 @@ describe('character journal service', () => {
     await service.save({...withPhoto, body: 'Rain on the tent.'}, withPhoto.updatedAt);
     expect(blobs.size).toBe(1);
     await service.deleteEntry('169418374', withPhoto.id);
-    expect(blobs.size).toBe(0);
+    expect(blobs.size).toBe(1);
+    expect((await service.listPhotos('169418374')).map((photo) => photo.id)).toEqual(['image-1']);
   });
 
   it('appends embeds for photos that were stored outside the text', async () => {
@@ -267,7 +273,12 @@ describe('character journal service', () => {
     expect(byId.get('loose')?.body).toBe('The door was warm.\n\n![[img:photo-2]]');
     expect(byId.get('legacy')?.body).toBe('![door.png](bfa-journal-image:photo-1)');
     expect(byId.get('orphan')?.images).toEqual([]);
-    expect(blobs.has('bfa.journal.image.photo-3')).toBe(false);
+    expect(blobs.has('bfa.journal.image.photo-3')).toBe(true);
+    expect(opened.photos.map((photo) => photo.id).sort()).toEqual([
+      'photo-1',
+      'photo-2',
+      'photo-3',
+    ]);
 
     const again = await service.open('169418374');
     expect(again.notes.find((entry) => entry.id === 'loose')?.body)
@@ -500,3 +511,12 @@ function sequence(ids: readonly string[]): () => string {
   let index = 0;
   return () => ids[index++] ?? `id-${index}`;
 }
+
+describe('journal save errors', () => {
+  it('shows the folder access message instead of a generic save failure', () => {
+    expect(journalSaveErrorMessage(new Error(FOLDER_LIBRARY_BLOCKED_MESSAGE)))
+        .toBe(FOLDER_LIBRARY_BLOCKED_MESSAGE);
+    expect(journalSaveErrorMessage(new Error('disk failed')))
+        .toBe('This note could not be saved. Your text is still here.');
+  });
+});

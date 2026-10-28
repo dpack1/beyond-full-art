@@ -1,6 +1,6 @@
 export const LIBRARY_MODE_KEY = 'bfa.library.mode';
 export const FOLDER_LIBRARY_BLOCKED_MESSAGE =
-  'Choose the backup folder again. Art and notes stay in that folder, and nothing new was saved on this browser.';
+  'Choose the backup folder again and allow access. Art and notes stay in that folder, and nothing new was saved on this browser.';
 
 type StorageGetSet = {
   get: chrome.storage.StorageArea['get'];

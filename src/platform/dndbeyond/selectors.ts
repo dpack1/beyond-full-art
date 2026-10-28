@@ -517,10 +517,27 @@ export const CHARACTER_SHEET_CLASS = 'ct-character-sheet';
 export const CHARACTER_SHEET_SHELL_CLASS = 'ct-character-sheet-shell';
 export const CHARACTER_SHEET_SELECTOR =
   `.${CHARACTER_SHEET_CLASS}, .${CHARACTER_SHEET_SHELL_CLASS}`;
-export const SHEET_TAB_NAV_ITEM_SELECTOR = '.ddbc-tab-list__nav-item';
+export const SHEET_TAB_NAV_CLASS = 'ddbc-tab-list__nav';
+export const SHEET_TAB_NAV_ITEM_CLASS = 'ddbc-tab-list__nav-item';
+export const SHEET_TAB_NAV_ITEM_ACTIVE_CLASS = 'ddbc-tab-list__nav-item--is-active';
+export const SHEET_TAB_NAV_ITEM_SELECTOR = `.${SHEET_TAB_NAV_ITEM_CLASS}`;
 export const SHEET_TAB_NAV_ITEM_ACTIVE_SELECTOR =
-  '.ddbc-tab-list__nav-item--is-active';
+  `.${SHEET_TAB_NAV_ITEM_ACTIVE_CLASS}`;
 export const SHEET_TAB_CONTENT_SELECTOR = '.ddbc-tab-list__content';
+// Inventory "My Inventory" / "Party Inventory" row. Verified 2026-10-28 on
+// public character 4741434, character-app main.4ccf1602.js and
+// main.fd608b62.css. The row is the shared tab list with variant fullwidth
+// and themed, plus the equipment class. The menu is
+// styles_tabs__aTttL and each label is a styles_tabButton__wvSLf radio.
+// Hashes change when the character-app bundle changes.
+export const INVENTORY_TAB_LIST_CLASS = [
+  'styles_tabList__fix2X',
+  'styles_fullwidth__tseG2',
+  'styles_themed__Plffn',
+  'styles_tabList__eedTo',
+].join(' ');
+export const INVENTORY_TAB_MENU_CLASS = 'styles_tabs__aTttL';
+export const INVENTORY_TAB_BUTTON_CLASS = 'styles_tabButton__wvSLf';
 // Extras / Inventory / Spells filter row, observed 2026-10-21 on the public
 // sheet character 4741434 (character-app main.73ca5823.js). The row is
 // search box, funnel, then the Manage button. Inactive tabs unmount it, so

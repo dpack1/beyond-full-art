@@ -53,6 +53,29 @@ describe('character journal section', () => {
     section.destroy();
   });
 
+  it('opens Photos above the search row', async () => {
+    const section = createCharacterJournalSection(createFakeService([]));
+    await showSection(section);
+
+    const notesTab = buttonNamed('Notes');
+    const photosTab = buttonNamed('Photos');
+    const toolbar = document.querySelector('.bfa-journal-section-toolbar');
+    if (notesTab === undefined || photosTab === undefined || toolbar === null) {
+      throw new Error('Missing Photos switch');
+    }
+    expect(notesTab.getAttribute('aria-checked')).toBe('true');
+    expect(photosTab.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING)
+        .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    photosTab.click();
+
+    expect(buttonNamed('Add photo')?.textContent).toBe('Add photo');
+    expect(document.querySelector('.bfa-journal-search')?.getAttribute('aria-label'))
+        .toBe('Search photos');
+    expect(document.querySelector('.bfa-journal-message')?.textContent).toBe('No photos yet.');
+    expect(document.querySelector('.bfa-journal-list')?.hasAttribute('hidden')).toBe(true);
+    section.destroy();
+  });
+
   it('filters rows by the search query', async () => {
     const section = createCharacterJournalSection(createFakeService([
       note({body: 'A locked door under the chapel.', id: 'door', title: 'Locked door'}),
@@ -1003,7 +1026,8 @@ describe('character journal section', () => {
     expect(live.querySelector('button')?.textContent ?? '').not.toBe('New Note');
 
     document.querySelector<HTMLElement>('[aria-label="Filter"]')?.click();
-    const boxes = document.querySelectorAll<HTMLInputElement>('.bfa-journal-filter input');
+    const boxes = [...document.querySelectorAll<HTMLInputElement>('.bfa-journal-filter input')]
+        .filter((box) => box.parentElement?.hidden !== true);
     expect(boxes.length).toBe(6);
     const npc = Array.from(boxes).find((box) => box.value === 'npc');
     const place = Array.from(boxes).find((box) => box.value === 'place');
@@ -1123,10 +1147,23 @@ function createFakeService(notes: JournalNote[]): CharacterJournalService {
       notes.push(copy);
       return copy;
     },
+    async addPhoto() {
+      throw new Error('not used');
+    },
+    async deletePhoto() {
+      throw new Error('not used');
+    },
+    async insertPhoto(entry) {
+      return entry;
+    },
+    async listPhotos() {
+      return [];
+    },
     async open(characterId) {
       return {
         migration: 'current',
         notes: notes.filter((entry) => entry.characterId === characterId),
+        photos: [],
         unreadableCount: 0,
       };
     },

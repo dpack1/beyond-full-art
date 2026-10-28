@@ -1,3 +1,4 @@
+import type {JournalPhotoUse} from './character-journal-library';
 import {journalCategoryLabel, type JournalCategory} from './character-journal-query';
 import {createSectionToolbar} from './character-journal-toolbar';
 import {syncIcon} from './character-journal-icons';
@@ -22,6 +23,7 @@ export interface JournalListHandlers {
   onFilter: (types: readonly JournalEntryType[]) => void;
   onManage: () => void;
   onOpen: (entryId: string, returnFocus: HTMLElement) => void;
+  onPhotoFilter: (use: JournalPhotoUse) => void;
   onSearch: (query: string) => void;
   onSync: () => void;
 }
@@ -41,8 +43,12 @@ export interface JournalListView {
   searchField: HTMLInputElement;
   setAlert(message: string | null): void;
   setFilters(types: readonly JournalEntryType[]): void;
+  setManageLabel(label: string): void;
   setMessage(message: string | null, tone: 'alert' | 'muted' | 'notice'): void;
+  setMode(mode: 'notes' | 'photos'): void;
+  setPhotoUse(use: JournalPhotoUse): void;
   setRows(rows: readonly JournalRowModel[]): void;
+  setSearchValue(value: string): void;
   setSyncBusy(busy: boolean): void;
   setSyncVisible(visible: boolean): void;
 }
@@ -76,6 +82,7 @@ export function createJournalList(
   filter.setAttribute('role', 'group');
   filter.setAttribute('aria-label', 'Note types');
   const filterInputs = new Map<JournalFilterType, HTMLInputElement>();
+  const noteFilterOptions: HTMLElement[] = [];
   for (const type of FILTER_TYPES) {
     const option = doc.createElement('label');
     option.className = 'bfa-journal-filter-option';
@@ -87,6 +94,28 @@ export function createJournalList(
     });
     filterInputs.set(type, box);
     option.append(box, doc.createTextNode(journalCategoryLabel(type)));
+    noteFilterOptions.push(option);
+    filter.append(option);
+  }
+  const photoUses: readonly [JournalPhotoUse, string][] = [
+    ['in-note', 'In a note'],
+    ['not-in-note', 'Not in a note'],
+  ];
+  const photoFilterOptions: HTMLElement[] = [];
+  const photoInputs = new Map<JournalPhotoUse, HTMLInputElement>();
+  for (const [use, label] of photoUses) {
+    const option = doc.createElement('label');
+    option.className = 'bfa-journal-filter-option';
+    option.hidden = true;
+    const box = doc.createElement('input');
+    box.type = 'checkbox';
+    box.value = use;
+    box.addEventListener('change', () => {
+      handlers.onPhotoFilter(selectedPhotoUse());
+    });
+    photoInputs.set(use, box);
+    option.append(box, doc.createTextNode(label));
+    photoFilterOptions.push(option);
     filter.append(option);
   }
 
@@ -166,6 +195,37 @@ export function createJournalList(
         box.checked = selected.has(type);
       }
     },
+    setManageLabel(label) {
+      const content = manageButton.querySelector('span');
+      if (content === null) {
+        manageButton.textContent = label;
+      } else {
+        content.textContent = label;
+      }
+      manageButton.setAttribute('aria-label', label);
+    },
+    setMode(mode) {
+      const photos = mode === 'photos';
+      for (const option of noteFilterOptions) {
+        option.hidden = photos;
+      }
+      for (const option of photoFilterOptions) {
+        option.hidden = !photos;
+      }
+      list.hidden = photos;
+      filter.setAttribute('aria-label', photos ? 'Photos' : 'Note types');
+      searchField.setAttribute('aria-label', photos ? 'Search photos' : 'Search notes');
+    },
+    setPhotoUse(use) {
+      const inNote = photoInputs.get('in-note');
+      const unused = photoInputs.get('not-in-note');
+      if (inNote !== undefined) {
+        inNote.checked = use === 'in-note';
+      }
+      if (unused !== undefined) {
+        unused.checked = use === 'not-in-note';
+      }
+    },
     setMessage(text, tone) {
       message.hidden = text === null;
       message.dataset.tone = tone;
@@ -193,10 +253,22 @@ export function createJournalList(
     setSyncVisible(visible) {
       syncButton.hidden = !visible;
     },
+    setSearchValue(value) {
+      searchField.value = value;
+    },
   };
 
   function selectedTypes(): JournalEntryType[] {
     return FILTER_TYPES.filter((type) => filterInputs.get(type)?.checked === true);
+  }
+
+  function selectedPhotoUse(): JournalPhotoUse {
+    const inNote = photoInputs.get('in-note')?.checked === true;
+    const unused = photoInputs.get('not-in-note')?.checked === true;
+    if (inNote === unused) {
+      return 'all';
+    }
+    return inNote ? 'in-note' : 'not-in-note';
   }
 
   function closeFilter(): void {

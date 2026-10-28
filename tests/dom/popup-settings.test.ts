@@ -46,7 +46,9 @@ vi.mock(
 );
 
 import {initializePopup} from '../../src/popup/settings';
-import {folderCheckMessage} from '../../src/popup/backup-folder';
+import {connectionMessage, folderCheckMessage} from '../../src/popup/backup-folder';
+import * as backupFolderApi from '../../src/platform/chrome/backup-folder';
+import * as indexedDbApi from '../../src/platform/chrome/indexed-db';
 import {importJournalExportFile} from '../../src/popup/journal-export';
 import {
   JOURNAL_EXPORT_FORMAT,
@@ -119,6 +121,73 @@ describe('popup settings', () => {
       url: 'chrome-extension://test/folder/setup.html',
       width: 440,
     });
+  });
+
+  it('allows the saved folder from Choose folder without opening setup', async () => {
+    const requestPermission = vi.fn().mockResolvedValue('granted');
+    const handle = {
+      getDirectoryHandle: async () => {
+        throw new Error('unread');
+      },
+      name: 'Beyond-Full-Art',
+      queryPermission: vi.fn().mockResolvedValue('prompt'),
+      requestPermission,
+    };
+    vi.spyOn(indexedDbApi, 'getStoredBackupFolder').mockResolvedValue({
+      connectedAt: '2026-10-28T00:00:00.000Z',
+      handle: handle as unknown as FileSystemDirectoryHandle,
+      id: 'selected',
+    });
+    vi.spyOn(backupFolderApi, 'readBackupFolderConnection')
+        .mockResolvedValueOnce({
+          connectedAt: '2026-10-28T00:00:00.000Z',
+          folderName: 'Beyond-Full-Art',
+          permission: 'prompt',
+        })
+        .mockResolvedValue({
+          connectedAt: '2026-10-28T00:00:00.000Z',
+          folderName: 'Beyond-Full-Art',
+          permission: 'granted',
+        });
+    const create = vi.fn().mockResolvedValue({id: 1});
+    vi.stubGlobal('chrome', {
+      runtime: {
+        getURL: (path: string) => `chrome-extension://test/${path}`,
+      },
+      storage: {
+        local: {
+          get: (
+              _key: string,
+              callback: (value: Record<string, unknown>) => void,
+          ) => {
+            callback({'bfa.library.mode': 'folder'});
+          },
+          set: (_values: unknown, callback: () => void) => {
+            callback();
+          },
+        },
+      },
+      windows: {create},
+    });
+
+    await initializePopup(document);
+    document.querySelector<HTMLButtonElement>('#backup-folder-choose')?.click();
+    await nextTask();
+
+    expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
+    expect(create).not.toHaveBeenCalled();
+    expect(document.querySelector('#backup-folder-status')?.textContent)
+        .toBe('“Beyond-Full-Art” is where art and notes are saved. This browser is not keeping a second copy.');
+  });
+
+  it('says a selected folder is waiting for access', () => {
+    expect(connectionMessage({
+      connectedAt: '2026-10-28T00:00:00.000Z',
+      folderName: 'Beyond-Full-Art',
+      permission: 'prompt',
+    }, null, true)).toBe(
+        '“Beyond-Full-Art” is selected. Allow access to show the art and notes saved in that folder. Choose the folder and allow access when asked.',
+    );
   });
 
   it('summarizes a folder check and possible Drive conflict copies', () => {

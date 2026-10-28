@@ -85,7 +85,7 @@ As a user, I can upload the original full artwork for a character and have it st
 - Stored full art can be downloaded from the fullscreen viewer without the Chrome `downloads` permission
 - Stored full art can also be listed, opened on D&D Beyond, downloaded, and deleted from the extension popup
 - The current implementation observes D&D Beyond's portrait upload input and native portrait-confirmation action, and does not add a separate extension-owned file picker
-- The popup can prepare one empty backup folder, or reconnect a folder that already has this extension's marker. A confirmed copy writes checked files into that folder. When those files match this browser, the player can remove the browser copies and save new art and notes in the folder. A mismatch leaves both copies in place
+- The popup can prepare one empty backup folder, or reconnect a folder that already has this extension's marker. A confirmed copy writes checked files into that folder. When those files match this browser, the player can remove the browser copies and save new art and notes in the folder. A mismatch leaves both copies in place. A restored folder handle may still need Allow access. Choosing the folder requests that permission before the directory picker opens again. The folder's files are read in place and are not copied into this browser
 - When the folder is the library, deleting art, a note, or a journal photo records a hashed tombstone. Deleted notes and photos are not read back, and the same note id cannot be recreated without an explicit restore.
 - Folder comparison uses character ID, record kind, record ID, note fingerprints, and image hashes. A changed shared ID or a local record covered by a folder tombstone requires a choice. Drive conflict-copy files are reported by name and never opened or deleted automatically.
 - When comparison finds additions without conflicts, setup can add the browser-only records, verify the merged folder, switch to folder mode, and remove the verified browser copies. A failed write or check keeps the browser copies.
@@ -226,15 +226,27 @@ a single long native notes field.
 - New notes are markdown plus an image list (schema version 2). Version 1
   block entries migrate once per character, after a backup that is not
   overwritten.
-- Photos are PNG, JPEG, or WebP and belong to one note. Bytes already in
-  IndexedDB stay there. A new file over 3 MB is resized to a 2048px long edge
-  at about 0.85 quality, then stored only if the result is still at or under
-  3 MB. The source file can be up to 25 MB.
-- A new photo is inserted at the cursor as `![[img:<id>]]`. Optional caption
-  and width use `![[img:<id>|caption|300]]`. Read mode shows the image there.
-  Photos already on a note but missing from the text get that embed at the
-  end of the body. Removing the embed keeps the blob until a later save, at
-  least 30 seconds after it went missing.
+- Photos belong to the open character. The same photo can be in many notes
+  or in none. A note points at one with `![[img:<id>]]`. Optional caption and
+  width use `![[img:<id>|caption|300]]`. Read mode shows the image there.
+  Photos are PNG, JPEG, or WebP. A new file over 3 MB is resized to a 2048px
+  long edge at about 0.85 quality, then stored only if the result is still at
+  or under 3 MB. The source file can be up to 25 MB. Bytes stay in IndexedDB
+  until the folder is the library, then in that character's journal images
+  folder. The catalog is metadata only: `bfa.journal.library.<characterId>`
+  in `chrome.storage.local`, and `characters/<characterId>/journal/photos.json`
+  when the folder is the library.
+- Taking a photo out of a note leaves the file in Photos. Delete photo is the
+  only action that removes it. It names every note that will lose the picture,
+  and those notes stay. In folder mode the existing image tombstone hides the
+  file.
+- Journal opens on Notes. Photos is the other view. The switch is the same
+  full-width tab row as My Inventory and Party Inventory, above Search,
+  Filter, Sync folder, and New Note or Add photo. When that row is on the
+  page, the switch copies its classes. Otherwise it uses the tab-list classes
+  verified 2026-10-28.
+- On a note, Image offers Upload photo and From photos. From photos inserts
+  the existing photo and does not copy the file. Paste and drop still upload.
 - The list sits in the same content box as Notes and Extras and hides that
   box's native section while Journal is open. The note panel uses the
   right-hand slide-in's edge controls: close and back sit outside the

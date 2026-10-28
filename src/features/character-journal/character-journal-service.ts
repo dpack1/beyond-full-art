@@ -20,11 +20,23 @@ import {
   embedMissingJournalImages,
   insertJournalImageEmbed,
   journalImageEmbed,
+  journalImageIdsInBody,
   reconcileJournalImageRecords,
 } from './character-journal-embeds';
 import {journalImageTooLargeMessage} from './character-journal-image-fit';
 import {rewriteUniqueTitle} from './character-journal-links';
+import {
+  libraryImage,
+  mergePhotoCatalog,
+  notesUsingPhoto,
+  samePhotoCatalog,
+  unlinkPhotoFromNote,
+} from './character-journal-library';
 import {remapJournalNoteImages} from './journal-image-remap';
+import {
+  readJournalPhotoCatalog,
+  writeJournalPhotoCatalog,
+} from '../../platform/chrome/journal-photo-catalog';
 import {removeJournalImageLine} from './character-journal-markdown';
 import {
   journalMigrationConfirmed,
@@ -56,6 +68,7 @@ export interface JournalImageStore {
 export interface JournalOpenResult {
   migration: 'current' | 'failed' | 'migrated';
   notes: JournalNote[];
+  photos: JournalImage[];
   unreadableCount: number;
 }
 
@@ -64,6 +77,7 @@ export type JournalSaveResult =
   | {kind: 'stale'; note: JournalNote};
 
 export interface CharacterJournalService {
+  addPhoto(characterId: CharacterId, file: File): Promise<JournalImage>;
   attachImage(
     note: JournalNote,
     file: File,
@@ -72,15 +86,26 @@ export interface CharacterJournalService {
   countUnreadableEntries(characterId: CharacterId): Promise<number>;
   createPlaceholder(characterId: CharacterId, title: string): Promise<JournalNote>;
   deleteEntry(characterId: CharacterId, entryId: string): Promise<void>;
+  deletePhoto(characterId: CharacterId, imageId: string): Promise<JournalOpenResult>;
   fileQuickNote(characterId: CharacterId, text: string): Promise<JournalNote>;
   getImage(blobKey: string): Promise<StoredJournalImage | null>;
+  insertPhoto(
+    note: JournalNote,
+    imageId: string,
+    position?: {end: number; start: number},
+  ): Promise<JournalNote>;
   keepBoth(note: JournalNote): Promise<JournalNote>;
+  listPhotos(characterId: CharacterId): Promise<JournalImage[]>;
   open(characterId: CharacterId): Promise<JournalOpenResult>;
   removeImage(note: JournalNote, imageId: string): Promise<JournalNote>;
   save(note: JournalNote, loadedUpdatedAt: string | null): Promise<JournalSaveResult>;
 }
 
 interface CharacterJournalServiceOptions {
+  catalog?: {
+    read(characterId: CharacterId): Promise<JournalImage[]>;
+    write(characterId: CharacterId, images: readonly JournalImage[]): Promise<void>;
+  };
   createId?: () => string;
   imageStore?: JournalImageStore;
   now?: () => Date;
@@ -90,12 +115,17 @@ interface CharacterJournalServiceOptions {
 export function createCharacterJournalService(
     options: CharacterJournalServiceOptions = {},
 ): CharacterJournalService {
+  const catalog = options.catalog ?? {
+    read: readJournalPhotoCatalog,
+    write: writeJournalPhotoCatalog,
+  };
   const createId = options.createId ?? createRandomId;
   const imageStore = options.imageStore ?? createExtensionImageStore();
   const now = options.now ?? (() => new Date());
   const prepareImage = options.prepareImage ?? prepareJournalImageFile;
 
   return {
+    addPhoto,
     attachImage,
     countUnreadableEntries(characterId) {
       return countUnreadableCharacterJournalEntries(characterId);
@@ -127,22 +157,14 @@ export function createCharacterJournalService(
     async deleteEntry(characterId, entryId) {
       const notes = await readNotes(characterId);
       const entry = notes.find((candidate) => candidate.id === entryId);
+      if (entry !== undefined) {
+        await rememberPhotos(characterId, entry.images);
+      }
       await updateJournalNoteRecords(characterId, (records) =>
         records.filter((record) => !isJournalNote(record) || record.id !== entryId),
       );
-      if (entry === undefined) {
-        return;
-      }
-
-      await Promise.all(entry.images.map(async (image) => {
-        try {
-          await imageStore.deleteImage(image.blobKey);
-        } catch {
-          // The note is already gone. A leftover blob is better than a
-          // failed delete for a note the player can no longer see.
-        }
-      }));
     },
+    deletePhoto,
     async fileQuickNote(characterId, text) {
       const notes = await readNotes(characterId);
       const planned = planQuickNote(notes, text, now(), createId, characterId);
@@ -157,7 +179,9 @@ export function createCharacterJournalService(
     getImage(blobKey) {
       return imageStore.getImage(blobKey);
     },
+    insertPhoto,
     keepBoth,
+    listPhotos,
     open,
     removeImage,
     save,
@@ -173,6 +197,7 @@ export function createCharacterJournalService(
         return {
           migration: 'failed',
           notes: [],
+          photos: [],
           unreadableCount: await countUnreadableCharacterJournalEntries(characterId),
         };
       }
@@ -184,6 +209,7 @@ export function createCharacterJournalService(
         return {
           migration: 'failed',
           notes: [],
+          photos: [],
           unreadableCount: await countUnreadableCharacterJournalEntries(characterId),
         };
       }
@@ -191,9 +217,11 @@ export function createCharacterJournalService(
       migration = 'migrated';
     }
 
+    const notes = await repairStoredImages(await readNotes(characterId));
     return {
       migration,
-      notes: await repairStoredImages(await readNotes(characterId)),
+      notes,
+      photos: await syncCatalog(characterId, notes),
       unreadableCount: await countUnreadableCharacterJournalEntries(characterId),
     };
   }
@@ -235,14 +263,14 @@ export function createCharacterJournalService(
 
     const clock = now();
     const timestamp = clock.toISOString();
-    const reconciled = reconcileJournalImageRecords(note.images, note.body, clock);
-    const featuredImageId = reconciled.images.some((image) => image.id === note.featuredImageId)
+    const released = releaseUnlinkedImages(note.images, note.body);
+    const featuredImageId = released.images.some((image) => image.id === note.featuredImageId)
       ? note.featuredImageId
-      : reconciled.images[0]?.id ?? null;
+      : released.images[0]?.id ?? null;
     const nextNote: JournalNote = {
       ...note,
       featuredImageId,
-      images: reconciled.images,
+      images: released.images,
       title: normalizeJournalEntryTitle(note.title),
       updatedAt: timestamp,
     };
@@ -271,14 +299,7 @@ export function createCharacterJournalService(
 
       return next;
     });
-    await Promise.all(reconciled.removed.map(async (image) => {
-      try {
-        await imageStore.deleteImage(image.blobKey);
-      } catch {
-        // The note no longer lists the photo. A leftover blob can be
-        // removed the next time this note is saved.
-      }
-    }));
+    await rememberPhotos(note.characterId, released.released);
     return {kind: 'saved', note: nextNote};
   }
 
@@ -417,20 +438,193 @@ export function createCharacterJournalService(
     }
 
     if (removed !== undefined) {
-      try {
-        await imageStore.deleteImage(removed.blobKey);
-      } catch {
-        // The note no longer references the photo.
-      }
+      await rememberPhotos(note.characterId, [removed]);
     }
 
     return saved.note;
+  }
+
+  async function addPhoto(characterId: CharacterId, file: File): Promise<JournalImage> {
+    const image = await storeNewImage(characterId, file);
+    try {
+      await rememberPhotos(characterId, [image]);
+      return image;
+    } catch (error) {
+      await imageStore.deleteImage(image.blobKey).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  async function insertPhoto(
+      note: JournalNote,
+      imageId: string,
+      position?: {end: number; start: number},
+  ): Promise<JournalNote> {
+    const photos = mergePhotoCatalog(
+        await syncCatalog(note.characterId, await readNotes(note.characterId)),
+        note.images,
+    );
+    const image = photos.find((candidate) => candidate.id === imageId);
+    if (image === undefined) {
+      throw new Error('That photo is not in the library.');
+    }
+
+    const images = note.images.some((candidate) => candidate.id === image.id)
+      ? note.images
+      : [...note.images, libraryImage(image)];
+    const body = position === undefined
+      ? appendImageLine(note.body, journalImageEmbed(image.id, image.fileName))
+      : insertJournalImageEmbed(
+          note.body,
+          position.start,
+          position.end,
+          image.id,
+          image.fileName,
+      ).value;
+    const saved = await save({
+      ...note,
+      body,
+      featuredImageId: note.featuredImageId ?? image.id,
+      images,
+    }, note.updatedAt);
+    if (saved.kind === 'stale') {
+      throw new Error('This note was updated in another window. Your draft is still here.');
+    }
+    return saved.note;
+  }
+
+  async function deletePhoto(
+      characterId: CharacterId,
+      imageId: string,
+  ): Promise<JournalOpenResult> {
+    const notes = await readNotes(characterId);
+    const photos = await syncCatalog(characterId, notes);
+    const image = photos.find((candidate) => candidate.id === imageId);
+    if (image === undefined) {
+      throw new Error('That photo is not in the library.');
+    }
+
+    const targets = notesUsingPhoto(notes, imageId);
+    for (const target of targets) {
+      const saved = await save(unlinkPhotoFromNote(target, imageId), target.updatedAt);
+      if (saved.kind === 'stale') {
+        throw new Error('A note that uses this photo changed. The photo is still here.');
+      }
+    }
+
+    const remaining = (await catalog.read(characterId))
+        .filter((candidate) => candidate.id !== imageId);
+    await catalog.write(characterId, remaining);
+    try {
+      await imageStore.deleteImage(image.blobKey);
+    } catch (error) {
+      await rememberPhotos(characterId, [image]);
+      throw error instanceof Error
+        ? error
+        : new Error('Photo could not be removed.');
+    }
+
+    const nextNotes = await readNotes(characterId);
+    return {
+      migration: 'current',
+      notes: nextNotes,
+      photos: await syncCatalog(characterId, nextNotes),
+      unreadableCount: await countUnreadableCharacterJournalEntries(characterId),
+    };
+  }
+
+  async function listPhotos(characterId: CharacterId): Promise<JournalImage[]> {
+    return syncCatalog(characterId, await readNotes(characterId));
+  }
+
+  async function syncCatalog(
+      characterId: CharacterId,
+      notes: readonly JournalNote[],
+  ): Promise<JournalImage[]> {
+    const stored = await catalog.read(characterId);
+    const merged = mergePhotoCatalog(
+        stored,
+        notes.flatMap((note) => note.images),
+    );
+    if (!samePhotoCatalog(stored, merged)) {
+      await catalog.write(characterId, merged);
+    }
+    return merged;
+  }
+
+  async function rememberPhotos(
+      characterId: CharacterId,
+      images: readonly JournalImage[],
+  ): Promise<void> {
+    if (images.length === 0) {
+      return;
+    }
+    const stored = await catalog.read(characterId);
+    const merged = mergePhotoCatalog(stored, images);
+    if (!samePhotoCatalog(stored, merged)) {
+      await catalog.write(characterId, merged);
+    }
+  }
+
+  async function storeNewImage(characterId: CharacterId, file: File): Promise<JournalImage> {
+    const validationError = validateJournalImageFile(file);
+    if (validationError !== null) {
+      throw new Error(validationError);
+    }
+
+    const prepared = await prepareImage(file);
+    if (prepared.byteSize > MAX_JOURNAL_IMAGE_STORED_BYTES) {
+      throw new Error(journalImageTooLargeMessage(
+          prepared.byteSize,
+          MAX_JOURNAL_IMAGE_STORED_BYTES,
+          true,
+      ));
+    }
+
+    const imageId = createId();
+    const blobKey = `${JOURNAL_IMAGE_BLOB_KEY_PREFIX}${imageId}`;
+    const dimensions = prepared.width === null
+      ? await readImageDimensions(file)
+      : {height: prepared.height, width: prepared.width};
+    await imageStore.putImage({
+      blobKey,
+      byteBuffer: prepared.byteBuffer,
+      characterId,
+      mimeType: prepared.mimeType,
+    });
+    return {
+      altText: normalizeJournalImageFileName(file.name),
+      blobKey,
+      byteSize: prepared.byteSize,
+      fileName: normalizeJournalImageFileName(file.name),
+      height: dimensions.height,
+      id: imageId,
+      mimeType: prepared.mimeType,
+      width: dimensions.width,
+    };
   }
 
   async function readNotes(characterId: CharacterId): Promise<JournalNote[]> {
     const records = await readRawCharacterJournalRecords(characterId);
     return records.filter(isJournalNote).filter((note) => note.characterId === characterId);
   }
+}
+
+function releaseUnlinkedImages(
+    images: readonly JournalImage[],
+    body: string,
+): {images: JournalImage[]; released: JournalImage[]} {
+  const referenced = journalImageIdsInBody(body);
+  const kept: JournalImage[] = [];
+  const released: JournalImage[] = [];
+  for (const image of images) {
+    if (referenced.has(image.id)) {
+      kept.push(libraryImage(image));
+    } else {
+      released.push(libraryImage(image));
+    }
+  }
+  return {images: kept, released};
 }
 
 function appendImageLine(body: string, line: string): string {

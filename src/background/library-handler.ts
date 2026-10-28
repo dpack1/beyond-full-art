@@ -2,8 +2,10 @@ import {
   libraryBlockedError,
   listFolderJournals,
   readFolderNotes,
+  readFolderPhotoCatalogFile,
   resolveLibrary,
   writeFolderNotes,
+  writeFolderPhotoCatalogFile,
 } from '../platform/chrome/folder-library';
 import {isLibraryRequest} from '../platform/chrome/folder-library-client';
 
@@ -15,9 +17,10 @@ export function installLibraryMessageHandler(): void {
       return false;
     }
     void handleLibraryRequest(rawMessage)
-        .then((records) => {
+        .then((result) => {
           sendResponse({
-            records,
+            present: result.present,
+            records: result.records,
             source: LIBRARY_MESSAGE_SOURCE,
             type: 'library:notes:success',
           });
@@ -38,8 +41,8 @@ export function installLibraryMessageHandler(): void {
 async function handleLibraryRequest(request: {
   characterId?: string;
   records?: unknown[];
-  type: 'library:list-notes' | 'library:read-notes' | 'library:write-notes';
-}): Promise<unknown[]> {
+  type: 'library:list-notes' | 'library:read-notes' | 'library:read-photos' | 'library:write-notes' | 'library:write-photos';
+}): Promise<{present?: boolean; records: unknown[]}> {
   const library = await resolveLibrary();
   if (library.kind === 'blocked') {
     throw libraryBlockedError();
@@ -49,16 +52,35 @@ async function handleLibraryRequest(request: {
   }
   switch (request.type) {
     case 'library:list-notes':
-      return listFolderJournals(library.directory);
+      return {records: await listFolderJournals(library.directory)};
     case 'library:read-notes':
-      return readFolderNotes(library.directory, requiredCharacterId(request.characterId));
+      return {
+        records: await readFolderNotes(
+            library.directory,
+            requiredCharacterId(request.characterId),
+        ),
+      };
     case 'library:write-notes':
       await writeFolderNotes(
           library.directory,
           requiredCharacterId(request.characterId),
           request.records ?? [],
       );
-      return [];
+      return {records: []};
+    case 'library:read-photos': {
+      const catalog = await readFolderPhotoCatalogFile(
+          library.directory,
+          requiredCharacterId(request.characterId),
+      );
+      return {present: catalog.present, records: catalog.images};
+    }
+    case 'library:write-photos':
+      await writeFolderPhotoCatalogFile(
+          library.directory,
+          requiredCharacterId(request.characterId),
+          request.records ?? [],
+      );
+      return {records: []};
   }
 }
 

@@ -133,7 +133,9 @@ function replaceMarkedClass(
   for (const element of root.querySelectorAll<HTMLElement>(selector)) {
     if (
       element.classList.contains('bfa-journal-row') ||
-      element.closest('[data-bfa-journal-pane-control], [data-bfa-journal-native-chrome]') !== null
+      element.closest(
+          '[data-bfa-journal-pane-control], [data-bfa-journal-native-chrome], .bfa-journal-photo-switch',
+      ) !== null
     ) {
       continue;
     }

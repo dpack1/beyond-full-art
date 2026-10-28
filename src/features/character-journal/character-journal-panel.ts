@@ -69,6 +69,7 @@ export interface PanelHandlers {
   onEdit: () => void;
   onImages: (files: readonly File[], position: {end: number; start: number}) => void;
   onInput: () => void;
+  onLibraryPick: (position: {end: number; start: number}) => void;
   onKeepBoth: () => void;
   onMention: (entryId: string) => void;
   onPick: (entryId: string) => void;
@@ -488,6 +489,36 @@ function appendEditor(
   });
   field.append(textarea);
   let pendingInsert: {end: number; start: number} | null = null;
+  const imageMenu = doc.createElement('div');
+  imageMenu.className = 'bfa-journal-image-menu';
+  imageMenu.hidden = true;
+  imageMenu.setAttribute('role', 'menu');
+  const uploadPhoto = doc.createElement('button');
+  uploadPhoto.type = 'button';
+  uploadPhoto.className = 'bfa-journal-button';
+  uploadPhoto.textContent = 'Upload photo';
+  uploadPhoto.setAttribute('role', 'menuitem');
+  const fromPhotos = doc.createElement('button');
+  fromPhotos.type = 'button';
+  fromPhotos.className = 'bfa-journal-button';
+  fromPhotos.textContent = 'From photos';
+  fromPhotos.setAttribute('role', 'menuitem');
+  imageMenu.append(uploadPhoto, fromPhotos);
+  toolbar.append(imageMenu);
+  uploadPhoto.addEventListener('click', () => {
+    imageMenu.hidden = true;
+    fileInput.click();
+  });
+  fromPhotos.addEventListener('click', () => {
+    imageMenu.hidden = true;
+    const start = Number(fileInput.dataset.bfaInsertStart);
+    const end = Number(fileInput.dataset.bfaInsertEnd);
+    const length = textarea?.value.length ?? 0;
+    const position = Number.isFinite(start) && Number.isFinite(end)
+      ? {end, start}
+      : {end: length, start: length};
+    handlers.onLibraryPick(position);
+  });
   for (const [label, kind] of formats) {
     const control = iconButton(doc, label, journalIcon(doc, FORMAT_ICONS[kind]));
     control.addEventListener('mousedown', () => {
@@ -501,9 +532,10 @@ function appendEditor(
         pendingInsert = null;
         fileInput.dataset.bfaInsertStart = String(position.start);
         fileInput.dataset.bfaInsertEnd = String(position.end);
-        fileInput.click();
+        imageMenu.hidden = !imageMenu.hidden;
         return;
       }
+      imageMenu.hidden = true;
 
       const start = textarea.selectionStart ?? textarea.value.length;
       const end = textarea.selectionEnd ?? start;

@@ -162,6 +162,7 @@ function handlers(): PanelHandlers {
     onEdit: () => undefined,
     onImages: () => undefined,
     onInput: () => undefined,
+    onLibraryPick: () => undefined,
     onKeepBoth: () => undefined,
     onMention: () => undefined,
     onNext: () => undefined,
