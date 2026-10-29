@@ -60,6 +60,7 @@ Status: complete
 - Choosing a different directory while folder mode is active requires confirmation before the stored handle can be replaced. Cancelling keeps the current library.
 - Setup resolves every conflict only after each row has a choice. Notes support Keep folder, Keep browser, Keep both, Leave deleted, and Restore. Full-art and crop conflicts select the current image while storing the other bytes as a checked `kept` file. Photo conflicts retain both byte versions, give the losing version a new id, and remap its owning note.
 - **Check folder** in the popup refreshes folder status and inventory. The Journal's icon-only **Sync folder** action refreshes an open character without replacing a dirty draft. A stale draft can be retried, discarded, or copied with independent photo ids before loading the folder note. Full-art saves refuse to overwrite a folder revision different from the SHA-256 the page loaded.
+- While the folder is the library, `settings.json` keeps the popup toggles, journal list details, companion choices, and the deleted-character art choice. The newer copy wins, so another browser that opens the same folder picks them up.
 
 ### Portrait crop workflow
 
@@ -111,6 +112,6 @@ Known caveats:
 
 Deferred follow-ups:
 
-- Companion portrait manual visual QA and release
+- Companion portrait manual visual QA. The portrait slice is in the product; `.agent/plans/extras-images.md` stays until that pass.
 - Companion name, stats, health, and controls below the character header
-- Cleanup when a character is deleted
+- Journal photo export of photos that are not in a note, and conflict choices for `photos.json`. `.agent/plans/photo-library.md` tracks that remainder.

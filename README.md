@@ -332,12 +332,12 @@ Available now:
 - Character journal (beta)
 - Journal ZIP backup and merge-safe restore from the extension popup
 - Companion portrait selected from Extras
+- Cleanup of stored art and journal data after a D&D Beyond character delete
 - A prompt to copy a journal onto a character D&D Beyond just copied
 
 Planned next:
 
 - Companion name, stats, health, and controls below the character header
-- Cleanup of local art and journal data when a D&D Beyond character is deleted
 
 ## Known limits
 
