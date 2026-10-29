@@ -32,8 +32,8 @@ These are not product ambiguities that block the MVP. They are implementation de
 ## Deletion cleanup questions
 
 - Is the characters list the only user-accessible deletion surface?
-- Is the observed endpoint and 204 status consistent across accounts and current site versions?
-- Does `chrome.webRequest` expose a DELETE JSON request body in the target Chrome version?
+- Is the observed endpoint consistent across accounts and current site versions? The 2026-08-06 headers screenshot shows 200 OK. The extension accepts 200 and 204.
+- Does `chrome.webRequest` expose a DELETE JSON request body in the target Chrome version? The cleanup path works without it. A live delete should still confirm whether the body arrives, because that path does not trust the page for the character id.
 - Can request completion be reliably correlated after service worker suspension?
 - Is the request always associated with the active tab?
 - What should an orphan-art manager look like when the user chooses to keep art after deleting a character?

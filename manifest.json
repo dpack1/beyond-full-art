@@ -12,7 +12,10 @@
   "action": {
     "default_popup": "popup/settings.html"
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "webRequest"],
+  "host_permissions": [
+    "https://character-service.dndbeyond.com/character/v5/character*"
+  ],
   "background": {
     "service_worker": "background/service-worker.js"
   },
@@ -31,6 +34,17 @@
       "matches": ["https://www.dndbeyond.com/characters*"],
       "js": ["content/card-portraits-entry.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.dndbeyond.com/characters*"],
+      "js": ["content/character-deletion-entry.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.dndbeyond.com/characters*"],
+      "js": ["content/character-deletion-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ]
 }

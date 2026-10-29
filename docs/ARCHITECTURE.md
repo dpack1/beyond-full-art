@@ -13,10 +13,10 @@ flowchart LR
     CS <--> PREFS
     SW <--> PREFS
     SW <--> ART[Extension IndexedDB\nfull image blobs]
-    SW -. later .-> NET[chrome.webRequest observer]
+    SW --> NET[chrome.webRequest observer]
 ```
 
-The shipped extension uses the D&D Beyond tab, content scripts, the settings popup, the service worker, `chrome.storage.local`, and extension-origin IndexedDB. The `chrome.webRequest` observer in the diagram is still future work for character-deletion cleanup.
+The shipped extension uses the D&D Beyond tab, content scripts, the settings popup, the service worker, `chrome.webRequest`, `chrome.storage.local`, and extension-origin IndexedDB. `webRequest` watches only the character-service character DELETE. A MAIN-world script on characters pages supplies the character id when that DELETE body is not visible to `webRequest`. That script forwards `fetch` through a function owned by the page, so a failed page request is not reported as an extension error.
 
 ## Source boundaries
 
@@ -31,6 +31,7 @@ src/
   features/
     campaign-card-portraits/
     character-art/
+    character-deletion/
     character-journal/
     crop-workflow/
     fullscreen-viewer/
@@ -732,7 +733,7 @@ The current crop implementation adds no new Chrome permissions beyond Phase 2. I
 
 ### Delete cleanup
 
-Add `webRequest` and narrow host permissions for both the D&D Beyond initiator and the character-service request origin if the validated implementation uses `chrome.webRequest`.
+The manifest requests `webRequest` and `https://character-service.dndbeyond.com/character/v5/character*`. Characters pages are already covered by the content-script matches. The listener is not blocking.
 
 Never request `<all_urls>`.
 
@@ -742,7 +743,7 @@ When uncertain, preserve data and do less:
 
 - selector not found: no page modification, development diagnostic only,
 - image URL unavailable: do not open a broken viewer,
-- request body cannot be decoded: do not delete art,
+- request body cannot be decoded and the page did not identify exactly one waiting delete: do not delete art,
 - deletion request fails: do not prompt or delete art,
 - preference cannot be loaded: default to `ask`,
 - storage deletion fails: show error and keep metadata consistent with recoverable bytes.

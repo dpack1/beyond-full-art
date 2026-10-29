@@ -15,6 +15,12 @@ import {
   setCompanionPortraitEnabled,
 } from '../platform/chrome/companion-portrait-storage';
 import {
+  CLEANUP_PREFERENCE_KEY,
+  describeCleanupPreference,
+  getCleanupPreference,
+  setCleanupPreference,
+} from '../platform/chrome/cleanup-preference';
+import {
   getJournalListPreferences,
   setJournalListPreferences,
   type JournalListPreferences,
@@ -96,11 +102,45 @@ export async function initializePopup(doc: Document): Promise<void> {
     });
   }
 
+  await installCleanupPreference(doc);
   await Promise.all([
     installBackupFolder(doc),
     installStorageUsage(doc),
     installStoredContent(doc),
   ]);
+}
+
+async function installCleanupPreference(doc: Document): Promise<void> {
+  const summary = doc.querySelector<HTMLParagraphElement>('#cleanup-preference-summary');
+  const reset = doc.querySelector<HTMLButtonElement>('#cleanup-preference-reset');
+  const status = doc.querySelector<HTMLParagraphElement>('#cleanup-preference-status');
+  if (summary === null || reset === null || status === null) {
+    return;
+  }
+  const render = async () => {
+    const preference = await getCleanupPreference();
+    summary.textContent = describeCleanupPreference(preference);
+    reset.hidden = preference === 'ask';
+  };
+  await render();
+  reset.addEventListener('click', () => {
+    void setCleanupPreference('ask')
+        .then(async () => {
+          await render();
+          renderStatus(status, 'Asking each time.', false);
+        })
+        .catch((error: unknown) => {
+          renderStatus(status, asErrorMessage(error), true);
+        });
+  });
+  if (typeof chrome !== 'undefined' && chrome.storage?.onChanged !== undefined) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local' || !Object.hasOwn(changes, CLEANUP_PREFERENCE_KEY)) {
+        return;
+      }
+      void render();
+    });
+  }
 }
 
 async function installJournalListPreferences(

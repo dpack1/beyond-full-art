@@ -5,6 +5,7 @@ import {beforeEach, describe, expect, it} from 'vitest';
 import type {JournalNote} from '../../src/features/character-journal/character-journal-types';
 import {
   deleteFolderArt,
+  eraseFolderCharacterContent,
   keepFolderArtVersion,
   readCommit,
   readFolderArtBytes,
@@ -147,6 +148,45 @@ describe('folder library tombstones', () => {
     expect((await readCommit(root.asHandle(), note.characterId))?.tombstones).toEqual([]);
     expect(root.find(['characters', note.characterId, 'journal', 'tombstones']).files.size)
         .toBe(0);
+  });
+
+  it('removes the numbered character folder and leaves other characters', async () => {
+    const root = preparedFolder();
+    const note = sessionNote();
+    const photo = note.images[0];
+    if (photo === undefined) {
+      throw new Error('The fixture photo is missing.');
+    }
+    const other = {
+      ...sessionNote(),
+      characterId: '169418374',
+      featuredImageId: null,
+      id: 'note-other',
+      images: [],
+      title: 'Other',
+    };
+    await writeFolderJournalImage(
+        root.asHandle(),
+        note.characterId,
+        photo.blobKey,
+        Uint8Array.from([4, 5, 6]),
+        'image/png',
+    );
+    await writeFolderNotes(root.asHandle(), note.characterId, [note]);
+    await saveFolderFullArt(
+        root.asHandle(),
+        artMetadata(note.characterId),
+        Uint8Array.from([8, 9]),
+    );
+    await writeFolderNotes(root.asHandle(), other.characterId, [other]);
+
+    await eraseFolderCharacterContent(root.asHandle(), note.characterId);
+
+    expect(root.find(['characters']).directories.has(note.characterId)).toBe(false);
+    expect(await readCommit(root.asHandle(), note.characterId)).toBeNull();
+    expect(await readFolderNotes(root.asHandle(), note.characterId)).toEqual([]);
+    expect((await readFolderNotes(root.asHandle(), other.characterId)).map(({id}) => id))
+        .toEqual(['note-other']);
   });
 
   it('preserves tombstones when another note is rewritten', async () => {

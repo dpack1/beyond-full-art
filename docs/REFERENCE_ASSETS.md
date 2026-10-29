@@ -6,7 +6,7 @@ Character-sheet screenshots and the layout notes live in `docs/ddb-reference/`. 
 
 ## `characters-delete-network-request.png`
 
-Chrome DevTools Network details for an observed character deletion request. It shows the character-service URL, DELETE method, and successful 204 response.
+Chrome DevTools Network details for an observed character deletion request. It shows the character-service URL, DELETE method, and successful 200 OK response.
 
 ## `characters-delete-request-payload.png`
 

@@ -66,8 +66,9 @@ As a user, I can upload the original full artwork for a character and have it st
 - Store image bytes locally in extension-origin IndexedDB.
 - Store metadata and preferences in `chrome.storage.local`. When the folder
   is the library, the same preferences are copied to `settings.json` there:
-  the popup toggles, the journal list details, and each character's chosen
-  companion. The newer copy is kept.
+  the popup toggles, the journal list details, each character's chosen
+  companion, and the deleted-character art choice (`ask`, `delete`, or
+  `keep`). The newer copy is kept.
 - Display the stored full artwork in the fullscreen viewer when available.
 - Fall back to the D&D Beyond portrait when no full artwork is stored.
 - Improve small D&D Beyond character-card avatar image URLs on campaign pages
@@ -140,12 +141,15 @@ As a user who deletes a D&D Beyond character, I can choose whether the extension
 
 ### Prompt behavior
 
-After D&D Beyond successfully deletes a character, and only when local art exists for that character, show:
+After D&D Beyond successfully deletes a character, and that character has stored full art or journal data, show the cleanup dialog. With full art, the title is:
 
 **Delete stored full art?**
 
+With journal data and no full art, the title is **Delete stored journal?** The buttons are **Delete journal** and **Keep journal**.
+
 Actions:
 
+- `Export`, when that character has a journal or photos
 - `Delete art`
 - `Keep art`
 
@@ -153,7 +157,13 @@ Checkbox:
 
 - `Remember my decision`
 
-There is no Cancel action because D&D Beyond has already processed the character deletion. The extension prompt controls only local artwork cleanup.
+There is no Cancel action because D&D Beyond has already processed the character deletion. The extension prompt controls only Beyond Full Art data.
+
+When that character has both full art and journal notes or photos, the dialog adds: "This also deletes the journal and photos. Export them first to keep them." **Delete art** then removes that journal and those photos as well. A journal with no full art uses "Export the journal first to keep the notes and photos." The extra line is left off when there is full art and no journal. **Export** downloads that character's journal zip, including photos it can read, and leaves the dialog open. It does not keep or delete the data.
+
+A confirmed delete removes that character's `characters/<character id>` folder, including notes, photos, art, `character.json`, and tombstones, and clears the same character on this browser. Other character folders stay in place.
+
+D&D Beyond's own "Delete this character?" confirmation also shows "This also deletes the journal and photos. Export them first to keep them." when that character has a journal or photos. The line is left off otherwise. It does not block D&D Beyond's Delete button.
 
 ### Remembered behavior
 
@@ -174,7 +184,7 @@ ask | delete | keep
 - Prompt only after a successful deletion response.
 - If the deletion request fails, preserve local art and do not prompt.
 - If the character ID cannot be determined confidently, preserve local art.
-- If storage deletion fails, show an error and preserve recoverability where possible.
+- If storage deletion fails, show an error and leave the dialog open. Data that was not removed stays where it was.
 
 ## Phase 5, character journal
 

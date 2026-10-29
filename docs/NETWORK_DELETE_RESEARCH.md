@@ -13,7 +13,7 @@ The screenshots in `docs/reference/` show:
 ```text
 Request URL: https://character-service.dndbeyond.com/character/v5/character
 Request method: DELETE
-Status: 204 No Content
+Status: 200 OK
 Request payload: { "characterId": 900000001 }
 ```
 
@@ -54,7 +54,7 @@ Do not use blocking listeners. The feature does not need to cancel or modify tra
 
 Chrome's webRequest documentation clearly supports requesting `requestBody`, but its documented `raw` body wording calls out PUT and POST. The observed D&D Beyond request uses DELETE with a JSON body.
 
-Therefore, do not assume the DELETE body is available through `chrome.webRequest`. Verify it in the target Chrome version.
+The 2026-10-28 implementation does not require the DELETE body. `webRequest` still has to see the DELETE complete with 200 or 204. The saved headers screenshot shows 200 OK. The character id comes from that body when it decodes to one id. Otherwise the characters-page observer can fill in the id only when that tab has exactly one completed DELETE waiting. A mismatch, a failed status, or several waiting requests keeps the stored data. A character-sheet delete navigates away as the response returns. The dialog is stored for that tab and shown again on the page that loads next.
 
 ## Fallback experiment
 
@@ -93,7 +93,7 @@ Keep the URL event filter narrower than the host permission wherever possible.
 
 ## Test matrix
 
-- Successful 204 deletion with art, preference `ask`.
+- Successful 200 or 204 deletion with art, preference `ask`.
 - Successful deletion without art.
 - Successful deletion with preference `delete`.
 - Successful deletion with preference `keep`.

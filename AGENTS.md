@@ -23,7 +23,7 @@ Before changing behavior, read:
 - `.agent/FEATURES.md` for features that have already shipped
 - `.agent/PLANS.md` and the matching ExecPlan under `.agent/plans/` for work that has not shipped
 
-For deletion-related work, also read `docs/NETWORK_DELETE_RESEARCH.md` and `.agent/plans/future-feature-character-deletion-cleanup.md`. The observed request screenshots are in `docs/reference/`. Deletion cleanup is specified and still unbuilt. Add modules for it when that phase has real behavior.
+Character-deletion cleanup is implemented. The observed request is in `docs/NETWORK_DELETE_RESEARCH.md`, and the screenshots are in `docs/reference/`. The live checklist is in `docs/TESTING.md`.
 
 ## Where things live
 
@@ -95,6 +95,7 @@ src/
     campaign-card-portraits/            sharper card avatars
     character-art/                      save, status, and portrait edit panel
     character-journal/                  beta Journal tab, slide-in notes, markdown, photos
+    character-deletion/                 prompt after a verified character delete
     crop-workflow/                      square portrait crop dialog
     fullscreen-viewer/                  accessible fullscreen overlay
   platform/chrome/                      storage, IndexedDB, runtime messages
@@ -153,17 +154,17 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - Do not guess a selector or request payload when it can be verified on the live site.
 - When an assumption is verified, document the date and the observed behavior.
 - Use `MutationObserver` narrowly. Avoid observing the entire document indefinitely when a scoped root is available.
-- Do not interfere with D&D Beyond click handlers. Avoid `preventDefault()` unless there is a demonstrated need. The Journal tab and the portrait keyboard handler are the current exceptions.
+- Do not interfere with D&D Beyond click handlers. Avoid `preventDefault()` unless there is a demonstrated need. The Journal tab, the portrait keyboard handler, and the character-deletion cleanup dialog are the current exceptions.
 - Namespace injected classes, data attributes, custom events, and element IDs with `bfa-` or `data-bfa-`.
 
 ### Chrome extension
 
 - Use Manifest V3.
 - Keep host permissions limited to the D&D Beyond origins the current feature needs.
-- Do not request `webRequest`, `unlimitedStorage`, or `downloads` before the feature that needs them is implemented.
+- Character-deletion cleanup requests `webRequest` and a host permission for the character-service delete URL. Do not request `unlimitedStorage` or `downloads` before the feature that needs them is implemented.
 - Do not execute remote code.
 - Keep stored artwork on this machine unless a product decision explicitly adds cloud sync. ADR-027: after a verified match, the chosen folder is the library for art, crops, notes, and photos. Preferences stay in `chrome.storage.local`. The directory handle stays in IndexedDB. `bfa.library.mode` is `folder` only after that match, and it is written before the browser copies are removed.
-- Store preferences in `chrome.storage.local`. While the folder is the library, `settings.json` keeps a copy of the popup toggles, journal list details, and companion choices. The newer copy wins. While the library is still this browser, art and crop metadata and journal note text live in `chrome.storage.local` too.
+- Store preferences in `chrome.storage.local`. While the folder is the library, `settings.json` keeps a copy of the popup toggles, journal list details, companion choices, and the deleted-character art choice. The newer copy wins. While the library is still this browser, art and crop metadata and journal note text live in `chrome.storage.local` too.
 - Store full image bytes in extension-origin IndexedDB until the folder is the library. After that, image bytes live in the folder. Do not store image bytes in `chrome.storage.local`.
 - Do not use page-origin localStorage or IndexedDB from a content script for extension data.
 - Treat the service worker as ephemeral. Persist state instead of relying on global memory.
@@ -181,7 +182,8 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 
 ## Gotchas
 
-- Chrome match patterns overlap. `character-sheet-entry.js` matches `/characters/*`. `card-portraits-entry.js` matches `/campaigns/*` and `/characters*`. Each entry returns immediately unless `src/platform/dndbeyond/urls.ts` recognizes its page.
+- Chrome match patterns overlap. `character-sheet-entry.js` matches `/characters/*`. `card-portraits-entry.js` matches `/campaigns/*` and `/characters*`. Each entry returns immediately unless `src/platform/dndbeyond/urls.ts` recognizes its page. `character-deletion-entry.js` and the MAIN-world `character-deletion-main.js` also match `/characters*`. The page script reports a character-service DELETE that returns 200 or 204, including when the body has no character id. The fetch call itself runs in a function the page script defines, so a failed page request is not listed as an extension error. Clicking **Delete** in D&D Beyond's confirmation names the character. The dark cleanup box opens when that click and the finished response are both seen, or when `webRequest` sees the same successful DELETE and one character id. A missing initiator is accepted for that exact URL. The saved 2026-08-06 headers screenshot shows 200 OK. `character-deletion-entry.js` runs at `document_start`, before `document.head` exists, so the dialog waits for the document to be ready.
+- The deleted-character preference is `bfa.preferences.characterDeletionCleanup`: `ask`, `delete`, or `keep`. Default is `ask`. Escape, the close button, and the backdrop keep the art once and do not remember. A failed or ambiguous delete leaves the art in place. The prompt also runs when the character has journal notes or photos and no full art. In that case it asks to delete the journal and says to export first. When both exist, the dialog says Delete art also removes the journal and photos. That line is omitted when there is no journal or photo data. The same sentence is added inside D&D Beyond's "Delete this character?" confirmation when that character has a journal or photos. A remembered `delete` still asks when a journal exists so the export line is shown. A character-sheet delete navigates away, and the dialog is claimed by the next page in that tab. **Export** on the cleanup dialog downloads that character's journal zip and leaves the dialog open. Confirming delete removes that character's `characters/<character id>` folder and the copy on this browser. Other character folders stay.
 - Full art is written only after D&D Beyond's native **Change Portrait** action. A chosen file, and a crop made from that file, stay pending until that confirmation.
 - One active full-art image is stored per character. Replacement writes the new blob before deleting the old one.
 - Supported uploads are `image/png`, `image/jpeg`, and `image/webp`, up to 3 MB. The generated crop is a 512×512 PNG.

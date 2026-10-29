@@ -109,31 +109,18 @@ Remaining work:
 
 ## Phase 4, deletion cleanup prompt
 
-Record further design changes in `docs/DECISIONS.md` before expanding this phase.
-
-### Research spike
-
-Validate the observed D&D Beyond delete request using the current Chrome version:
-
-- method and URL,
-- success status,
-- request initiator,
-- whether `chrome.webRequest.onBeforeRequest` exposes the JSON body for DELETE,
-- whether a MAIN-world fetch/XHR observer is required as a fallback,
-- behavior on retries or duplicate requests.
-
-Do not ship automatic cleanup until the character ID and successful completion can be correlated reliably.
+Implemented 2026-10-28. The service worker correlates a character-service DELETE with HTTP 200 or 204. The 2026-08-06 headers screenshot shows 200 OK. A decoded request body supplies the character id. A characters-page observer supplies it only when exactly one successful DELETE on that tab is waiting for an id. The prompt covers full art and journal data, and **Export** downloads that journal without closing the dialog. Confirming delete removes that character's `characters/<character id>` folder and the copy on this browser. A sheet delete navigates away, and the next page in that tab shows the dialog. The live checklist in `docs/TESTING.md` still needs a successful pass.
 
 ### Work items
 
-1. Implement a narrow delete-request adapter.
-2. Capture candidate character ID without blocking or modifying the request.
-3. Correlate candidate data with successful completion.
-4. Check whether local art exists.
-5. Apply global cleanup preference: `ask`, `delete`, or `keep`.
-6. Build the two-action cleanup dialog with `Remember my decision`.
-7. Add a setting to reset cleanup behavior to `ask`.
-8. Add tests for decoding, request correlation, preference transitions, and failures.
+1. Narrow delete-request adapter.
+2. Candidate character ID captured without blocking or modifying the request.
+3. Candidate data correlated with successful completion.
+4. Local art check.
+5. Global cleanup preference: `ask`, `delete`, or `keep`.
+6. Two-action cleanup dialog with `Remember my decision`.
+7. Popup control to reset cleanup behavior to `ask`.
+8. Tests for decoding, request correlation, preference transitions, and failures.
 
 ### Exit criteria
 
