@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const distRoot = path.join(repoRoot, 'dist');
 const isWatchMode = process.argv.includes('--watch');
+const sourcemap = !process.argv.includes('--release');
 
 const rawCssPlugin = {
   name: 'raw-css',
@@ -104,7 +105,7 @@ async function buildOnce() {
       outfile: 'dist/content/character-sheet-entry.js',
       platform: 'browser',
       plugins: [rawCssPlugin],
-      sourcemap: true,
+      sourcemap,
       target: 'chrome114',
     }),
     esbuild.build({
@@ -115,7 +116,7 @@ async function buildOnce() {
       outfile: 'dist/content/card-portraits-entry.js',
       platform: 'browser',
       plugins: [rawCssPlugin],
-      sourcemap: true,
+      sourcemap,
       target: 'chrome114',
     }),
     esbuild.build(characterDeletionBuildOptions('src/content/character-deletion-entry.ts', 'dist/content/character-deletion-entry.js')),
@@ -129,7 +130,7 @@ async function buildOnce() {
       outfile: 'dist/background/service-worker.js',
       platform: 'browser',
       plugins: [rawCssPlugin],
-      sourcemap: true,
+      sourcemap,
       target: 'chrome114',
     }),
     esbuild.build({
@@ -140,7 +141,7 @@ async function buildOnce() {
       outfile: 'dist/popup/settings.js',
       platform: 'browser',
       plugins: [rawCssPlugin],
-      sourcemap: true,
+      sourcemap,
       target: 'chrome114',
     }),
     esbuild.build(folderSetupBuildOptions()),
@@ -156,7 +157,7 @@ function characterDeletionBuildOptions(entryPoint, outfile) {
     outfile,
     platform: 'browser',
     plugins: [rawCssPlugin],
-    sourcemap: true,
+    sourcemap,
     target: 'chrome114',
   };
 }
@@ -170,7 +171,7 @@ function folderSetupBuildOptions() {
     outfile: 'dist/folder/setup.js',
     platform: 'browser',
     plugins: [rawCssPlugin],
-    sourcemap: true,
+    sourcemap,
     target: 'chrome114',
   };
 }
@@ -197,7 +198,7 @@ async function main() {
     outfile: 'dist/content/character-sheet-entry.js',
     platform: 'browser',
     plugins: [rawCssPlugin],
-    sourcemap: true,
+    sourcemap,
     target: 'chrome114',
   });
 
@@ -209,7 +210,7 @@ async function main() {
     outfile: 'dist/background/service-worker.js',
     platform: 'browser',
     plugins: [rawCssPlugin],
-    sourcemap: true,
+    sourcemap,
     target: 'chrome114',
   });
 
@@ -221,7 +222,7 @@ async function main() {
     outfile: 'dist/content/card-portraits-entry.js',
     platform: 'browser',
     plugins: [rawCssPlugin],
-    sourcemap: true,
+    sourcemap,
     target: 'chrome114',
   });
 
@@ -233,7 +234,7 @@ async function main() {
     outfile: 'dist/popup/settings.js',
     platform: 'browser',
     plugins: [rawCssPlugin],
-    sourcemap: true,
+    sourcemap,
     target: 'chrome114',
   });
 

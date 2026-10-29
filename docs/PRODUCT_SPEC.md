@@ -295,7 +295,7 @@ a single long native notes field.
   box's native section while Journal is open. The note panel uses the
   right-hand slide-in's edge controls: close and back sit outside the
   content box.
-- There is no cloud sync, no GM view, and no D&D Beyond field sync.
+- The extension does not upload art or notes to its own server. A backup folder the user chose can sit in a folder another service syncs, such as Google Drive. There is no GM view and no D&D Beyond field sync.
 
 ### Deferred product decisions
 
