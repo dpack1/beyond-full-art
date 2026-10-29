@@ -695,7 +695,7 @@ The exact method for obtaining the character ID must be validated. See `NETWORK_
 
 ## Message design
 
-Use a discriminated union and validate every message at runtime at the receiving boundary.
+Use a discriminated union and validate every message at runtime at the receiving boundary. Privileged background listeners also require the sender to be this extension and the sender URL to be either an extension page or one of the D&D Beyond character and campaign surfaces declared in the manifest.
 
 ```ts
 type ExtensionMessage =
@@ -711,6 +711,11 @@ type ExtensionMessage =
 ```
 
 Do not trust custom DOM events or page-origin messages as privileged instructions. Validate type, shape, origin assumptions, and current tab context.
+
+The journal is extension-owned storage, but its visible UI is inserted into the
+D&D Beyond document. DOM text and image URLs displayed there may be observable
+to scripts already running on that page. Do not treat rendered journal content
+as isolated from the host page; the privacy policy discloses this boundary.
 
 ## Permissions strategy
 

@@ -27,7 +27,7 @@ Status: implemented, pending a live delete check
 - When that character has both, the dialog says the journal and photos will be deleted too and to export them first. Delete art then removes them. A journal with no full art asks to delete the journal and says to export first. **Export** on that dialog downloads the journal zip and leaves the choice open.
 - Can remember Delete art or Keep art, and the popup can return the choice to asking each time. A remembered delete still asks when a journal exists.
 - Leaves the stored data in place when the delete fails, the character id is unclear, or nothing is stored. A character-sheet delete navigates away, and the next page in that tab shows the dialog.
-- A successful delete is HTTP 200 or 204 on the character-service character DELETE. The 2026-08-06 headers screenshot shows 200 OK.
+- A successful delete is HTTP 200 or 204 on the character-service character DELETE. The sanitized 2026-08-06 research record notes 200 OK.
 - Confirming delete removes that character's `characters/<character id>` folder and the copy on this browser. Other character folders stay. Deleting one photo from the journal still leaves that photo file and hides it with a tombstone.
 
 ### Fullscreen portrait viewer

@@ -3,6 +3,7 @@ import {installDeletionCleanup} from './deletion-cleanup';
 import {installJournalImageMessageHandler} from './journal-image-handler';
 import {installLibraryMessageHandler} from './library-handler';
 import {installFolderSettingsSync} from '../platform/chrome/folder-settings';
+import {isTrustedMessageSender} from './message-sender';
 import type {
   CharacterArtMetadata,
   CharacterPortraitCropMetadata,
@@ -59,7 +60,10 @@ installFolderSettingsSync();
 installDeletionCleanup({deleteArt: deleteCharacterArt});
 installCharacterCopy();
 
-chrome.runtime.onMessage.addListener((rawMessage, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((rawMessage, sender, sendResponse) => {
+  if (!isTrustedMessageSender(sender)) {
+    return false;
+  }
   const request = asCharacterArtRequest(rawMessage);
   if (request === null) {
     if (isMalformedCharacterArtMessage(rawMessage)) {

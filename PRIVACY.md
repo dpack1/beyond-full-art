@@ -25,12 +25,18 @@ On D&D Beyond pages the extension is allowed to run, it reads the page so it can
 
 The host permission is limited to `https://character-service.dndbeyond.com/character/v5/character*`. The `webRequest` permission watches that address. The page script reads the finished delete or copy response in the page. Those ids and statuses are used on your machine. They are not forwarded anywhere else.
 
+The journal and stored artwork are displayed inside the D&D Beyond page. Like any content inserted by a browser extension, that displayed DOM can be observed by D&D Beyond and other scripts already running on that page. Do not put passwords, authentication tokens, or other secrets in a journal note. Beyond Full Art does not intentionally expose journal data through page messages or send it over the network.
+
+## Limited Use
+
+Beyond Full Art's use of information received from Chrome APIs and D&D Beyond is limited to providing and improving the extension's single purpose described above. The extension does not sell user data, use it for advertising or credit decisions, or transfer it to third parties. The developer does not read locally stored user data unless a user explicitly chooses to share specific material for support. Beyond Full Art's use of information received from Chrome APIs adheres to the Chrome Web Store User Data Policy, including the Limited Use requirements.
+
 ## What is not collected
 
 - no analytics
 - no advertising
 - no remote code
-- no account, email, or payment data
+- no intentional collection or storage of account, email, or payment data
 - no copy of your D&D Beyond password or session sent off the page
 
 ## Removing data

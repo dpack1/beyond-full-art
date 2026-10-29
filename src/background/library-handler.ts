@@ -8,11 +8,15 @@ import {
   writeFolderPhotoCatalogFile,
 } from '../platform/chrome/folder-library';
 import {isLibraryRequest} from '../platform/chrome/folder-library-client';
+import {isTrustedMessageSender} from './message-sender';
 
 const LIBRARY_MESSAGE_SOURCE = 'beyond-full-art-library';
 
 export function installLibraryMessageHandler(): void {
-  chrome.runtime.onMessage.addListener((rawMessage, _sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((rawMessage, sender, sendResponse) => {
+    if (!isTrustedMessageSender(sender)) {
+      return false;
+    }
     if (!isLibraryRequest(rawMessage)) {
       return false;
     }

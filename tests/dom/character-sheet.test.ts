@@ -27,6 +27,7 @@ import {EXTRAS_COMPANION_FIXTURE} from '../fixtures/extras-companion';
 
 describe('character sheet enhancement', () => {
   const originalCreateObjectUrl = URL.createObjectURL;
+  const originalCrypto = globalThis.crypto;
   const originalRevokeObjectUrl = URL.revokeObjectURL;
 
   beforeEach(() => {
@@ -50,6 +51,14 @@ describe('character sheet enhancement', () => {
     };
     URL.createObjectURL = vi.fn(() => 'blob:stored-full-art');
     URL.revokeObjectURL = vi.fn();
+    Object.defineProperty(globalThis, 'crypto', {
+      configurable: true,
+      value: {
+        subtle: {
+          digest: vi.fn(async () => new ArrayBuffer(32)),
+        },
+      },
+    });
   });
 
   afterEach(() => {
@@ -61,6 +70,10 @@ describe('character sheet enhancement', () => {
     window.history.replaceState({}, '', '/');
     URL.createObjectURL = originalCreateObjectUrl;
     URL.revokeObjectURL = originalRevokeObjectUrl;
+    Object.defineProperty(globalThis, 'crypto', {
+      configurable: true,
+      value: originalCrypto,
+    });
     vi.restoreAllMocks();
   });
 
@@ -123,7 +136,9 @@ describe('character sheet enhancement', () => {
     const portrait = document.querySelector<HTMLImageElement>('.ddbc-character-avatar__portrait');
 
     portrait?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await vi.waitFor(() => {
+      expect(document.querySelectorAll('.bfa-viewer-secondary-action')).toHaveLength(2);
+    });
 
     const actionButtons = Array.from(
         document.querySelectorAll<HTMLButtonElement>('.bfa-viewer-secondary-action'),
@@ -450,7 +465,9 @@ describe('character sheet enhancement', () => {
     });
 
     const cleanup = installCharacterSheetEnhancement(document);
-    await nextTask();
+    await vi.waitFor(() => {
+      expect(document.querySelector('[data-bfa-companion-select]')).not.toBeNull();
+    });
     const checkbox = document.querySelector<HTMLInputElement>(
         '[data-bfa-companion-select] input',
     );
@@ -459,7 +476,9 @@ describe('character sheet enhancement', () => {
     expect(document.querySelector('[data-bfa-companion-overlay]')).toBeNull();
 
     checkbox?.click();
-    await nextTask();
+    await vi.waitFor(() => {
+      expect(document.querySelector('[data-bfa-companion-overlay]')).not.toBeNull();
+    });
 
     const overlay = document.querySelector<HTMLImageElement>(
         '[data-bfa-companion-overlay]',
@@ -474,10 +493,11 @@ describe('character sheet enhancement', () => {
     overlay?.click();
     expect(rowClicks).toBe(1);
     overlay?.dispatchEvent(new Event('error'));
-    await nextTask();
-    expect(document.querySelector<HTMLImageElement>(
-        '[data-bfa-companion-overlay]',
-    )?.hidden).toBe(true);
+    await vi.waitFor(() => {
+      expect(document.querySelector<HTMLImageElement>(
+          '[data-bfa-companion-overlay]',
+      )?.hidden).toBe(true);
+    });
     expect(await readStorage('bfa.companionPortrait.selection.169418374'))
         .toEqual(expect.objectContaining({
           characterId: '169418374',
@@ -501,10 +521,10 @@ describe('character sheet enhancement', () => {
     document.querySelector('.ct-content-group')?.remove();
 
     const cleanup = installCharacterSheetEnhancement(document);
-    await nextTask();
-
-    expect(document.querySelector<HTMLImageElement>('[data-bfa-companion-overlay]')?.alt)
-        .toBe('Petali companion portrait');
+    await vi.waitFor(() => {
+      expect(document.querySelector<HTMLImageElement>('[data-bfa-companion-overlay]')?.alt)
+          .toBe('Petali companion portrait');
+    });
 
     cleanup();
   });
@@ -519,19 +539,20 @@ describe('character sheet enhancement', () => {
     document.body.innerHTML = EXTRAS_COMPANION_FIXTURE;
 
     const cleanup = installCharacterSheetEnhancement(document);
-    await nextTask();
-    expect(document.querySelector('[data-bfa-companion-select]')).toBeNull();
-    expect(document.querySelector('[data-bfa-companion-overlay]')).toBeNull();
+    await vi.waitFor(() => {
+      expect(document.querySelector('[data-bfa-companion-select]')).toBeNull();
+      expect(document.querySelector('[data-bfa-companion-overlay]')).toBeNull();
+    });
 
     storage.local.set({
       'bfa.preferences.companionPortraitEnabled': true,
     }, () => {});
-    await nextTask();
-
-    expect(document.querySelector<HTMLInputElement>(
-        '[data-bfa-companion-select] input',
-    )?.checked).toBe(true);
-    expect(document.querySelector('[data-bfa-companion-overlay]')).not.toBeNull();
+    await vi.waitFor(() => {
+      expect(document.querySelector<HTMLInputElement>(
+          '[data-bfa-companion-select] input',
+      )?.checked).toBe(true);
+      expect(document.querySelector('[data-bfa-companion-overlay]')).not.toBeNull();
+    });
 
     cleanup();
   });

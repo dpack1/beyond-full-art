@@ -96,20 +96,22 @@ export function observeExtrasCompanionTargets(
     callback: (targets: ExtrasCompanionTargets) => void,
     doc: Document = document,
 ): Cleanup {
-  let queued = false;
+  let notifyTimer: number | null = null;
   const notify = () => {
-    queued = false;
+    notifyTimer = null;
     callback({
       companions: findExtrasCompanionTargets(doc),
       header: findCharacterHeaderPortrait(doc),
     });
   };
   const queueNotify = () => {
-    if (queued) {
+    if (notifyTimer !== null) {
       return;
     }
-    queued = true;
-    queueMicrotask(notify);
+    // Reconciliation adds extension-owned children under the observed sheet.
+    // Waiting for the next task prevents those mutations from creating an
+    // unbounded MutationObserver microtask loop.
+    notifyTimer = doc.defaultView?.setTimeout(notify, 0) ?? null;
   };
 
   notify();
@@ -119,7 +121,10 @@ export function observeExtrasCompanionTargets(
 
   return () => {
     observer.disconnect();
-    queued = false;
+    if (notifyTimer !== null) {
+      doc.defaultView?.clearTimeout(notifyTimer);
+      notifyTimer = null;
+    }
   };
 }
 

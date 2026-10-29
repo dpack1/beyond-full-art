@@ -22,9 +22,13 @@ import {
   getStoredCharacterArtBlob,
   putStoredCharacterArtBlob,
 } from '../platform/chrome/indexed-db';
+import {isTrustedMessageSender} from './message-sender';
 
 export function installJournalImageMessageHandler(): void {
-  chrome.runtime.onMessage.addListener((rawMessage, _sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((rawMessage, sender, sendResponse) => {
+    if (!isTrustedMessageSender(sender)) {
+      return false;
+    }
     const request = asJournalImageRequest(rawMessage);
     if (request === null) {
       if (isMalformedJournalImageMessage(rawMessage)) {

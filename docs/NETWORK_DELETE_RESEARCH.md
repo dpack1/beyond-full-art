@@ -8,19 +8,19 @@ Observed from Chrome DevTools on 2026-08-06 while deleting a character from:
 https://www.dndbeyond.com/characters
 ```
 
-The screenshots in `docs/reference/` show:
+The sanitized observation recorded during that check was:
 
 ```text
 Request URL: https://character-service.dndbeyond.com/character/v5/character
 Request method: DELETE
 Status: 200 OK
-Request payload: { "characterId": 900000001 }
+Request payload: { "characterId": "<character id>" }
 ```
 
-Reference files:
-
-- `docs/reference/characters-delete-network-request.png`
-- `docs/reference/characters-delete-request-payload.png`
+The original DevTools captures were removed before public release because a
+headers view included short-lived response cookies and the payload identified
+a private test character. Do not commit browser network captures without
+redacting cookies, authorization headers, account data, and private ids.
 
 This is an observed private-site behavior, not a supported public API contract.
 
@@ -54,7 +54,7 @@ Do not use blocking listeners. The feature does not need to cancel or modify tra
 
 Chrome's webRequest documentation clearly supports requesting `requestBody`, but its documented `raw` body wording calls out PUT and POST. The observed D&D Beyond request uses DELETE with a JSON body.
 
-The 2026-10-28 implementation does not require the DELETE body. `webRequest` still has to see the DELETE complete with 200 or 204. The saved headers screenshot shows 200 OK. The character id comes from that body when it decodes to one id. Otherwise the characters-page observer can fill in the id only when that tab has exactly one completed DELETE waiting. A mismatch, a failed status, or several waiting requests keeps the stored data. A character-sheet delete navigates away as the response returns. The dialog is stored for that tab and shown again on the page that loads next.
+The 2026-10-28 implementation does not require the DELETE body. `webRequest` still has to see the DELETE complete with 200 or 204. The observed response was 200 OK. The character id comes from that body when it decodes to one id. Otherwise the characters-page observer can fill in the id only when that tab has exactly one completed DELETE waiting. A mismatch, a failed status, or several waiting requests keeps the stored data. A character-sheet delete navigates away as the response returns. The dialog is stored for that tab and shown again on the page that loads next.
 
 ## Fallback experiment
 

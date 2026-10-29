@@ -249,6 +249,9 @@ a single long native notes field.
 - Link notes with `[[Name]]`. A unique title opens that note. A missing title
   can become a placeholder. Duplicate titles ask which note to open.
 - Keep journal data separate from D&D Beyond notes, backstory, and extras.
+- Tell users that journal content displayed in the D&D Beyond page may be
+  visible to scripts already running on that page, and advise against storing
+  passwords or authentication tokens in notes.
 - Preserve unsaved editor text when a save fails.
 - Preserve entries when a delete fails.
 - Export every locally stored character journal from the extension popup as a ZIP of Markdown notes, photos, and recovery data that remains readable without D&D Beyond or the extension.

@@ -41,6 +41,7 @@ import {
   characterIdFromWebRequestBody,
   isWatchedCharacterDeletion,
 } from '../features/character-deletion/deletion-request';
+import {isTrustedMessageSender} from './message-sender';
 
 const SESSION_KEY = 'bfa.deletionCleanup.state';
 const PROMPT_TTL_MS = 30 * 60 * 1000;
@@ -155,6 +156,9 @@ class DeletionCleanupRuntime {
       sender: chrome.runtime.MessageSender,
       sendResponse: (response: unknown) => void,
   ): boolean {
+    if (!isTrustedMessageSender(sender)) {
+      return false;
+    }
     const tabId = sender.tab?.id;
     if (asCleanupClaim(message) !== null && tabId !== undefined) {
       this.afterHydration(() => {

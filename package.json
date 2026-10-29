@@ -30,11 +30,12 @@
     "@types/chrome": "^0.1.17",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^24.3.0",
-    "esbuild": "^0.25.9",
+    "esbuild": "^0.28.2",
     "fake-indexeddb": "^6.0.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vite": "6.4.5",
+    "vitest": "4.1.12"
   },
   "dependencies": {
     "marked": "15.0.12"

@@ -1,15 +1,11 @@
 # Reference Assets
 
-These files live in `docs/reference/`. They are evidence for deletion-cleanup research, not extension artwork.
+Deletion-cleanup research is recorded as sanitized text in
+`docs/NETWORK_DELETE_RESEARCH.md`. Raw browser network captures are not kept in
+the repository because headers and payloads can contain cookies, account data,
+and private character identifiers.
 
 Character-sheet screenshots and the layout notes live in `docs/ddb-reference/`. The reference character is Matilda Greywolf.
 
-## `characters-delete-network-request.png`
-
-Chrome DevTools Network details for an observed character deletion request. It shows the character-service URL, DELETE method, and successful 200 OK response.
-
-## `characters-delete-request-payload.png`
-
-Chrome DevTools Payload view for the same request. It shows a JSON object containing `characterId`.
-
-These images are evidence of behavior observed on 2026-08-06. They are not a guarantee that D&D Beyond will preserve the same private endpoint or payload.
+The 2026-08-06 observation is not a guarantee that D&D Beyond will preserve
+the same private endpoint or payload.

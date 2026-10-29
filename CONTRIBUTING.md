@@ -23,9 +23,12 @@ Load `dist/` from `chrome://extensions`. The human steps are in [README.md](READ
 - Keep character ids as strings.
 - Keep Chrome permissions as narrow as the feature needs.
 - Do not commit `dist/`, `release/`, `node_modules/`, or `test-results/`.
+- Do not commit browser profiles, storage state, credentials, cookies, or raw
+  DevTools network captures. Redact authorization and cookie headers, account
+  data, and private character ids before adding a screenshot.
 
 A change to storage, requests, or selectors needs `npm run typecheck`, `npm test`, and `npm run build`. Content-script changes also need `npm run test:e2e` when a local fixture can see them.
 
 ## Reports
 
-Bugs and features go to [GitHub issues](https://github.com/dpack1/beyond-full-art/issues). Security reports follow [SECURITY.md](SECURITY.md). Please leave out character files, session cookies, and backup-folder contents.
+Bugs and features go to [GitHub issues](https://github.com/dpack1/beyond-full-art/issues). Security reports follow [SECURITY.md](SECURITY.md). Please leave out character files, session cookies, backup-folder contents, and other private data.

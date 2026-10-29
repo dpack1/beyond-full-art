@@ -7,7 +7,7 @@ export const CHARACTER_DELETION_URL_PATTERN =
   'https://character-service.dndbeyond.com/character/v5/character*';
 export const CHARACTER_DELETION_INITIATOR = 'https://www.dndbeyond.com';
 
-// The 2026-08-06 headers screenshot shows 200 OK with a JSON content type.
+// The sanitized 2026-08-06 research record notes 200 OK with a JSON content type.
 // 204 remains accepted in case the service answers with no content.
 export function isCharacterDeletionSuccessStatus(status: unknown): status is 200 | 204 {
   return status === 200 || status === 204;

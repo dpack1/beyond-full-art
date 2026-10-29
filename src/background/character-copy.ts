@@ -1,5 +1,6 @@
 import {characterHasJournalOrPhotos} from './cleanup-journal';
 import {duplicateCharacterJournal} from './duplicate-character-journal';
+import {isTrustedMessageSender} from './message-sender';
 import {
   asCopyClaim,
   asCopyClicked,
@@ -51,6 +52,9 @@ class CharacterCopyRuntime {
       sender: chrome.runtime.MessageSender,
       sendResponse: (response: unknown) => void,
   ): boolean {
+    if (!isTrustedMessageSender(sender)) {
+      return false;
+    }
     const tabId = sender.tab?.id;
     if (asCopyClaim(message) !== null && tabId !== undefined) {
       this.afterHydration(() => {

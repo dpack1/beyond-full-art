@@ -69,7 +69,7 @@ Status: Accepted
 Prefer the completed D&D Beyond deletion request over delete-button markup.
 The 2026-08-06 observation remains the contract: DELETE
 `https://character-service.dndbeyond.com/character/v5/character` returning
-200 OK, with one JSON `characterId`. The headers screenshot shows 200, and
+200 OK, with one JSON `characterId`. The sanitized research record notes 200, and
 204 is also accepted. Chrome's documented `requestBody` wording
 covers PUT and POST, so the service worker accepts a decoded `webRequest`
 body when it contains one id. When that body is missing, it accepts the id
@@ -638,3 +638,23 @@ Why:
 - Players who value richer summaries can opt into only the details they use.
 - One global preference object keeps display choices out of character records
   and avoids a journal schema migration.
+
+## ADR-031: Privileged background messages require a trusted sender
+
+Status: Accepted
+
+Every service-worker listener that can read, write, or delete art, journals,
+photos, folder-library records, or cleanup state validates both the runtime
+message shape and its `MessageSender`. The sender must have this extension's
+runtime id and a URL belonging either to this extension or to the supported
+D&D Beyond character and campaign surfaces in the manifest.
+
+Why:
+
+- Content-script messages cross a privileged boundary and must be treated as
+  attacker-controlled even when their payload has the expected shape.
+- A shared validator keeps popup, folder setup, and content-script callers
+  explicit without granting arbitrary web origins access to stored data.
+- The journal still renders into the host page DOM, so its visible content is
+  not a secret from scripts already on that page. That limitation belongs in
+  the privacy policy rather than being hidden by the message boundary.

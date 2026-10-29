@@ -109,7 +109,7 @@ Remaining work:
 
 ## Phase 4, deletion cleanup prompt
 
-Implemented 2026-10-28. The service worker correlates a character-service DELETE with HTTP 200 or 204. The 2026-08-06 headers screenshot shows 200 OK. A decoded request body supplies the character id. A characters-page observer supplies it only when exactly one successful DELETE on that tab is waiting for an id. The prompt covers full art and journal data, and **Export** downloads that journal without closing the dialog. Confirming delete removes that character's `characters/<character id>` folder and the copy on this browser. A sheet delete navigates away, and the next page in that tab shows the dialog. The live checklist in `docs/TESTING.md` still needs a successful pass.
+Implemented 2026-10-28. The service worker correlates a character-service DELETE with HTTP 200 or 204. The sanitized 2026-08-06 research record notes 200 OK. A decoded request body supplies the character id. A characters-page observer supplies it only when exactly one successful DELETE on that tab is waiting for an id. The prompt covers full art and journal data, and **Export** downloads that journal without closing the dialog. Confirming delete removes that character's `characters/<character id>` folder and the copy on this browser. A sheet delete navigates away, and the next page in that tab shows the dialog. The live checklist in `docs/TESTING.md` still needs a successful pass.
 
 ### Work items
 
