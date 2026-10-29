@@ -45,15 +45,18 @@ phase after the portrait selection and remount behavior are reliable.
 
 ## Current state
 
-- The portrait-only first slice is implemented in the character-sheet content
-  script, popup, selector map, D&D Beyond adapter, and focused storage module.
+- The portrait-only first slice is in the product: character-sheet content
+  script, popup, selector map, D&D Beyond adapter, storage, README, and the
+  local Playwright fixture. It is not listed as shipped in
+  `.agent/FEATURES.md` yet.
 - The saved Matilda/Petali fixture covers the verified header portrait and
   Extras row structure used by selector-health and DOM tests.
 - Live inspection on 2026-10-22 found no stable Extra ID in the row. The
   adapter uses normalized group, name, and type, adding the exact image URL
   only when duplicate base identities occur.
-- Automated non-browser validation is complete. Manual visual QA on the
-  unpacked build remains before this moves to `.agent/FEATURES.md` as shipped.
+- Manual visual QA on a live sheet is still the open milestone. The stat,
+  health, and control row under the header was never started. This plan stays
+  for those two pieces.
 
 ## External assumptions
 
@@ -354,6 +357,8 @@ Rollback:
   Chrome-based tests are not to be run on this computer at Dylan's request.
 - 2026-10-23: Replaced the abandoned compact-stat/HP direction with a simple
   overlay shortcut that opens the selected Extra's native sidebar.
+- 2026-10-29: Rechecked the plans directory. M1 through M6 are in the product.
+  M7 live visual QA and the header stat row are still open, so this plan stays.
 
 ## Decision log
 

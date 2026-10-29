@@ -27,11 +27,17 @@ Explicitly excluded:
 
 ## Current state
 
-Journal photos are records on a note. The body places one with `![[img:<id>]]`, optionally `![[img:<id>|caption|300]]`. Bytes live in extension-origin IndexedDB until the folder is the library, then in `characters/<characterId>/journal/images/<imageId>.<ext>`. ADR-024 appends a missing embed when the journal opens, marks a removed embed orphaned on the next save, and deletes that blob on a save at least 30 seconds later. Deleting the note deletes its blobs immediately.
+The Journal has a **Notes** / **Photos** switch, a thumbnail grid, **Add photo**, **From photos**, **Remove from note**, and **Delete photo**. A photo belongs to the character. Unlinking it keeps the file. The catalog is `bfa.journal.library.<characterId>` on this browser and `characters/<characterId>/journal/photos.json` when the folder is the library. ADR-029 records that.
 
-The Journal toolbar is Search, Filter, Sync folder, and New Note. The note formatting bar has an **Image** control that opens the file picker. The full-screen viewer has **Remove photo** and **Close photo**. There is no character-level photo catalog and no grid.
+Still open:
 
-The sheet's secondary tab row sits under the main tabs. Notes uses it for All, Orgs, Allies, Enemies, Backstory, and Other. Inventory uses that same row to switch **My Inventory** and **Party Inventory**. The mapped classes are `ddbc-tab-list__nav-item` and `ddbc-tab-list__nav-item--is-active`. The Inventory row's exact markup is not yet in `docs/ddb-reference/`.
+- The live Inventory row was not captured into `docs/ddb-reference/`. The switch copies that row when **My Inventory** is on the page and otherwise uses the mapped tab-item classes.
+- Export still collects photos from note records. A photo that is only in the catalog is not in the zip.
+- Folder conflict handling does not offer a choice for `photos.json`.
+
+## Previous state
+
+Journal photos started as records on a note. The body places one with `![[img:<id>]]`, optionally `![[img:<id>|caption|300]]`. Bytes live in extension-origin IndexedDB until the folder is the library, then in `characters/<characterId>/journal/images/<imageId>.<ext>`. The old orphan delete, which removed an unlinked blob about 30 seconds after save, has stopped.
 
 ## External assumptions
 
@@ -116,11 +122,11 @@ The catalog's on-disk shape is part of the first storage slice. An image file th
 
 ## Milestones
 
-- [ ] **M1: Inventory nav reference.** Confirm the **My Inventory** / **Party Inventory** row, update `docs/ddb-reference/README.md`, and add the selector-map entry only if the existing tab-item classes are not enough.
-- [ ] **M2: Photo catalog.** Add the character catalog, copy existing note photos once with ids preserved, and stop orphan deletion. Unlink leaves the file. Tests cover catalog, unlink, and delete.
-- [ ] **M3: Photos view.** Secondary tab row, grid, search, filter, add, empty states, full-screen view, **Used in**, and delete confirmation.
-- [ ] **M4: Note integration.** **Upload photo**, **From photos**, and **Remove from note**.
-- [ ] **M5: Folder, export, and conflicts.** The catalog round-trips in the folder. An unused photo survives sync. Export includes it. Docs that say a photo belongs to one note, and the ADR-024 orphan delete, update in this slice.
+- [ ] **M1: Inventory nav reference.** Confirm the **My Inventory** / **Party Inventory** row, update `docs/ddb-reference/README.md`, and add the selector-map entry only if the existing tab-item classes are not enough. The switch is built. The live row is still not in the sheet reference.
+- [x] **M2: Photo catalog.** Add the character catalog, copy existing note photos once with ids preserved, and stop orphan deletion. Unlink leaves the file. Tests cover catalog, unlink, and delete.
+- [x] **M3: Photos view.** Secondary tab row, grid, search, filter, add, empty states, full-screen view, **Used in**, and delete confirmation.
+- [x] **M4: Note integration.** **Upload photo**, **From photos**, and **Remove from note**.
+- [ ] **M5: Folder, export, and conflicts.** `photos.json` is written for this computer. An unused photo is not yet included in export. Conflict choices for that file are still open. ADR-029 records the catalog and says those two pieces are not part of that decision.
 
 M2's tests land before M3. Folder behavior in M5 lands before a delete from Photos can run while the folder is the library.
 
@@ -173,6 +179,7 @@ Rollback of the UI is removing the Photos view and the note menu. Rollback of st
 - 2026-10-28: The sketch asked for a hub of photos that are in notes and photos that are not. The flow puts that hub in the Journal.
 - 2026-10-28: The view switch reuses the Inventory secondary nav (**My Inventory** / **Party Inventory**), above the search row.
 - 2026-10-28: The catalog, the Notes / Photos switch, the grid, and the note Image menu are in the reload build. Unlinking a photo keeps the file. `journal/photos.json` is written for this computer. Export of unused photos and conflict choices for that file are still open. The live Inventory row was not captured; the switch copies it when **My Inventory** is on the page and otherwise uses the mapped tab-item classes.
+- 2026-10-29: Rechecked the plans directory. M2, M3, and M4 match the code. M1 and M5 are the remainder, so this plan stays.
 
 ## Decision log
 
