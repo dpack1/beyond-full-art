@@ -2,7 +2,9 @@
   "manifest_version": 3,
   "name": "Beyond Full Art",
   "version": "0.1.1",
-  "description": "A Better D&D Beyond Experience For Players - Better Character Art Experience, Added Character Journals, and More!",
+  "description": "Unofficial D&D Beyond companion for local character art, journals, and portraits.",
+  "homepage_url": "https://github.com/dpack1/beyond-full-art",
+  "minimum_chrome_version": "114",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",

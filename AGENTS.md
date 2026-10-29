@@ -34,7 +34,9 @@ Character-deletion cleanup is implemented. The observed request is in `docs/NETW
 | `.agent/FEATURES.md` | Shipped features |
 | `.agent/PLANS.md` and `.agent/plans/` | Future work that has not shipped |
 | `docs/ddb-reference/` | D&D Beyond sheet structure, look, and the hooks the extension uses |
-| `docs/` | Spec, architecture, decisions, testing, and deletion research |
+| `docs/` | Spec, architecture, decisions, testing, deletion research, and store publishing |
+| `PRIVACY.md` | The privacy policy linked from the store listing |
+| `docs/PUBLISHING.md` | How to build the Chrome Web Store zip |
 
 ## Setup
 
@@ -47,7 +49,7 @@ npm install
 
 ## Build and load the unpacked extension
 
-Follow [Install](README.md#install) in the README. Chrome loads `dist/`, not the repository root. `npm run watch` is described under [Start and stop](README.md#start-and-stop).
+Follow [Install](README.md#install) in the README. Chrome loads `dist/`, not the repository root. `npm run watch` is described under [Start and stop](README.md#start-and-stop). `npm run package` writes the Chrome Web Store zip. The steps are in `docs/PUBLISHING.md`. Do not commit `dist/` or `release/`.
 
 After a source change, let the build finish, click **Reload** on the extension card, and refresh the D&D Beyond tab.
 
@@ -115,6 +117,7 @@ docs/ddb-reference/                     live sheet structure; sidebar.md is the 
 assets/icons/                           extension icons; icon-source.png is the master
 assets/readme/                          README images only
 scripts/build.mjs                       esbuild bundle into dist/
+scripts/package.mjs                     store zip of a release build
 ```
 
 Preserve these boundaries:

@@ -128,7 +128,7 @@ After D&D Beyond successfully deletes a character, and that character has stored
 
 ## Install
 
-There is no Chrome Web Store release yet. Install the unpacked build.
+There is no Chrome Web Store release yet. Install the unpacked build. The store zip is a separate step in [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ### 1. Build the extension
 
@@ -252,7 +252,8 @@ D&D Beyond selectors and private endpoints are unstable. Every selector the exte
 
 | Command | What it does |
 | --- | --- |
-| `npm run build` | Clean `dist/` and bundle the extension. |
+| `npm run build` | Clean `dist/` and bundle the extension, including source maps for local debugging. |
+| `npm run package` | Build a store zip at `release/beyond-full-art-<version>.zip` with no source maps. See [docs/PUBLISHING.md](docs/PUBLISHING.md). |
 | `npm run watch` | Rebuild the script bundles when source changes. Leave it running while you work. |
 | `npm run typecheck` | Strict TypeScript check. No emit. |
 | `npm test` | Vitest unit and DOM tests. |
@@ -299,14 +300,20 @@ Manual checklists for the live site are in [docs/TESTING.md](docs/TESTING.md). R
 - [docs/DECISIONS.md](docs/DECISIONS.md)
 - [docs/ddb-reference/README.md](docs/ddb-reference/README.md)
 - [docs/TESTING.md](docs/TESTING.md)
+- [docs/PUBLISHING.md](docs/PUBLISHING.md)
+- [PRIVACY.md](PRIVACY.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
 - [AGENTS.md](AGENTS.md)
 
 ## Privacy
 
-- Your artwork and journal entries are stored locally in your browser.
-- The extension does not upload your art to an external service.
-- Removing the extension removes access to the stored local art and journal entries.
-- There is currently no cloud sync.
+Beyond Full Art keeps character data on your machine. The full policy is [PRIVACY.md](PRIVACY.md).
+
+- Full art, crops, notes, and photos stay in this browser until you choose a backup folder. After that, those files live in the folder you picked. The extension does not upload them.
+- If that folder sits inside Google Drive or a similar folder, that service syncs the files. This extension does not run that sync.
+- The extension reads the D&D Beyond pages it runs on. It notices a finished character delete or copy on the character-service address and does not send that traffic anywhere else.
+- There is no account, analytics, or remote code.
+- Removing the extension removes the browser copies. Files in a backup folder stay until you delete them.
 
 ## Storage expectations
 
@@ -341,7 +348,7 @@ Planned next:
 
 ## Known limits
 
-- No Chrome Web Store release yet.
+- No Chrome Web Store release yet. [docs/PUBLISHING.md](docs/PUBLISHING.md) is the upload checklist. The source repository is MIT licensed. See [LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
 - Until a backup folder is the library, art and notes are tied to the browser where the extension is installed. After that, the folder holds them. Popup settings stay on this browser.
 - Only one active full-art image is stored per character right now.
 - The popup storage readout measures usage. It does not raise the cap. Notes and settings share Chrome's about 10 MB extension cap. Image bytes live in IndexedDB until a folder is the library, and that line is Chrome's estimate for this extension.
@@ -357,4 +364,4 @@ Planned next:
 
 ## Disclaimer
 
-This is an independent fan-made extension. It is not affiliated with or endorsed by D&D Beyond or Wizards of the Coast.
+This is an independent fan-made extension. It is not affiliated with or endorsed by D&D Beyond or Wizards of the Coast. The source is MIT licensed. See [LICENSE](LICENSE).

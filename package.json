@@ -1,13 +1,24 @@
 {
   "name": "beyond-full-art",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
+  "license": "MIT",
+  "author": "Dylan Packham",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dpack1/beyond-full-art.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dpack1/beyond-full-art/issues"
+  },
+  "homepage": "https://github.com/dpack1/beyond-full-art#readme",
   "type": "module",
   "engines": {
     "node": "20.x"
   },
   "scripts": {
     "build": "node ./scripts/build.mjs",
+    "package": "node ./scripts/package.mjs",
     "test": "vitest run",
     "test:all": "npm run typecheck && npm test && npm run build && playwright test",
     "test:e2e": "npm run build && playwright test",
