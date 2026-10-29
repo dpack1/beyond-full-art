@@ -1,6 +1,7 @@
 import {beforeAll, describe, expect, it} from 'vitest';
 
 import {CHARACTER_DELETION_PAGE_SOURCE} from '../../src/features/character-deletion/cleanup-messages';
+import {CHARACTER_COPY_PAGE_SOURCE} from '../../src/features/character-copy/copy-messages';
 
 const DELETE_URL = 'https://character-service.dndbeyond.com/character/v5/character';
 
@@ -59,5 +60,38 @@ describe('character deletion network observer', () => {
 
     expect(messages).toEqual([]);
     expect(leaks).toEqual([]);
+  });
+});
+
+describe('character copy network observer', () => {
+  it('reports the source id from the live copy request body', async () => {
+    currentFetch = () => Promise.resolve(new Response(JSON.stringify({
+      data: null,
+      id: 172948676,
+      message: 'Copy character is complete.',
+      pagination: null,
+      success: true,
+    }), {status: 200}));
+    const reported = new Promise((resolve) => {
+      window.addEventListener('message', function onReport(event: MessageEvent) {
+        if (event.data?.source === CHARACTER_COPY_PAGE_SOURCE) {
+          window.removeEventListener('message', onReport);
+          resolve(event.data);
+        }
+      });
+    });
+
+    await fetch('https://character-service.dndbeyond.com/character/v5/character/copy', {
+      body: JSON.stringify({characterId: 900000002}),
+      method: 'POST',
+    });
+
+    await expect(reported).resolves.toEqual({
+      destinationId: '172948676',
+      source: CHARACTER_COPY_PAGE_SOURCE,
+      sourceFromPath: false,
+      sourceId: '900000002',
+      status: 200,
+    });
   });
 });

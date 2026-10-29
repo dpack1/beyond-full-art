@@ -45,6 +45,11 @@
       "js": ["content/character-deletion-main.js"],
       "run_at": "document_start",
       "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.dndbeyond.com/characters*"],
+      "js": ["content/character-copy-entry.js"],
+      "run_at": "document_start"
     }
   ]
 }

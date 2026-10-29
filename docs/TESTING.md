@@ -226,6 +226,17 @@ reload the unpacked build, and refresh the character sheet before starting.
 10. If an Extra portrait cannot load, confirm no broken-image icon remains and the saved choice can recover when Extras mounts again.
 11. Click Petali's overlay and confirm Petali's native D&D Beyond sidebar opens. Repeat with keyboard focus and Enter.
 
+## Character copy manual checklist
+
+Use a disposable character that already has a journal note and a photo. Reload the unpacked extension and refresh My Characters before starting. Live capture on 2026-10-29 observed `POST https://character-service.dndbeyond.com/character/v5/character/copy`, a JSON `characterId`, status 200, and the new character id in response `id`.
+
+1. Copy that character from My Characters. The dark box should ask **Copy stored journal?** Choose **Copy journal**. The new character's journal should contain the note and the photo, and the original character's journal should be unchanged.
+2. Delete one of the two characters and confirm the cleanup. The other character's journal and photos should still be there.
+3. Copy a character that has no journal. No box should appear.
+4. Copy a character onto one that already has a journal, if D&D Beyond allows it. The existing journal should stay, and nothing should be overwritten.
+5. Open the box and press Escape. The new character should have no copied journal.
+6. If the box never appears, the extension did not recognize the copy request. Keep the DevTools request and adjust the matcher from that capture.
+
 ## Delete cleanup manual checklist
 
 Use a disposable character and disposable full art. Reload the unpacked extension before starting. The request shape was last observed on 2026-08-06; confirm it in DevTools on the first live delete.

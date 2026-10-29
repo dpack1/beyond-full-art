@@ -560,6 +560,37 @@ preferences for the updated date, plain-text preview, and image thumbnail.
 All three optional details default to hidden. Changing them re-renders an open
 Journal without changing a note or requiring a page reload.
 
+## ADR-030: A copied character gets its own journal
+
+Status: Accepted
+
+Copying a character on D&D Beyond does not copy Beyond Full Art data by itself.
+When the extension can identify the source and the new character, and the
+source has notes or photos while the new character has none, the characters
+page asks **Copy stored journal?**
+
+**Copy journal** reads the source photos first, then writes new note ids, new
+photo ids, and new photo bytes into the active library. The source journal is
+left in place. **Skip**, Escape, the close button, and the backdrop write
+nothing. A destination that already has a journal is not overwritten. Full art
+and portrait crops are not part of this copy.
+
+Live capture on 2026-10-29 verified `POST /character/v5/character/copy` with
+the source `characterId` in its JSON body and the new character id in the
+top-level response `id`. That request can prompt directly from those two ids.
+A named `/character/v5/character/<id>/copy` remains a defensive fallback.
+An accepted request with no source id still needs exactly one Copy click on
+that tab within 15 seconds. Any other shape does nothing.
+
+Why:
+
+- Deleting one character removes that character's folder. Shared photo keys
+  would delete the other character's photos with it.
+- A silent copy would surprise someone who wanted a blank journal on the new
+  character.
+- Guessing a copy from an ordinary character create would duplicate the wrong
+  journal.
+
 ## ADR-029: A journal photo belongs to the character
 
 Status: Accepted

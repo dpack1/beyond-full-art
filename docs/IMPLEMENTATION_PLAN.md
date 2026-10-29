@@ -130,6 +130,10 @@ Implemented 2026-10-28. The service worker correlates a character-service DELETE
 - Remembered decisions apply consistently.
 - The user can reset the remembered preference.
 
+## Character copy, journal duplication
+
+Implemented 2026-10-29. The characters page asks before duplicating notes and photos onto the new character id. Live capture verified `POST /character/v5/character/copy`, a JSON `characterId`, and a top-level response `id`. A folder-backed journal note was successfully duplicated onto the new character in live QA. The checklist is in `docs/TESTING.md`.
+
 ## Phase 5, character journal
 
 Record further design changes in `docs/DECISIONS.md` before expanding this phase.

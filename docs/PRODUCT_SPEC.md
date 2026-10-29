@@ -186,6 +186,37 @@ ask | delete | keep
 - If the character ID cannot be determined confidently, preserve local art.
 - If storage deletion fails, show an error and leave the dialog open. Data that was not removed stays where it was.
 
+## Character copy, journal duplication
+
+### User story
+
+As a user who copies a D&D Beyond character, I can give the new character its own copy of the stored journal and photos, so deleting one character does not remove the other's notes.
+
+### Prompt behavior
+
+After a copy that the extension can identify, and only when the source character has journal notes or photos and the new character has none, show:
+
+**Copy stored journal?**
+
+The new character gets its own notes and photos. Deleting one does not remove the other.
+
+Actions:
+
+- `Copy journal`
+- `Skip`
+
+Escape, the close button, and the backdrop skip. There is no remembered preference. Full art and portrait crops are not copied.
+
+### Data safety
+
+- Read every photo before writing any of the new character's files.
+- If a photo is missing, or the library cannot be written, write nothing.
+- If the new character already has a journal when Copy journal is confirmed, write nothing.
+- New note ids, new photo ids, and new blob keys. The source character's files stay as they are.
+- The observed request is `POST /character/v5/character/copy` with a JSON
+  `characterId`; the 200 response contains the new character id at top-level
+  `id`. An unrecognized request does not copy.
+
 ## Phase 5, character journal
 
 ### User story
