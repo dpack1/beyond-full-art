@@ -118,6 +118,8 @@ async function buildOnce() {
       sourcemap: true,
       target: 'chrome114',
     }),
+    esbuild.build(characterDeletionBuildOptions('src/content/character-deletion-entry.ts', 'dist/content/character-deletion-entry.js')),
+    esbuild.build(characterDeletionBuildOptions('src/content/character-deletion-main.ts', 'dist/content/character-deletion-main.js')),
     esbuild.build({
       absWorkingDir: repoRoot,
       bundle: true,
@@ -142,6 +144,20 @@ async function buildOnce() {
     }),
     esbuild.build(folderSetupBuildOptions()),
   ]);
+}
+
+function characterDeletionBuildOptions(entryPoint, outfile) {
+  return {
+    absWorkingDir: repoRoot,
+    bundle: true,
+    entryPoints: [entryPoint],
+    format: 'iife',
+    outfile,
+    platform: 'browser',
+    plugins: [rawCssPlugin],
+    sourcemap: true,
+    target: 'chrome114',
+  };
 }
 
 function folderSetupBuildOptions() {
@@ -221,6 +237,14 @@ async function main() {
   });
 
   const folderSetupContext = await esbuild.context(folderSetupBuildOptions());
+  const deletionContext = await esbuild.context(characterDeletionBuildOptions(
+      'src/content/character-deletion-entry.ts',
+      'dist/content/character-deletion-entry.js',
+  ));
+  const deletionMainContext = await esbuild.context(characterDeletionBuildOptions(
+      'src/content/character-deletion-main.ts',
+      'dist/content/character-deletion-main.js',
+  ));
 
   await Promise.all([
     contentContext.watch(),
@@ -228,6 +252,8 @@ async function main() {
     cardPortraitsContext.watch(),
     popupContext.watch(),
     folderSetupContext.watch(),
+    deletionContext.watch(),
+    deletionMainContext.watch(),
   ]);
 }
 

@@ -1,3 +1,4 @@
+import {installDeletionCleanup} from './deletion-cleanup';
 import {installJournalImageMessageHandler} from './journal-image-handler';
 import {installLibraryMessageHandler} from './library-handler';
 import {installFolderSettingsSync} from '../platform/chrome/folder-settings';
@@ -54,6 +55,7 @@ import {
 installJournalImageMessageHandler();
 installLibraryMessageHandler();
 installFolderSettingsSync();
+installDeletionCleanup({deleteArt: deleteCharacterArt});
 
 chrome.runtime.onMessage.addListener((rawMessage, _sender, sendResponse) => {
   const request = asCharacterArtRequest(rawMessage);

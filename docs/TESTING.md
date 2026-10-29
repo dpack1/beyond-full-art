@@ -228,15 +228,15 @@ reload the unpacked build, and refresh the character sheet before starting.
 
 ## Delete cleanup manual checklist
 
-When Phase 4 is implemented:
+Use a disposable character and disposable full art. Reload the unpacked extension before starting. The request shape was last observed on 2026-08-06; confirm it in DevTools on the first live delete.
 
-1. Create disposable test characters and disposable local artwork.
+1. Create disposable test characters and disposable local artwork. If the character also has a journal note or photo, D&D Beyond's "Delete this character?" box says to export them first, and the later cleanup dialog says the same and offers **Export**. Export downloads the journal zip and leaves the dialog open. A character with only full art does not show that line or the Export button. A character with a journal and no full art asks **Delete stored journal?** Deleting from the character sheet leaves the page; the cleanup dialog should appear on the page that opens next. After **Delete journal** or **Delete art**, that character's `characters/<character id>` folder is gone from the backup folder, and the same character is gone from this browser. Other character folders remain. The character no longer appears in the popup inventory.
 2. Verify the exact request in DevTools.
 3. Test `ask`, `delete`, and `keep` preferences.
 4. Test `Remember my decision` with both buttons.
 5. Force a failed request if practical and confirm art is preserved.
 6. Delete two characters in quick succession and verify IDs do not cross.
-7. Confirm no prompt appears when a character has no stored art.
+7. Confirm no prompt appears when a character has no stored art and no journal.
 8. Confirm resetting the preference returns behavior to `ask`.
 
 ## Crop workflow manual checklist

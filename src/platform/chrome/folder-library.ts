@@ -277,6 +277,38 @@ export async function saveFolderCrop(
   await writeCommit(characterDirectory, commit);
 }
 
+/**
+ * Removes characters/<characterId> after a confirmed character-deletion
+ * cleanup. The numbered folder and everything inside it go away. Other
+ * character folders stay.
+ */
+export async function eraseFolderCharacterContent(
+    directory: FileSystemDirectoryHandle,
+    characterId: string,
+): Promise<void> {
+  let characters: FileSystemDirectoryHandle;
+  try {
+    characters = await directory.getDirectoryHandle(BACKUP_FOLDER_CHARACTERS_DIRECTORY);
+  } catch (error) {
+    if (isNotFound(error)) {
+      return;
+    }
+    throw error;
+  }
+  const folderName = safeId(characterId);
+  try {
+    await characters.getDirectoryHandle(folderName);
+  } catch (error) {
+    if (isNotFound(error)) {
+      return;
+    }
+    throw error;
+  }
+  await (characters as FileSystemDirectoryHandle & {
+    removeEntry(name: string, options?: {recursive?: boolean}): Promise<void>;
+  }).removeEntry(folderName, {recursive: true});
+}
+
 export async function deleteFolderArt(
     directory: FileSystemDirectoryHandle,
     characterId: string,
@@ -983,6 +1015,10 @@ async function writeAndCheck(
     throw new Error(`“${fileName}” did not match after it was written.`);
   }
   return expected;
+}
+
+function isNotFound(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'NotFoundError';
 }
 
 async function removeFile(

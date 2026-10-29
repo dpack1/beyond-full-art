@@ -12,6 +12,11 @@ import {
   type JournalListPreferences,
 } from './journal-list-preferences';
 import {
+  CLEANUP_PREFERENCE_KEY,
+  normalizeCleanupPreference,
+  type CleanupPreference,
+} from './cleanup-preference';
+import {
   CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY,
   CHARACTER_JOURNAL_ENABLED_KEY,
 } from './storage';
@@ -20,6 +25,7 @@ export const FOLDER_SETTINGS_SYNCED_AT_KEY = 'bfa.preferences.syncedAt';
 
 export interface FolderSettings {
   campaignCardPortraitUpgradeEnabled: boolean;
+  characterDeletionCleanup: CleanupPreference;
   characterJournalEnabled: boolean;
   companionPortraitEnabled: boolean;
   companions: Record<string, CompanionPortraitSelection>;
@@ -51,6 +57,7 @@ export function parseFolderSettings(value: unknown): FolderSettings | null {
   }
   return {
     campaignCardPortraitUpgradeEnabled: record.campaignCardPortraitUpgradeEnabled,
+    characterDeletionCleanup: normalizeCleanupPreference(record.characterDeletionCleanup),
     characterJournalEnabled: record.characterJournalEnabled,
     companionPortraitEnabled: record.companionPortraitEnabled,
     companions,
@@ -139,6 +146,7 @@ async function readLocalSettings(storage: SettingsStorage): Promise<FolderSettin
         values[CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY],
         true,
     ),
+    characterDeletionCleanup: normalizeCleanupPreference(values[CLEANUP_PREFERENCE_KEY]),
     characterJournalEnabled: booleanPref(values[CHARACTER_JOURNAL_ENABLED_KEY], true),
     companionPortraitEnabled: booleanPref(values[COMPANION_PORTRAIT_ENABLED_KEY], true),
     companions,
@@ -165,6 +173,7 @@ async function applyFolderSettings(
   }
   const next: Record<string, unknown> = {
     [CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY]: settings.campaignCardPortraitUpgradeEnabled,
+    [CLEANUP_PREFERENCE_KEY]: settings.characterDeletionCleanup,
     [CHARACTER_JOURNAL_ENABLED_KEY]: settings.characterJournalEnabled,
     [COMPANION_PORTRAIT_ENABLED_KEY]: settings.companionPortraitEnabled,
     [JOURNAL_LIST_PREFERENCES_KEY]: settings.journalList,
@@ -207,6 +216,7 @@ function settingsChanged(
 ): boolean {
   return Object.keys(changes).some((key) =>
     key === CAMPAIGN_CARD_PORTRAIT_UPGRADE_ENABLED_KEY
+    || key === CLEANUP_PREFERENCE_KEY
     || key === CHARACTER_JOURNAL_ENABLED_KEY
     || key === COMPANION_PORTRAIT_ENABLED_KEY
     || key === JOURNAL_LIST_PREFERENCES_KEY

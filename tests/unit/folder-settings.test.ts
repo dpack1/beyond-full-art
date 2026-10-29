@@ -10,6 +10,7 @@ import {
   FOLDER_SETTINGS_SYNCED_AT_KEY,
   syncFolderSettingsWithDirectory,
 } from '../../src/platform/chrome/folder-settings';
+import {CLEANUP_PREFERENCE_KEY} from '../../src/platform/chrome/cleanup-preference';
 import {CHARACTER_JOURNAL_ENABLED_KEY} from '../../src/platform/chrome/storage';
 
 const PETALI = {
@@ -64,6 +65,29 @@ describe('folder settings', () => {
     expect(storage.values[`${COMPANION_PORTRAIT_SELECTION_KEY_PREFIX}169418374`])
         .toEqual(PETALI);
     expect(storage.values[FOLDER_SETTINGS_SYNCED_AT_KEY]).toBe('2026-10-28T12:00:00.000Z');
+    expect(storage.values[CLEANUP_PREFERENCE_KEY]).toBe('ask');
+  });
+
+  it('applies a remembered deleted-character choice from a newer folder', async () => {
+    const folder = memoryDirectory();
+    folder.files.set(BACKUP_FOLDER_SETTINGS_NAME, `${JSON.stringify({
+      campaignCardPortraitUpgradeEnabled: true,
+      characterDeletionCleanup: 'keep',
+      characterJournalEnabled: true,
+      companionPortraitEnabled: true,
+      companions: {},
+      journalList: {showPreview: false, showThumbnail: false, showUpdatedDate: false},
+      schemaVersion: 1,
+      updatedAt: '2026-10-28T12:00:00.000Z',
+    })}\n`);
+    const storage = memoryStorage({
+      [CLEANUP_PREFERENCE_KEY]: 'ask',
+      [FOLDER_SETTINGS_SYNCED_AT_KEY]: '2026-10-28T00:00:00.000Z',
+    });
+
+    await syncFolderSettingsWithDirectory(folder.directory, storage.area);
+
+    expect(storage.values[CLEANUP_PREFERENCE_KEY]).toBe('keep');
   });
 
   it('writes this browser\'s newer companion into the folder', async () => {

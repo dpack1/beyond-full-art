@@ -64,9 +64,25 @@ The exact large-file transfer path remains a required implementation spike.
 
 ## ADR-006: Network deletion is the primary cleanup signal
 
-Status: Accepted as a direction, pending technical validation
+Status: Accepted
 
 Prefer the completed D&D Beyond deletion request over delete-button markup.
+The 2026-08-06 observation remains the contract: DELETE
+`https://character-service.dndbeyond.com/character/v5/character` returning
+200 OK, with one JSON `characterId`. The headers screenshot shows 200, and
+204 is also accepted. Chrome's documented `requestBody` wording
+covers PUT and POST, so the service worker accepts a decoded `webRequest`
+body when it contains one id. When that body is missing, it accepts the id
+from the characters-page observer only if exactly one successful DELETE on
+that tab is waiting. Any other shape keeps the stored data. The prompt runs
+when that character has full art or journal data. A sheet delete navigates
+away before the dialog can paint, so the same tab shows it on the next page.
+A live delete on 2026-10-28 from a character sheet did not show the dialog
+while the extension still required 204 and full art. The dark box is shown
+after the Delete click and the finished character-service response are both
+seen. **Export** on that box downloads the journal and leaves the choice
+open. Confirming delete removes that character's `characters/<character id>`
+folder and the copy on this browser. Other character folders stay.
 
 Why:
 
@@ -438,7 +454,8 @@ Status: Accepted. After the player confirms, a checked folder is where full
 art, crops, journal notes, and journal photos are saved. Browser copies of
 those records are removed only when every one of them still matches the
 folder. The directory handle stays on this browser. Popup toggles, journal
-list details, and the chosen companion for each character are also written to
+list details, the chosen companion for each character, and the
+deleted-character art choice are also written to
 `settings.json` in that folder. A newer copy wins. Opening the folder on
 another browser applies that file, and a change on this browser writes it back.
 
