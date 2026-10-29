@@ -120,6 +120,7 @@ async function buildOnce() {
     }),
     esbuild.build(characterDeletionBuildOptions('src/content/character-deletion-entry.ts', 'dist/content/character-deletion-entry.js')),
     esbuild.build(characterDeletionBuildOptions('src/content/character-deletion-main.ts', 'dist/content/character-deletion-main.js')),
+    esbuild.build(characterDeletionBuildOptions('src/content/character-copy-entry.ts', 'dist/content/character-copy-entry.js')),
     esbuild.build({
       absWorkingDir: repoRoot,
       bundle: true,
@@ -245,6 +246,10 @@ async function main() {
       'src/content/character-deletion-main.ts',
       'dist/content/character-deletion-main.js',
   ));
+  const copyContext = await esbuild.context(characterDeletionBuildOptions(
+      'src/content/character-copy-entry.ts',
+      'dist/content/character-copy-entry.js',
+  ));
 
   await Promise.all([
     contentContext.watch(),
@@ -254,6 +259,7 @@ async function main() {
     folderSetupContext.watch(),
     deletionContext.watch(),
     deletionMainContext.watch(),
+    copyContext.watch(),
   ]);
 }
 

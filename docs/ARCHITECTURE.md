@@ -16,7 +16,7 @@ flowchart LR
     SW --> NET[chrome.webRequest observer]
 ```
 
-The shipped extension uses the D&D Beyond tab, content scripts, the settings popup, the service worker, `chrome.webRequest`, `chrome.storage.local`, and extension-origin IndexedDB. `webRequest` watches only the character-service character DELETE. A MAIN-world script on characters pages supplies the character id when that DELETE body is not visible to `webRequest`. That script forwards `fetch` through a function owned by the page, so a failed page request is not reported as an extension error.
+The shipped extension uses the D&D Beyond tab, content scripts, the settings popup, the service worker, `chrome.webRequest`, `chrome.storage.local`, and extension-origin IndexedDB. `webRequest` watches only the character-service character DELETE. A MAIN-world script on characters pages supplies the character id when that DELETE body is not visible to `webRequest`. It also reads the observed copy request, `POST /character/v5/character/copy`, taking the source character id from the JSON body and the new id from the successful response. That script forwards `fetch` through a function owned by the page, so a failed page request is not reported as an extension error. The isolated characters-page script `character-copy-entry.js` asks before duplicating a journal onto the new character.
 
 ## Source boundaries
 
@@ -32,6 +32,7 @@ src/
     campaign-card-portraits/
     character-art/
     character-deletion/
+    character-copy/
     character-journal/
     crop-workflow/
     fullscreen-viewer/
@@ -67,7 +68,7 @@ src/
     types.ts
 ```
 
-Deletion cleanup is specified but not implemented. Do not add empty modules for it until that phase has real behavior. D&D Beyond selectors belong in `platform/dndbeyond`, not in feature modules.
+Character-deletion cleanup and character-copy journal duplication both live under `features/` and `background/`. D&D Beyond selectors belong in `platform/dndbeyond`, not in feature modules. The copy button is matched by its visible text or aria-label, not by a page class.
 
 ## Phase 1 sequence
 

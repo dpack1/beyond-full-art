@@ -1,3 +1,9 @@
+import {CHARACTER_COPY_PAGE_SOURCE} from '../features/character-copy/copy-messages';
+import {
+  characterCopyTarget,
+  characterIdFromCopyResponse,
+  isCharacterCopySuccessStatus,
+} from '../features/character-copy/copy-request';
 import {CHARACTER_DELETION_PAGE_SOURCE} from '../features/character-deletion/cleanup-messages';
 import {
   characterIdFromDeletionJson,
@@ -33,15 +39,26 @@ installPageFetchBridge();
 
 globalThis.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const identified = identifyFetch(input, init);
+  const copyTarget = identifyCopyTarget(input, init);
   const responsePromise = callPageFetch(input, init);
   void responsePromise.then((response) => {
-    if (!isCharacterDeletionSuccessStatus(response.status)) {
+    if (isCharacterDeletionSuccessStatus(response.status)) {
+      void identified.then((identified) => {
+        if (identified.matched) {
+          reportDeletion(identified.characterId, response.status);
+        }
+      }).catch(() => undefined);
+    }
+    if (!isCharacterCopySuccessStatus(response.status)) {
       return;
     }
-    void identified.then((identified) => {
-      if (identified.matched) {
-        reportDeletion(identified.characterId, response.status);
+    void copyTarget.then((target) => {
+      if (!target.matched) {
+        return;
       }
+      void response.clone().text().then((text) => {
+        reportCopy(target, characterIdFromCopyResponse(text), response.status);
+      }).catch(() => undefined);
     }).catch(() => undefined);
   }, () => undefined).catch(() => undefined);
   return responsePromise;
@@ -89,6 +106,25 @@ XMLHttpRequest.prototype.open = function(this: XMLHttpRequest): void {
 XMLHttpRequest.prototype.send = function(this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
   const context = requestContext.get(this);
   const target = context === undefined ? null : absoluteUrl(context.url);
+  const copyTarget = context === undefined || target === null
+    ? null
+    : characterCopyTarget(context.method, target);
+  if (copyTarget?.matched === true) {
+    const bodySource = identifyBody(body);
+    this.addEventListener('load', () => {
+      if (!isCharacterCopySuccessStatus(this.status)) {
+        return;
+      }
+      void bodySource.then((sourceId) => {
+        const resolvedSource = copyTarget.sourceId ?? sourceId;
+        reportCopy({
+          requiresSource: copyTarget.requiresSource,
+          sourceFromPath: copyTarget.sourceFromPath,
+          sourceId: resolvedSource,
+        }, characterIdFromCopyResponse(this.responseText), this.status);
+      }).catch(() => undefined);
+    });
+  }
   if (context !== undefined && target !== null && isCharacterDeletionRequest(context.method, target)) {
     const identified = identifyBody(body);
     this.addEventListener('load', () => {
@@ -165,6 +201,66 @@ function absoluteUrl(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function identifyCopyTarget(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+): Promise<{matched: boolean; requiresSource: boolean; sourceFromPath: boolean; sourceId: string | null}> {
+  const unmatched = {matched: false, requiresSource: false, sourceFromPath: false, sourceId: null};
+  try {
+    const method = init?.method ?? (input instanceof Request ? input.method : 'GET');
+    const url = absoluteUrl(input instanceof Request ? input.url : String(input));
+    if (url === null) {
+      return Promise.resolve(unmatched);
+    }
+    const target = characterCopyTarget(method, url);
+    if (!target.matched || target.sourceId !== null) {
+      return Promise.resolve(target);
+    }
+    if (init?.body != null) {
+      return identifyBody(init.body).then((sourceId) => resolveCopySource(target, sourceId));
+    }
+    // fetch(new Request(url, {method, body})) keeps the body on the Request.
+    if (input instanceof Request) {
+      return input.clone().text()
+          .then((text) => resolveCopySource(target, characterIdFromDeletionJson(text)))
+          .catch(() => (target.requiresSource ? unmatched : target));
+    }
+    return Promise.resolve(target.requiresSource ? unmatched : target);
+  } catch {
+    return Promise.resolve(unmatched);
+  }
+}
+
+function resolveCopySource(
+    target: {matched: boolean; requiresSource: boolean; sourceFromPath: boolean; sourceId: string | null},
+    sourceId: string | null,
+): {matched: boolean; requiresSource: boolean; sourceFromPath: boolean; sourceId: string | null} {
+  if (target.requiresSource && sourceId === null) {
+    return {matched: false, requiresSource: false, sourceFromPath: false, sourceId: null};
+  }
+  return {...target, sourceId};
+}
+
+function reportCopy(
+    target: {requiresSource: boolean; sourceFromPath: boolean; sourceId: string | null},
+    destinationId: string | null,
+    status: number,
+): void {
+  if (destinationId === null || destinationId === target.sourceId) {
+    return;
+  }
+  if (target.requiresSource && target.sourceId === null) {
+    return;
+  }
+  window.postMessage({
+    destinationId,
+    source: CHARACTER_COPY_PAGE_SOURCE,
+    sourceFromPath: target.sourceFromPath,
+    sourceId: target.sourceId,
+    status,
+  }, window.location.origin);
 }
 
 function reportDeletion(characterId: string | null, status: number): void {

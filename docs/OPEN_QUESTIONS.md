@@ -29,6 +29,10 @@ These are not product ambiguities that block the MVP. They are implementation de
 - Whether bulk export or backup is required before public release.
   - Current implementation supports downloading the active stored full art from the fullscreen viewer and per-item download from the popup inventory.
 
+## Character copy questions
+
+- Should a later pass also offer to copy stored full art? This pass copies the journal and photos only.
+
 ## Deletion cleanup questions
 
 - Is the characters list the only user-accessible deletion surface?

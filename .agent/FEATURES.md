@@ -6,6 +6,19 @@ Future work belongs in `.agent/plans/` until it ships.
 
 ## Shipped Features
 
+### Character journal copy
+
+Status: implemented; live request and folder-backed journal duplication verified
+
+- After D&D Beyond copies a character, asks **Copy stored journal?** when that character has notes or photos and the new character does not.
+- **Copy journal** gives the new character its own note ids, photo ids, and photo bytes. Deleting one character does not remove the other's journal.
+- **Skip**, Escape, the close button, and the backdrop write nothing. A destination that already has a journal is left alone. Full art is not copied.
+- A missing photo or a blocked library writes nothing. The dialog stays open and says what failed.
+- The live request is `POST /character/v5/character/copy` with the source
+  `characterId` in its JSON body and the destination id in response `id`.
+  Defensive request shapes without a source id still need exactly one Copy
+  click in that tab.
+
 ### Character deletion cleanup
 
 Status: implemented, pending a live delete check

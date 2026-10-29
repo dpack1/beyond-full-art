@@ -77,6 +77,10 @@ On a character sheet, the extension enlarges the header portrait and adds a litt
 
 On a character sheet, a **Journal** tab is inserted after D&D Beyond's **Extras** tab. This is the shipped beta. Search, **Filter**, and **New Note** sit on one toolbar. The list shows each title with a quiet creation date by default; popup settings can additionally show the updated date, text preview, and image thumbnail. Search always checks the complete note content even when its preview is hidden. Choosing a note opens a slide-in panel that mirrors the Information Sidebar in [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). Read mode renders markdown. **Edit** switches to the source, with an icon toolbar. Photos sit in the note as `![[img:<id>|caption|width]]`, inserted at the cursor by the image button, paste, or drop. PNG, JPEG, and WebP files over 3 MB are resized (longest edge 2048px) and stored under 3 MB. A file over 25 MB is refused. Note text stays in `chrome.storage.local`. Photo bytes stay in extension-origin IndexedDB. The tab, the list, and the panel follow the sheet's light and dark appearance. Nothing is written to D&D Beyond notes, backstory, or extras. The UI lives in `src/features/character-journal/`.
 
+### Copied characters
+
+On My Characters, copying a character that has a journal asks **Copy stored journal?** The new character gets its own notes and photo files. Deleting one character does not remove the other's journal. **Skip**, Escape, and the close button leave the new character without that journal. Full art is not copied. The question appears only when the source has a journal or photos and the new character does not. The request and folder-backed note copy were verified live on 2026-10-29. The manual checklist is in [docs/TESTING.md](docs/TESTING.md).
+
 ### Deleted characters
 
 After D&D Beyond successfully deletes a character, and that character has stored full art or a journal, the extension asks what to do with that stored data. Full art asks **Delete stored full art?** A journal with no full art asks **Delete stored journal?** and says to export first. **Export** on that box downloads the journal and leaves the choice open. Confirming delete removes that character's `characters/<character id>` folder and the copy on this browser. The popup's Deleted characters section can return a remembered choice to asking each time. A failed or unclear delete leaves the stored data in place. Deleting from the character sheet navigates away, and the question follows onto the next page. The manual checklist is in [docs/TESTING.md](docs/TESTING.md).
@@ -227,8 +231,9 @@ Toolbar popup
 | Path | Role |
 | --- | --- |
 | `src/content/` | Content-script entrypoints. The sheet entry installs the page features. |
-| `src/features/` | Viewer, art controls, crop, card portraits, and journal UI. |
+| `src/features/` | Viewer, art controls, crop, card portraits, journal, and character copy UI. |
 | `src/features/character-journal/` | Journal tab, slide-in note panel, markdown, and photo embeds. |
+| `src/features/character-copy/` | Prompt that gives a copied character its own journal. |
 | `src/platform/dndbeyond/selectors.ts` | The only D&D Beyond selector map. A renamed class is a one-line edit here. |
 | `src/platform/dndbeyond/` | URL parsing and the DOM adapters that import the map. |
 | `src/platform/chrome/` | Storage, IndexedDB, and runtime-message validation. |
@@ -327,6 +332,7 @@ Available now:
 - Character journal (beta)
 - Journal ZIP backup and merge-safe restore from the extension popup
 - Companion portrait selected from Extras
+- A prompt to copy a journal onto a character D&D Beyond just copied
 
 Planned next:
 
