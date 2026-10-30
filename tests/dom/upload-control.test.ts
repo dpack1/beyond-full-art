@@ -110,7 +110,7 @@ describe('upload controls', () => {
     expect(controls?.classList.contains('bfa-art-sync--light')).toBe(true);
   });
 
-  it('collapses large full-art previews in narrow sidebar layouts', async () => {
+  it('uses a compact button stack in a narrow sidebar', async () => {
     const manager = document.querySelector<HTMLElement>('.ct-decoration-manager');
     const uploadSection = document.querySelector<HTMLElement>('.ct-decoration-manager__upload');
     const uploadInput = document.querySelector<HTMLInputElement>(
@@ -188,17 +188,19 @@ describe('upload controls', () => {
     const helperCopy = manager?.querySelector<HTMLElement>(
         '.ct-decoration-manager__upload-heading-rules',
     );
-    const topPreviewPanel = manager?.querySelector<HTMLElement>(
-        '.bfa-art-sync__top-layout > .bfa-art-sync__preview',
+    const fullArtPreview = manager?.querySelector('.bfa-art-sync__preview');
+    const selectedRow = uploadSection?.querySelector<HTMLElement>(
+        '.ct-decoration-manager__selected',
     );
-    const selectedRowFullArtPanel = uploadSection?.querySelector<HTMLElement>(
-        '.ct-decoration-manager__selected > .bfa-art-sync__preview',
-    );
+
+    const cropButton = uploadSection?.querySelector<HTMLButtonElement>('.bfa-art-sync__button');
 
     expect(controls?.classList.contains('bfa-art-sync--compact')).toBe(true);
     expect(helperCopy?.textContent).toBe('150 x 150 recommended, 3 MB max');
-    expect(topPreviewPanel).toBeNull();
-    expect(selectedRowFullArtPanel).toBeNull();
+    expect(fullArtPreview).toBeNull();
+    expect(selectedRow?.style.getPropertyValue('width')).toBe('100%');
+    expect(cropButton?.style.getPropertyValue('white-space')).toBe('normal');
+    expect(cropButton?.style.getPropertyValue('min-width')).toBe('0');
   });
 
   it('keeps the crop button hidden until a portrait file is selected', async () => {
@@ -247,13 +249,10 @@ describe('upload controls', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const currentPreviewImage = manager?.querySelector<HTMLImageElement>(
-        '.bfa-art-sync__top-layout .bfa-art-sync__preview-image',
-    );
     expect(uploadSection?.textContent).not.toContain('Crop portrait');
     expect(uploadSection?.querySelector('.bfa-art-sync__status')?.hasAttribute('hidden'))
         .toBe(true);
-    expect(currentPreviewImage?.src).toBe('blob:current-full-art');
+    expect(manager?.textContent).not.toContain('Current Full Art');
   });
 
   it('shows a crop button after a portrait file is selected', async () => {
@@ -316,22 +315,33 @@ describe('upload controls', () => {
     const changePortraitActions = uploadSection?.querySelector<HTMLElement>(
         '.ct-decoration-manager__selected-actions',
     );
-    const cropButton = uploadSection?.querySelector<HTMLButtonElement>('.bfa-art-sync__button');
-    const currentPreviewImage = manager?.querySelector<HTMLImageElement>(
-        '.bfa-art-sync__top-layout .bfa-art-sync__preview-image',
+    const changePortraitButton = changePortraitActions?.querySelector<HTMLButtonElement>(
+        ':scope > button',
     );
-    const proposedPreviewImage = uploadSection?.querySelector<HTMLImageElement>(
-        '.ct-decoration-manager__selected .bfa-art-sync__preview-image',
+    const cropButton = uploadSection?.querySelector<HTMLButtonElement>('.bfa-art-sync__button');
+    const selectedRow = uploadSection?.querySelector<HTMLElement>(
+        '.ct-decoration-manager__selected',
+    );
+
+    const nativePreview = selectedRow?.querySelector<HTMLElement>(
+        '.bfa-art-sync__selected-preview-container',
     );
 
     expect(changePortraitActions?.contains(cropButton ?? null)).toBe(true);
     expect(cropButton?.textContent).toContain('Crop portrait');
     expect(cropButton?.className).toContain('Button_button__KOWRe');
-    expect(currentPreviewImage?.src).toBe('blob:stored-full-art');
-    expect(proposedPreviewImage?.src).toContain('blob:');
+    expect(cropButton?.style.getPropertyValue('width')).toBe('100%');
+    expect(cropButton?.style.getPropertyValue('white-space')).toBe('nowrap');
+    expect(cropButton?.style.getPropertyValue('min-width')).toBe('max-content');
+    expect(changePortraitButton?.style.getPropertyValue('width')).toBe('100%');
+    expect(changePortraitButton?.style.getPropertyValue('white-space')).toBe('nowrap');
+    expect(selectedRow?.style.getPropertyValue('width')).toBe('max-content');
+    expect(selectedRow?.style.getPropertyValue('grid-template-columns')).toBe('max-content');
+    expect(nativePreview?.style.getPropertyValue('width')).toBe('max-content');
+    expect(manager?.querySelector('.bfa-art-sync__preview')).toBeNull();
   });
 
-  it('preserves the proposed preview during extension-driven portrait uploads', async () => {
+  it('keeps the selected portrait when the crop workflow writes the upload input', async () => {
     const manager = document.querySelector<HTMLElement>('.ct-decoration-manager');
     const uploadSection = document.querySelector<HTMLElement>('.ct-decoration-manager__upload');
     const uploadInput = document.querySelector<HTMLInputElement>(
@@ -387,10 +397,7 @@ describe('upload controls', () => {
     uploadInput!.dispatchEvent(new Event('change', {bubbles: true}));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const initialPreviewImage = uploadSection?.querySelector<HTMLImageElement>(
-        '.ct-decoration-manager__selected .bfa-art-sync__preview-image',
-    );
-    expect(initialPreviewImage?.src).toContain('blob:');
+    expect(uploadSection?.querySelector('.bfa-art-sync__preview')).toBeNull();
 
     const croppedFile = new File(['cropped-image-bytes'], 'zurelda-portrait-crop.png', {
       type: 'image/png',
@@ -398,11 +405,8 @@ describe('upload controls', () => {
     submitFileToPortraitUploadInput(uploadInput!, croppedFile, document);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const preservedPreviewImage = uploadSection?.querySelector<HTMLImageElement>(
-        '.ct-decoration-manager__selected .bfa-art-sync__preview-image',
-    );
-    expect(preservedPreviewImage?.src).toContain('blob:');
-    expect(preservedPreviewImage?.getAttribute('src')).toBe(initialPreviewImage?.getAttribute('src'));
+    expect(uploadSection?.querySelector('.bfa-art-sync__preview')).toBeNull();
+    expect(uploadSection?.textContent).toContain('Crop portrait');
   });
 
   it('shows an edit label and success status after a crop workflow completes', async () => {
@@ -563,10 +567,8 @@ describe('upload controls', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(saveArt).not.toHaveBeenCalled();
-    const proposedPreviewImage = uploadSection?.querySelector<HTMLImageElement>(
-        '.bfa-art-sync__preview-image',
-    );
-    expect(proposedPreviewImage?.src).toContain('blob:');
+    expect(uploadSection?.querySelector('.bfa-art-sync__preview')).toBeNull();
+    expect(uploadSection?.textContent).not.toContain('Crop portrait');
   });
 
   it('saves selected portrait uploads locally after change portrait is clicked', async () => {
@@ -780,7 +782,7 @@ describe('upload controls', () => {
     expect(uploadSection?.textContent).toContain('Portrait and crop saved locally.');
   });
 
-  it('refreshes the current full-art preview after change portrait commits a replacement', async () => {
+  it('reloads the stored full-art revision after change portrait commits a replacement', async () => {
     const saveArt = vi.fn(async () => ok({
       blobKey: 'blob-2',
       byteSize: 1024,
@@ -897,10 +899,8 @@ describe('upload controls', () => {
     expect(saveArt).toHaveBeenCalledWith(
         '169418374', replacementFile, '1'.repeat(64),
     );
-    const currentPreviewImage = manager?.querySelector<HTMLImageElement>(
-        '.bfa-art-sync__top-layout .bfa-art-sync__preview-image',
-    );
-    expect(currentPreviewImage?.src).toBe('blob:second-full-art');
+    expect(resolveViewerImage).toHaveBeenCalledTimes(2);
+    expect(manager?.querySelector('.bfa-art-sync__preview')).toBeNull();
   });
 
   it('uses the newly selected file as the crop source and clears the old crop state', async () => {
@@ -1036,7 +1036,7 @@ describe('upload controls', () => {
     });
   });
 
-  it('renders the proposed preview when the native confirm row appears shortly after file selection', async () => {
+  it('places the crop button when the native confirm row appears shortly after file selection', async () => {
     vi.useFakeTimers();
     try {
       const manager = document.querySelector<HTMLElement>('.ct-decoration-manager');
@@ -1059,13 +1059,26 @@ describe('upload controls', () => {
           {
             deleteArt: async () => ok(undefined),
             getCropMetadata: async () => ok(null),
-            getMetadata: async () => ok(null),
+            getMetadata: async () => ok({
+              blobKey: 'blob-1',
+              byteSize: 2048,
+              characterId: '169418374',
+              createdAt: '2026-08-06T00:00:00.000Z',
+              fileName: 'zurelda.png',
+              height: 1024,
+              mimeType: 'image/png',
+              schemaVersion: 1,
+              updatedAt: '2026-08-06T00:00:00.000Z',
+              width: 1024,
+            }),
             getPortraitCropImageData: async () => ok(null),
             loadCropSource: async () => err('Not used'),
             resolveViewerImage: async () => ({
-              altText: 'fallback',
-              imageUrl: 'https://example.com/fallback.png',
-              usingStoredArt: false,
+              altText: 'stored full art',
+              imageUrl: 'blob:stored-full-art',
+              releaseImageUrl: () => {},
+              usingStoredArt: true,
+              sha256: 'a'.repeat(64),
               warningMessage: null,
             }),
             saveArt: async () => err('Not used'),
@@ -1091,10 +1104,9 @@ describe('upload controls', () => {
 
       await vi.advanceTimersByTimeAsync(300);
 
-      const proposedPreviewImage = uploadSection?.querySelector<HTMLImageElement>(
-          '.bfa-art-sync__preview-image',
-      );
-      expect(proposedPreviewImage?.src).toContain('blob:');
+      const cropButton = delayedSelectedRow?.querySelector('.bfa-art-sync__button');
+      expect(cropButton?.textContent).toContain('Crop portrait');
+      expect(uploadSection?.querySelector('.bfa-art-sync__preview')).toBeNull();
     } finally {
       vi.useRealTimers();
     }

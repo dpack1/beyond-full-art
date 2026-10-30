@@ -291,6 +291,7 @@ Current fallback behavior:
 - prefer the legacy `[data-testid="character-manage-pane"]` panel when present,
 - otherwise use the accessible `[aria-label="Information Sidebar"]` panel when present,
 - prefer the legacy portrait `img`, then fall back to the largest `.ddbc-character-avatar__portrait` surface in the panel,
+- skip portraits inside Current Decorations (`.ct-decorate-pane__current-selections`), verified 2026-10-30 on Matilda's sheet,
 - resolve viewer images from `currentSrc`/`src` for images or CSS `background-image` for current portrait surfaces.
 
 Do not depend on the observed hashed `styles_avatar__*` class; it is used only in tests to distinguish fixture elements.

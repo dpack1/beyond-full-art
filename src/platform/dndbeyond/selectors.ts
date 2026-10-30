@@ -107,9 +107,9 @@ const characterPortraitSurface = selector({
   features: [FULLSCREEN_VIEWER],
   fixtures: ['manage-pane', 'information-sidebar', 'portrait-manager'],
   id: 'character-portrait-surface',
-  lookFor: 'The portrait surface in the right-side panel. It may be an img or a div, and the image may be a CSS background. Ignore hashed styles_avatar__* classes.',
+  lookFor: 'The portrait surface in the sidebar summary. It may be an img or a div, and the image may be a CSS background. Skip portraits inside ct-decorate-pane__current-selections. Ignore hashed styles_avatar__* classes.',
   selector: '.ddbc-character-avatar__portrait',
-  targets: 'Any character portrait surface, image or background div.',
+  targets: 'Sidebar summary portrait. Current Decorations portraits are not this target.',
 });
 
 const informationSidebar = selector({
@@ -119,6 +119,15 @@ const informationSidebar = selector({
   lookFor: 'The right-side character panel exposed to accessibility as "Information Sidebar". This is not the action or notes slide-in shown in docs/ddb-reference.',
   selector: '[aria-label="Information Sidebar"]',
   targets: 'Current right-side information sidebar that holds the panel portrait.',
+});
+
+const decoratePane = selector({
+  features: [FULLSCREEN_VIEWER],
+  fixtures: ['information-sidebar'],
+  id: 'decorate-pane',
+  lookFor: 'The Current Decorations pane, class ct-decorate-pane__current-selections, opened from Change Sheet Appearance. Verified 2026-10-30 on Matilda Greywolf. Portraits inside it, including ct-decorate-pane__portrait, are decoration previews and must not open the fullscreen viewer.',
+  selector: '.ct-decorate-pane__current-selections',
+  targets: 'Current Decorations pane in the information sidebar.',
 });
 
 const sidebarPortal = selector({
@@ -690,6 +699,7 @@ export const DDB_SELECTORS: readonly DdbSelectorEntry[] = [
   characterPortraitImage,
   characterPortraitSurface,
   informationSidebar,
+  decoratePane,
   sidebarPortal,
   sidebarInner,
   sidebarHeading,
@@ -737,6 +747,7 @@ export const CHARACTER_MANAGE_PANE_SELECTOR = characterManagePane.selector;
 export const CHARACTER_PORTRAIT_SELECTOR = characterPortraitImage.selector;
 export const CHARACTER_PORTRAIT_SURFACE_SELECTOR = characterPortraitSurface.selector;
 export const INFORMATION_SIDEBAR_SELECTOR = informationSidebar.selector;
+export const DECORATE_PANE_SELECTOR = decoratePane.selector;
 export const SIDEBAR_PORTAL_SELECTOR = sidebarPortal.selector;
 export const PORTRAIT_MANAGER_SELECTOR = portraitManager.selector;
 export const PORTRAIT_MANAGER_AVATAR_IMAGE_SELECTOR = portraitManagerAvatar.selector;

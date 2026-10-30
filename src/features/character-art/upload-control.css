@@ -11,51 +11,24 @@
 }
 
 .bfa-art-sync__buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.bfa-art-sync__top-layout {
-  align-items: start;
-  column-gap: 28px;
+  align-items: stretch;
   display: grid;
-  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
-  margin-bottom: 18px;
-  max-width: 100%;
+  gap: 10px;
   width: 100%;
 }
-
-.bfa-art-sync__top-main {
-  display: grid;
-  gap: 18px;
-  min-width: 0;
-  width: min(100%, 320px);
-}
-
-.bfa-art-sync__top-column {
-  min-width: 0;
-}
-
-.bfa-art-sync__upload-intro {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
-/* Rules that name D&D Beyond portrait-manager classes are appended from the
-   selector map when these styles are injected. */
 
 .bfa-art-sync__button {
   appearance: none;
   background: rgba(18, 24, 28, 0.92);
   border: 1px solid rgba(197, 49, 49, 0.9);
   border-radius: 6px;
+  box-sizing: border-box;
   color: #ffffff;
   cursor: pointer;
   font: inherit;
   min-height: 36px;
   padding: 8px 12px;
+  width: 100%;
 }
 
 .bfa-art-sync__button:hover,
@@ -74,12 +47,9 @@
 }
 
 .bfa-art-sync__status {
+  font-size: 12px;
   line-height: 1.4;
   margin: 0;
-}
-
-.bfa-art-sync__status {
-  font-size: 12px;
   min-height: 17px;
 }
 
@@ -99,156 +69,55 @@
   color: #9dd9aa;
 }
 
-.bfa-art-sync__preview {
+.bfa-art-sync__native-button-stack,
+.bfa-art-sync__selected-actions {
+  align-items: stretch;
   display: grid;
   gap: 8px;
-  justify-items: start;
-}
-
-.bfa-art-sync__preview-label {
-  color: rgba(15, 23, 31, 0.64);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.bfa-art-sync--dark .bfa-art-sync__preview-label {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.bfa-art-sync__preview-image {
-  border-radius: 12px;
-  box-shadow: 0 6px 22px rgba(15, 23, 31, 0.12);
-  display: block;
+  justify-items: stretch;
   max-width: 100%;
-  object-fit: contain;
-  width: 100%;
-}
-
-.bfa-art-sync__native-button-stack {
-  align-content: start;
-  display: grid;
-  gap: 14px;
-  justify-items: start;
-}
-
-.bfa-art-sync__native-button-stack > .bfa-art-sync__buttons {
   width: 100%;
 }
 
 .bfa-art-sync__selected-row {
   align-items: start;
-  column-gap: 20px;
   display: grid;
-  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
-}
-
-.bfa-art-sync__selected-row > .bfa-art-sync__selected-preview-container {
-  grid-column: 1;
-  grid-row: 1;
-  min-width: 0;
-}
-
-.bfa-art-sync__selected-row > .bfa-art-sync__selected-preview-container img {
-  display: block;
-  max-width: 100%;
-}
-
-.bfa-art-sync__selected-row > .bfa-art-sync__preview {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  justify-items: stretch;
-  min-width: 0;
-  width: min(100%, 420px);
-}
-
-.bfa-art-sync__top-layout > .bfa-art-sync__preview {
-  align-self: start;
+  gap: 12px;
+  grid-template-columns: max-content;
   justify-items: stretch;
   justify-self: start;
   max-width: 100%;
-  min-width: 0;
-  width: min(100%, 360px);
-}
-
-.bfa-art-sync__top-layout > .bfa-art-sync__preview .bfa-art-sync__preview-image {
-  max-height: clamp(220px, 36vh, 420px);
-}
-
-.bfa-art-sync__buttons {
-  align-items: start;
-}
-
-.bfa-art-sync__selected-actions {
-  align-content: start;
-  display: grid;
-  gap: 14px;
-  grid-column: 1;
-  grid-row: 2;
-  min-width: 0;
-  width: 100%;
-}
-
-.bfa-art-sync__selected-actions > .bfa-art-sync__preview {
-  justify-items: stretch;
-}
-
-.bfa-art-sync__selected-actions > .bfa-art-sync__buttons {
-  width: 100%;
-}
-
-.bfa-art-sync__selected-row .bfa-art-sync__buttons {
-  display: grid;
-  gap: 14px;
-  justify-items: stretch;
-}
-
-.bfa-art-sync__selected-row .bfa-art-sync__button {
-  width: 100%;
-}
-
-.bfa-art-sync__selected-row > .bfa-art-sync__preview .bfa-art-sync__preview-image {
-  max-height: clamp(180px, 28vh, 320px);
-}
-
-.bfa-art-sync--compact {
-  overflow-x: hidden;
-}
-
-.bfa-art-sync--compact .bfa-art-sync__top-layout {
-  grid-template-columns: minmax(0, 1fr);
-  margin-bottom: 14px;
+  width: max-content;
 }
 
 .bfa-art-sync--compact .bfa-art-sync__selected-row {
-  row-gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
 }
 
-.bfa-art-sync--compact .bfa-art-sync__selected-row .bfa-art-sync__buttons,
-.bfa-art-sync--compact .bfa-art-sync__native-button-stack,
-.bfa-art-sync--compact .bfa-art-sync__selected-actions {
-  justify-items: start;
+.bfa-art-sync__selected-row .bfa-art-sync__selected-preview-container {
+  justify-self: start;
+  max-width: 100%;
+  width: max-content;
 }
 
-@media (max-width: 980px) {
-  .bfa-art-sync__top-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .bfa-art-sync__top-layout > .bfa-art-sync__preview {
-    width: min(100%, 420px);
-  }
+.bfa-art-sync__selected-row .bfa-art-sync__selected-preview-container img {
+  display: block;
+  height: auto;
+  max-width: 100%;
 }
 
-@media (max-width: 820px) {
-  .bfa-art-sync__selected-row {
-    grid-template-columns: 1fr;
-  }
+.bfa-art-sync__selected-row .bfa-art-sync__button,
+.bfa-art-sync__selected-row > .bfa-art-sync__selected-actions > button {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: max-content;
+  white-space: nowrap;
+  width: 100%;
+}
 
-  .bfa-art-sync__selected-actions,
-  .bfa-art-sync__native-button-stack {
-    width: 100%;
-  }
+.bfa-art-sync--compact .bfa-art-sync__selected-row .bfa-art-sync__button,
+.bfa-art-sync--compact .bfa-art-sync__selected-row > .bfa-art-sync__selected-actions > button {
+  min-width: 0;
+  white-space: normal;
 }

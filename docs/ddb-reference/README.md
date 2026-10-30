@@ -1,6 +1,6 @@
 # D&D Beyond character sheet reference
 
-**Last verified:** 2026-10-22
+**Last verified:** 2026-10-30 for the Current Decorations portrait hook on Matilda's sheet. Sheet layout and colors were last measured 2026-10-22.
 
 **Reference and live-QA character:** Matilda Greywolf, Level 2 Warlock
 
@@ -124,6 +124,7 @@ The fullscreen viewer and the portrait tools hook a different panel. **from-code
 | `[aria-label="Information Sidebar"]` | Current right-side panel that holds the portrait |
 | `.ct-sidebar__portal` | Portal root around that panel |
 | `[data-testid="character-manage-pane"]` | Legacy manage pane. A 2026-10-10 inspection found sheets that no longer render it |
+| `.ct-decorate-pane__current-selections` | Current Decorations pane from Change Sheet Appearance. Its portrait does not open the fullscreen viewer. Verified 2026-10-30 on Matilda |
 | `.ct-decoration-manager` | Portrait manager inside the sidebar or the builder modal |
 | `.ct-decoration-manager__upload` and the file input under it | Native portrait upload |
 | Button text `Change Portrait` | Confirmation that saves full art |
@@ -178,6 +179,7 @@ The map in `src/platform/dndbeyond/selectors.ts` is the list to edit. This table
 | `character-portrait-image` | `img.ddbc-character-avatar__portrait[alt="Character portrait"]` | code |
 | `character-portrait-surface` | `.ddbc-character-avatar__portrait` | code |
 | `information-sidebar` | `[aria-label="Information Sidebar"]` | code |
+| `decorate-pane` | `.ct-decorate-pane__current-selections` | code, verified 2026-10-30 |
 | `sidebar-portal` | `.ct-sidebar__portal` | code |
 | `sidebar-inner` | `.ct-sidebar__inner` | code, verified 2026-10-21 |
 | `sidebar-heading` | `.ct-sidebar__heading` | code, verified 2026-10-21 |

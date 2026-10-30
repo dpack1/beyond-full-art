@@ -50,7 +50,69 @@ describe('portrait adapter', () => {
 
     expect(target).not.toBeNull();
     expect(target?.image.classList.contains('styles_avatar__t7tEz')).toBe(true);
+    expect(target?.image.closest('.ct-decorate-pane__current-selections')).toBeNull();
     expect(target?.panel.getAttribute('aria-label')).toBe('Information Sidebar');
+  });
+
+  it('keeps the summary portrait when Current Decorations also shows one', () => {
+    document.body.innerHTML = `
+      <div class="ct-sidebar__portal">
+        <aside aria-label="Information Sidebar">
+          <div class="ct-decorate-pane__current-selections">
+            <img
+              class="ddbc-character-avatar__portrait ct-decorate-pane__portrait"
+              alt="Character portrait"
+              src="https://www.dndbeyond.com/avatars/decorations.jpeg">
+          </div>
+          <div
+            class="ddbc-character-avatar__portrait styles_avatar__t7tEz"
+            style="width: 80px; height: 80px;">
+          </div>
+        </aside>
+      </div>
+    `;
+    const decorationsPortrait = document.querySelector<HTMLImageElement>(
+        '.ct-decorate-pane__portrait',
+    );
+    expect(decorationsPortrait).not.toBeNull();
+    Object.defineProperty(decorationsPortrait!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 400,
+        height: 400,
+        left: 0,
+        right: 400,
+        top: 0,
+        width: 400,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return {};
+        },
+      }),
+    });
+
+    const target = findPanelPortrait(document);
+
+    expect(target?.image.classList.contains('styles_avatar__t7tEz')).toBe(true);
+    expect(target?.image).not.toBe(decorationsPortrait);
+  });
+
+  it('does not treat a Current Decorations portrait as the fullscreen target', () => {
+    document.body.innerHTML = `
+      <div class="ct-sidebar__portal">
+        <aside aria-label="Information Sidebar">
+          <div class="ct-decorate-pane__current-selections">
+            <img
+              class="ddbc-character-avatar__portrait ct-decorate-pane__portrait"
+              alt="Character portrait"
+              src="https://www.dndbeyond.com/avatars/decorations.jpeg">
+          </div>
+        </aside>
+      </div>
+    `;
+
+    expect(findPanelPortrait(document)).toBeNull();
   });
 
   it('observes lazily rendered sidebars', async () => {
