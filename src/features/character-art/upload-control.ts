@@ -16,19 +16,15 @@ import {
   CHARACTER_ART_CONTROLS_ATTRIBUTE_NAME,
   CHARACTER_ART_STYLES_ATTRIBUTE_NAME,
   PORTRAIT_MANAGER_AVATAR_IMAGE_SELECTOR,
-  PORTRAIT_MANAGER_CUSTOM_SECTION_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_FILE_CLASS,
   PORTRAIT_MANAGER_UPLOAD_FILE_INPUT_CLASS,
-  PORTRAIT_MANAGER_UPLOAD_FORM_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_CLASS,
   PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_SELECTOR,
-  PORTRAIT_MANAGER_UPLOAD_HEADING_SELECTOR,
   PORTRAIT_MANAGER_UPLOAD_INPUT_SELECTOR,
 } from '../../platform/dndbeyond/selectors';
 import {
   findChangePortraitButton,
   findChangePortraitButtonContainer,
-  findCurrentCustomContent,
   findSelectedPortraitContainer,
 } from '../../platform/dndbeyond/portrait-manager-adapter';
 import {isExtensionDrivenPortraitUpload} from '../../platform/dndbeyond/portrait-upload-handoff';
@@ -57,11 +53,6 @@ export interface CharacterArtControlsTarget {
 interface StatusState {
   message: string;
   tone: StatusTone;
-}
-
-interface StoredArtPreviewState {
-  imageUrl: string;
-  releaseImageUrl: Cleanup | null;
 }
 
 interface PendingPortraitCropState {
@@ -97,7 +88,6 @@ export function installCharacterArtControls(
   }
 
   const state = {
-    currentPreview: null as StoredArtPreviewState | null,
     destroyed: false,
     fullArtMetadata: null as CharacterArtMetadata | null,
     isBusy: false,
@@ -105,7 +95,6 @@ export function installCharacterArtControls(
     pendingSelectedFile: null as File | null,
     pendingSelectedFileCrop: null as PendingPortraitCropState | null,
     portraitCropMetadata: null as CharacterPortraitCropMetadata | null,
-    proposedPreview: null as StoredArtPreviewState | null,
     scheduledRenderHandles: [] as ScheduledRenderHandle[],
     status: ({
       message: '',
@@ -123,14 +112,6 @@ export function installCharacterArtControls(
   const statusText = doc.createElement('p');
   statusText.className = 'bfa-art-sync__status bfa-art-sync__status--info';
   statusText.hidden = true;
-  const topLayout = doc.createElement('section');
-  topLayout.className = 'bfa-art-sync__top-layout';
-  const topMain = doc.createElement('div');
-  topMain.className = 'bfa-art-sync__top-main';
-  const uploadIntro = doc.createElement('div');
-  uploadIntro.className = 'bfa-art-sync__upload-intro';
-  const currentPreviewPanel = createPreviewPanel(doc, 'Current Full Art');
-  const proposedPreviewPanel = createPreviewPanel(doc, 'Proposed Full Art');
   const resizeObserver = createResizeObserver(target.manager, () => {
     render();
   }, doc);
@@ -190,7 +171,6 @@ export function installCharacterArtControls(
     const selectedFile = uploadInput.files?.[0];
     state.pendingSelectedFile = selectedFile ?? null;
     state.pendingSelectedFileCrop = null;
-    setProposedPreviewFromFile(selectedFile ?? null);
     render();
     scheduleRender(render, state.scheduledRenderHandles);
     if (selectedFile !== undefined) {
@@ -329,7 +309,6 @@ export function installCharacterArtControls(
   controls.append(buttonRow, statusText);
   target.uploadSection.append(controls);
 
-  ensureTopLayout();
   render();
   void refresh();
 
@@ -337,13 +316,11 @@ export function installCharacterArtControls(
     cleanup() {
       state.destroyed = true;
       clearScheduledRenders(state.scheduledRenderHandles);
-      releasePreview(state.currentPreview);
-      releasePreview(state.proposedPreview);
       resizeObserver?.disconnect();
       target.manager.removeEventListener('change', onManagerChange);
       target.manager.removeEventListener('click', onManagerClick);
-      currentPreviewPanel.panel.remove();
-      proposedPreviewPanel.panel.remove();
+      clearSelectedPortraitLayout(target.uploadSection);
+      target.manager.classList.remove('bfa-art-sync--compact');
       controls.remove();
       if (doc.querySelector(`[${CHARACTER_ART_CONTROLS_ATTRIBUTE_NAME}]`) === null) {
         removeCharacterArtStyles(doc);
@@ -358,18 +335,13 @@ export function installCharacterArtControls(
       return;
     }
 
-    ensureTopLayout();
     syncLayoutMode();
     mountCropButton();
     renderStatus(statusText, state.status);
-    renderCurrentPreview();
-    renderProposedPreview();
+    layoutSelectedPortrait();
     const controlsOwnVisibleButtonRow =
       buttonRow.parentElement === controls && !buttonRow.hidden;
-    controls.hidden =
-      !controlsOwnVisibleButtonRow
-      && state.proposedPreview === null
-      && statusText.hidden;
+    controls.hidden = !controlsOwnVisibleButtonRow && statusText.hidden;
   }
 
   function mountCropButton() {
@@ -418,8 +390,6 @@ export function installCharacterArtControls(
   }
 
   async function refreshPreviewImage() {
-    releasePreview(state.currentPreview);
-    state.currentPreview = null;
     state.loadedFullArtSha256 = null;
     if (state.fullArtMetadata === null) {
       return;
@@ -429,162 +399,56 @@ export function installCharacterArtControls(
         characterId,
         resolveFallbackViewerImage(target.manager),
     );
-    if (state.destroyed) {
-      resolution.releaseImageUrl?.();
-      return;
-    }
-
-    if (!resolution.usingStoredArt) {
-      resolution.releaseImageUrl?.();
+    resolution.releaseImageUrl?.();
+    if (state.destroyed || !resolution.usingStoredArt) {
       return;
     }
 
     state.loadedFullArtSha256 = resolution.sha256 ?? null;
-
-    state.currentPreview = {
-      imageUrl: resolution.imageUrl,
-      releaseImageUrl: resolution.releaseImageUrl ?? null,
-    };
   }
 
-  function renderCurrentPreview() {
-    if (state.currentPreview === null || isCompactLayout(target.manager)) {
-      currentPreviewPanel.panel.hidden = true;
-      currentPreviewPanel.image.removeAttribute('src');
-      return;
-    }
-
-    currentPreviewPanel.panel.hidden = false;
-    currentPreviewPanel.image.src = state.currentPreview.imageUrl;
-    if (currentPreviewPanel.panel.parentElement !== topLayout) {
-      topLayout.append(currentPreviewPanel.panel);
-    }
-  }
-
-  function renderProposedPreview() {
-    if (state.proposedPreview === null) {
-      proposedPreviewPanel.panel.hidden = true;
-      proposedPreviewPanel.image.removeAttribute('src');
-      clearSelectedRowLayout(target.uploadSection, proposedPreviewPanel.panel);
-      return;
-    }
-
-    const compactLayout = isCompactLayout(target.manager);
-    proposedPreviewPanel.panel.hidden = compactLayout;
-    proposedPreviewPanel.image.src = state.proposedPreview.imageUrl;
+  function layoutSelectedPortrait() {
     const selectedPortraitContainer = findSelectedPortraitContainer(target.uploadSection);
-    if (selectedPortraitContainer === null) {
+    const actionContainer = findChangePortraitButtonContainer(target.uploadSection);
+    if (
+      selectedPortraitContainer === null
+      || actionContainer === null
+      || !hasSelectedPortraitUpload(target.uploadInput)
+    ) {
+      clearSelectedPortraitLayout(target.uploadSection);
       return;
     }
 
     selectedPortraitContainer.classList.add('bfa-art-sync__selected-row');
-    const actionContainer = findChangePortraitButtonContainer(target.uploadSection);
-    if (actionContainer === null) {
-      return;
-    }
-    const selectedControlsColumn = ensureSelectedControlsColumn(doc, selectedPortraitContainer);
+    actionContainer.classList.add('bfa-art-sync__selected-actions');
     const nativePreviewContainer = findNativeSelectedPreviewContainer(
         selectedPortraitContainer,
-        selectedControlsColumn,
         actionContainer,
-        proposedPreviewPanel.panel,
     );
     nativePreviewContainer?.classList.add('bfa-art-sync__selected-preview-container');
-    actionContainer.classList.add('bfa-art-sync__selected-actions');
-    if (selectedControlsColumn.parentElement !== selectedPortraitContainer) {
-      selectedPortraitContainer.prepend(selectedControlsColumn);
-    }
-    if (nativePreviewContainer !== null
-      && nativePreviewContainer.parentElement !== selectedControlsColumn) {
-      selectedControlsColumn.append(nativePreviewContainer);
-    }
-    if (actionContainer.parentElement !== selectedControlsColumn) {
-      selectedControlsColumn.append(actionContainer);
-    }
     applySelectedRowLayout(
         selectedPortraitContainer,
-        selectedControlsColumn,
         nativePreviewContainer,
         actionContainer,
-        proposedPreviewPanel.panel,
-        compactLayout,
+        isCompactLayout(target.manager),
     );
-
-    if (compactLayout) {
-      proposedPreviewPanel.panel.remove();
-      return;
-    }
-
-    if (proposedPreviewPanel.panel.parentElement !== selectedPortraitContainer) {
-      selectedPortraitContainer.append(proposedPreviewPanel.panel);
-    }
-  }
-
-  function setProposedPreviewFromFile(file: File | null) {
-    releasePreview(state.proposedPreview);
-    state.proposedPreview =
-      file === null ? null : createPreviewFromFile(file);
-  }
-
-  function ensureTopLayout() {
-    const customSection = target.manager.querySelector<HTMLElement>(
-        PORTRAIT_MANAGER_CUSTOM_SECTION_SELECTOR,
-    );
-    const uploadHeading = target.uploadSection.querySelector<HTMLElement>(
-        PORTRAIT_MANAGER_UPLOAD_HEADING_SELECTOR,
-    );
-    const uploadHeadingRules = target.uploadSection.querySelector<HTMLElement>(
-        PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_SELECTOR,
-    );
-    const uploadForm = target.uploadSection.querySelector<HTMLElement>(
-        PORTRAIT_MANAGER_UPLOAD_FORM_SELECTOR,
-    );
-
-    if (customSection === null || uploadHeading === null || uploadForm === null) {
-      return;
-    }
-
-    if (originalUploadRulesText === null && uploadHeadingRules !== null) {
-      originalUploadRulesText = uploadHeadingRules.textContent?.trim() ?? '';
-    }
-
-    topMain.classList.add('bfa-art-sync__top-column');
-    uploadIntro.classList.add('bfa-art-sync__top-column');
-    if (customSection.parentElement !== topMain) {
-      topMain.append(customSection);
-    }
-    if (uploadHeading.parentElement !== uploadIntro) {
-      uploadIntro.append(uploadHeading);
-    }
-    if (uploadForm.parentElement !== uploadIntro) {
-      uploadIntro.append(uploadForm);
-    }
-    if (uploadIntro.parentElement !== topMain) {
-      topMain.append(uploadIntro);
-    }
-    if (topMain.parentElement !== topLayout) {
-      topLayout.prepend(topMain);
-    }
-    if (topLayout.parentElement !== target.manager) {
-      target.manager.prepend(topLayout);
-    }
-
-    const customContent = findCurrentCustomContent(target.manager);
-    customContent?.classList.add('bfa-art-sync__custom-content');
   }
 
   function syncLayoutMode() {
     const compactLayout = isCompactLayout(target.manager);
     controls.classList.toggle('bfa-art-sync--compact', compactLayout);
-    topLayout.classList.toggle('bfa-art-sync__top-layout--compact', compactLayout);
+    target.manager.classList.toggle('bfa-art-sync--compact', compactLayout);
 
     const uploadHeadingRules = target.manager.querySelector<HTMLElement>(
         PORTRAIT_MANAGER_UPLOAD_HEADING_RULES_SELECTOR,
     );
     if (uploadHeadingRules !== null) {
+      if (originalUploadRulesText === null) {
+        originalUploadRulesText = uploadHeadingRules.textContent?.trim() ?? '';
+      }
       uploadHeadingRules.textContent = compactLayout
         ? COMPACT_UPLOAD_RULES_TEXT
-        : (originalUploadRulesText ?? uploadHeadingRules.textContent ?? '');
+        : originalUploadRulesText;
     }
   }
 }
@@ -658,37 +522,12 @@ function synchronizeButtonAppearance(
   targetButton.className = `${sourceButton.className} bfa-art-sync__button bfa-art-sync__button--native`;
 }
 
-function createPreviewPanel(
-    doc: Document,
-    label: string,
-): {image: HTMLImageElement; panel: HTMLElement} {
-  const panel = doc.createElement('aside');
-  panel.className = 'bfa-art-sync__preview';
-  panel.hidden = true;
-  const previewLabel = doc.createElement('p');
-  previewLabel.className = 'bfa-art-sync__preview-label';
-  previewLabel.textContent = label;
-  const image = doc.createElement('img');
-  image.className = 'bfa-art-sync__preview-image';
-  image.alt = `${label} preview`;
-  panel.append(previewLabel, image);
-  return {image, panel};
-}
-
 function findNativeSelectedPreviewContainer(
     selectedPortraitContainer: HTMLElement,
-    selectedControlsColumn: HTMLElement,
     actionContainer: HTMLElement,
-    proposedPreviewPanel: HTMLElement,
 ): HTMLElement | null {
   for (const child of selectedPortraitContainer.children) {
-    if (!isHtmlElement(child)) {
-      continue;
-    }
-
-    if (child === selectedControlsColumn
-      || child === actionContainer
-      || child === proposedPreviewPanel) {
+    if (!isHtmlElement(child) || child === actionContainer) {
       continue;
     }
 
@@ -700,146 +539,117 @@ function findNativeSelectedPreviewContainer(
 
 function applySelectedRowLayout(
     selectedPortraitContainer: HTMLElement,
-    selectedControlsColumn: HTMLElement,
     nativePreviewContainer: HTMLElement | null,
     actionContainer: HTMLElement,
-    proposedPreviewPanel: HTMLElement,
     compactLayout: boolean,
 ): void {
+  // One column, only as wide as the longer button label or the native thumbnail.
+  // A fixed fraction of the modal leaves "Edit portrait crop" wrapping, or stretches
+  // the pair across the empty space where the full-art preview used to sit.
   setImportantStyle(selectedPortraitContainer, 'display', 'grid');
   setImportantStyle(selectedPortraitContainer, 'align-items', 'start');
-  setImportantStyle(selectedPortraitContainer, 'column-gap', compactLayout ? '16px' : '28px');
+  setImportantStyle(selectedPortraitContainer, 'gap', '12px');
+  setImportantStyle(selectedPortraitContainer, 'justify-items', 'stretch');
+  setImportantStyle(selectedPortraitContainer, 'justify-self', 'start');
+  setImportantStyle(selectedPortraitContainer, 'max-width', '100%');
   setImportantStyle(
       selectedPortraitContainer,
       'grid-template-columns',
-      compactLayout ? '1fr' : 'max-content minmax(0, 1fr)',
+      compactLayout ? 'minmax(0, 1fr)' : 'max-content',
+  );
+  setImportantStyle(
+      selectedPortraitContainer,
+      'width',
+      compactLayout ? '100%' : 'max-content',
   );
 
-  setImportantStyle(selectedControlsColumn, 'display', 'grid');
-  setImportantStyle(selectedControlsColumn, 'align-content', 'start');
-  setImportantStyle(selectedControlsColumn, 'gap', compactLayout ? '12px' : '18px');
-  setImportantStyle(selectedControlsColumn, 'grid-column', '1');
-  setImportantStyle(selectedControlsColumn, 'justify-items', compactLayout ? 'start' : 'center');
-  setImportantStyle(selectedControlsColumn, 'width', compactLayout ? '100%' : 'max-content');
-
   if (nativePreviewContainer !== null) {
-    setImportantStyle(nativePreviewContainer, 'display', 'grid');
-    setImportantStyle(nativePreviewContainer, 'justify-self', compactLayout ? 'start' : 'center');
-    setImportantStyle(nativePreviewContainer, 'min-width', '0');
+    setImportantStyle(nativePreviewContainer, 'justify-self', 'start');
+    setImportantStyle(nativePreviewContainer, 'max-width', '100%');
     setImportantStyle(nativePreviewContainer, 'width', 'max-content');
-    const nativePreviewHeading = nativePreviewContainer.firstElementChild;
-    if (isHtmlElement(nativePreviewHeading)) {
-      setImportantStyle(nativePreviewHeading, 'box-sizing', 'border-box');
-      setImportantStyle(nativePreviewHeading, 'text-align', 'center');
-      setImportantStyle(nativePreviewHeading, 'width', '100%');
+    const nativePreviewImage = nativePreviewContainer.querySelector('img');
+    if (isHtmlElement(nativePreviewImage)) {
+      setImportantStyle(nativePreviewImage, 'height', 'auto');
+      setImportantStyle(nativePreviewImage, 'max-width', '100%');
     }
   }
 
   setImportantStyle(actionContainer, 'display', 'grid');
-  setImportantStyle(actionContainer, 'align-content', 'start');
-  setImportantStyle(actionContainer, 'gap', compactLayout ? '10px' : '14px');
-  setImportantStyle(actionContainer, 'justify-self', compactLayout ? 'start' : 'center');
-  setImportantStyle(actionContainer, 'min-width', '0');
-  setImportantStyle(
-      actionContainer,
-      'width',
-      compactLayout ? 'min(100%, 220px)' : 'max-content',
-  );
-
+  setImportantStyle(actionContainer, 'align-items', 'stretch');
+  setImportantStyle(actionContainer, 'gap', '8px');
+  setImportantStyle(actionContainer, 'justify-items', 'stretch');
+  setImportantStyle(actionContainer, 'justify-self', 'stretch');
+  setImportantStyle(actionContainer, 'max-width', '100%');
+  setImportantStyle(actionContainer, 'width', '100%');
   const injectedButtonRow = actionContainer.querySelector<HTMLElement>(':scope > .bfa-art-sync__buttons');
-  setImportantStyle(injectedButtonRow, 'width', compactLayout ? '100%' : 'auto');
-  setImportantStyle(injectedButtonRow, 'justify-items', compactLayout ? 'stretch' : 'start');
+  setImportantStyle(injectedButtonRow, 'display', 'grid');
+  setImportantStyle(injectedButtonRow, 'width', '100%');
+  setImportantStyle(injectedButtonRow, 'max-width', '100%');
+  const nativeChangeButton = actionContainer.querySelector<HTMLButtonElement>(':scope > button');
   const injectedCropButton = injectedButtonRow?.querySelector<HTMLButtonElement>('.bfa-art-sync__button');
-  const nativeChangeButton = actionContainer.querySelector<HTMLButtonElement>(
-      ':scope > button',
-  );
-  const buttonWidth = computeUniformButtonWidth(nativeChangeButton, injectedCropButton ?? null);
-  if (compactLayout) {
-    setImportantStyle(nativeChangeButton, 'width', '100%');
-    setImportantStyle(injectedCropButton ?? null, 'width', '100%');
-  } else {
-    setUniformButtonWidth(nativeChangeButton, buttonWidth);
-    setUniformButtonWidth(injectedCropButton ?? null, buttonWidth);
+  for (const button of [nativeChangeButton, injectedCropButton ?? null]) {
+    setImportantStyle(button, 'box-sizing', 'border-box');
+    setImportantStyle(button, 'max-width', '100%');
+    setImportantStyle(button, 'min-width', compactLayout ? '0' : 'max-content');
+    setImportantStyle(button, 'width', '100%');
+    setImportantStyle(button, 'white-space', compactLayout ? 'normal' : 'nowrap');
   }
-
-  setImportantStyle(proposedPreviewPanel, 'grid-column', '2');
-  setImportantStyle(proposedPreviewPanel, 'align-self', 'start');
-  setImportantStyle(proposedPreviewPanel, 'min-width', '0');
-  setImportantStyle(proposedPreviewPanel, 'width', compactLayout ? '0' : 'min(100%, 360px)');
-  const proposedPreviewImage = proposedPreviewPanel.querySelector<HTMLImageElement>(
-      '.bfa-art-sync__preview-image',
-  );
-  setImportantStyle(proposedPreviewImage ?? null, 'max-height', compactLayout ? '0' : '280px');
 }
 
-function clearSelectedRowLayout(
-    uploadSection: HTMLElement,
-    proposedPreviewPanel: HTMLElement,
-): void {
+function clearSelectedPortraitLayout(uploadSection: HTMLElement): void {
   const selectedPortraitContainer = findSelectedPortraitContainer(uploadSection);
   const actionContainer = findChangePortraitButtonContainer(uploadSection);
-  const selectedControlsColumn = selectedPortraitContainer?.querySelector<HTMLElement>(
-      ':scope > .bfa-art-sync__selected-controls',
-  ) ?? null;
   const nativePreviewContainer = selectedPortraitContainer === null || actionContainer === null
     ? null
-    : findNativeSelectedPreviewContainer(
-        selectedPortraitContainer,
-        selectedControlsColumn ?? createDetachedElement(uploadSection.ownerDocument),
-        actionContainer,
-        proposedPreviewPanel,
-    );
+    : findNativeSelectedPreviewContainer(selectedPortraitContainer, actionContainer);
+  const nativePreviewImage = nativePreviewContainer?.querySelector('img') ?? null;
 
-  clearImportantStyle(selectedPortraitContainer, 'display');
-  clearImportantStyle(selectedPortraitContainer, 'align-items');
-  clearImportantStyle(selectedPortraitContainer, 'column-gap');
-  clearImportantStyle(selectedPortraitContainer, 'grid-template-columns');
-  clearImportantStyle(selectedControlsColumn, 'display');
-  clearImportantStyle(selectedControlsColumn, 'align-content');
-  clearImportantStyle(selectedControlsColumn, 'gap');
-  clearImportantStyle(selectedControlsColumn, 'grid-column');
-  clearImportantStyle(selectedControlsColumn, 'justify-items');
-  clearImportantStyle(selectedControlsColumn, 'width');
+  selectedPortraitContainer?.classList.remove('bfa-art-sync__selected-row');
+  actionContainer?.classList.remove('bfa-art-sync__selected-actions');
+  nativePreviewContainer?.classList.remove('bfa-art-sync__selected-preview-container');
 
-  clearImportantStyle(nativePreviewContainer, 'display');
-  clearImportantStyle(nativePreviewContainer, 'justify-self');
-  clearImportantStyle(nativePreviewContainer, 'min-width');
-  clearImportantStyle(nativePreviewContainer, 'width');
-  const nativePreviewHeading = nativePreviewContainer?.firstElementChild ?? null;
-  if (isHtmlElement(nativePreviewHeading)) {
-    clearImportantStyle(nativePreviewHeading, 'box-sizing');
-    clearImportantStyle(nativePreviewHeading, 'text-align');
-    clearImportantStyle(nativePreviewHeading, 'width');
+  for (const propertyName of [
+    'display',
+    'align-items',
+    'gap',
+    'justify-items',
+    'justify-self',
+    'max-width',
+    'grid-template-columns',
+    'width',
+  ]) {
+    clearImportantStyle(selectedPortraitContainer, propertyName);
   }
-
-  clearImportantStyle(actionContainer, 'display');
-  clearImportantStyle(actionContainer, 'align-content');
-  clearImportantStyle(actionContainer, 'gap');
-  clearImportantStyle(actionContainer, 'justify-self');
-  clearImportantStyle(actionContainer, 'min-width');
-  clearImportantStyle(actionContainer, 'width');
+  for (const propertyName of ['justify-self', 'max-width', 'width']) {
+    clearImportantStyle(nativePreviewContainer, propertyName);
+  }
+  if (isHtmlElement(nativePreviewImage)) {
+    clearImportantStyle(nativePreviewImage, 'height');
+    clearImportantStyle(nativePreviewImage, 'max-width');
+  }
+  for (const propertyName of [
+    'display',
+    'align-items',
+    'gap',
+    'justify-items',
+    'justify-self',
+    'max-width',
+    'width',
+  ]) {
+    clearImportantStyle(actionContainer, propertyName);
+  }
   const injectedButtonRow = actionContainer?.querySelector<HTMLElement>(':scope > .bfa-art-sync__buttons');
-  clearImportantStyle(injectedButtonRow ?? null, 'width');
-  clearImportantStyle(injectedButtonRow ?? null, 'justify-items');
+  for (const propertyName of ['display', 'max-width', 'width']) {
+    clearImportantStyle(injectedButtonRow ?? null, propertyName);
+  }
   const nativeChangeButton = actionContainer?.querySelector<HTMLButtonElement>(':scope > button') ?? null;
-  clearImportantStyle(nativeChangeButton, 'width');
   const injectedCropButton = injectedButtonRow?.querySelector<HTMLButtonElement>('.bfa-art-sync__button');
-  clearImportantStyle(injectedCropButton ?? null, 'width');
-
-  clearImportantStyle(proposedPreviewPanel, 'grid-column');
-  clearImportantStyle(proposedPreviewPanel, 'align-self');
-  clearImportantStyle(proposedPreviewPanel, 'min-width');
-  clearImportantStyle(proposedPreviewPanel, 'width');
-  const proposedPreviewImage = proposedPreviewPanel.querySelector<HTMLImageElement>(
-      '.bfa-art-sync__preview-image',
-  );
-  clearImportantStyle(proposedPreviewImage ?? null, 'max-height');
-
-  if (selectedPortraitContainer !== null && selectedControlsColumn !== null) {
-    while (selectedControlsColumn.firstChild !== null) {
-      selectedPortraitContainer.insertBefore(selectedControlsColumn.firstChild, selectedControlsColumn);
-    }
-    selectedControlsColumn.remove();
+  for (const button of [nativeChangeButton, injectedCropButton ?? null]) {
+    clearImportantStyle(button, 'box-sizing');
+    clearImportantStyle(button, 'max-width');
+    clearImportantStyle(button, 'min-width');
+    clearImportantStyle(button, 'width');
+    clearImportantStyle(button, 'white-space');
   }
 }
 
@@ -875,67 +685,6 @@ function createResizeObserver(
   return observer;
 }
 
-function ensureSelectedControlsColumn(
-    doc: Document,
-    selectedPortraitContainer: HTMLElement,
-): HTMLElement {
-  for (const child of selectedPortraitContainer.children) {
-    if (!isHtmlElement(child)) {
-      continue;
-    }
-
-    if (child.classList.contains('bfa-art-sync__selected-controls')) {
-      return child;
-    }
-  }
-
-  const selectedControlsColumn = doc.createElement('div');
-  selectedControlsColumn.className = 'bfa-art-sync__selected-controls';
-  return selectedControlsColumn;
-}
-
-function createDetachedElement(doc: Document): HTMLElement {
-  return doc.createElement('div');
-}
-
-function computeUniformButtonWidth(
-    nativeChangeButton: HTMLButtonElement | null,
-    injectedCropButton: HTMLButtonElement | null,
-): number {
-  const nativeWidth = nativeChangeButton?.getBoundingClientRect().width ?? 0;
-  const injectedWidth = injectedCropButton?.getBoundingClientRect().width ?? 0;
-  return Math.ceil(Math.max(nativeWidth, injectedWidth));
-}
-
-function setUniformButtonWidth(
-    button: HTMLButtonElement | null,
-    width: number,
-): void {
-  if (button === null || width <= 0) {
-    return;
-  }
-
-  setImportantStyle(button, 'width', `${width}px`);
-}
-
-function createPreviewFromFile(file: File): StoredArtPreviewState | null {
-  const objectUrl = tryCreateObjectUrl(file);
-  if (objectUrl === null) {
-    return null;
-  }
-
-  return {
-    imageUrl: objectUrl,
-    releaseImageUrl: () => {
-      revokeObjectUrl(objectUrl);
-    },
-  };
-}
-
-function releasePreview(preview: StoredArtPreviewState | null): void {
-  preview?.releaseImageUrl?.();
-}
-
 function createButton(
     doc: Document,
     label: string,
@@ -960,20 +709,16 @@ function portraitManagerLayoutCss(): string {
   const file = PORTRAIT_MANAGER_UPLOAD_FILE_CLASS;
   const input = PORTRAIT_MANAGER_UPLOAD_FILE_INPUT_CLASS;
   return [
-    `.bfa-art-sync__upload-intro .${rules} {`,
+    `.bfa-art-sync--compact .${rules} {`,
+    '  font-size: 12px;',
+    '  line-height: 1.35;',
     '  max-width: 100%;',
     '  overflow-wrap: anywhere;',
     '}',
-    `.bfa-art-sync__upload-intro .${file} {`,
+    `.bfa-art-sync--compact .${file},`,
+    `.bfa-art-sync--compact .${input} {`,
     '  max-width: 100%;',
     '  min-width: 0;',
-    '}',
-    `.bfa-art-sync__upload-intro .${input} {`,
-    '  max-width: 100%;',
-    '}',
-    `.bfa-art-sync--compact .bfa-art-sync__upload-intro .${rules} {`,
-    '  font-size: 12px;',
-    '  line-height: 1.35;',
     '}',
   ].join('\n');
 }
@@ -1092,28 +837,6 @@ function clearScheduledRenders(
 
     globalThis.clearTimeout(handle);
   }
-}
-
-function tryCreateObjectUrl(file: File): string | null {
-  const urlConstructor = globalThis.URL as typeof URL & {
-    createObjectURL?: (blob: Blob) => string;
-  };
-  if (typeof urlConstructor.createObjectURL !== 'function') {
-    return null;
-  }
-
-  return urlConstructor.createObjectURL(file);
-}
-
-function revokeObjectUrl(objectUrl: string): void {
-  const urlConstructor = globalThis.URL as typeof URL & {
-    revokeObjectURL?: (value: string) => void;
-  };
-  if (typeof urlConstructor.revokeObjectURL !== 'function') {
-    return;
-  }
-
-  urlConstructor.revokeObjectURL(objectUrl);
 }
 
 async function readBlobAsArrayBuffer(

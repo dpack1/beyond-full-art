@@ -2,6 +2,7 @@ import {
   CHARACTER_MANAGE_PANE_SELECTOR,
   CHARACTER_PORTRAIT_SELECTOR,
   CHARACTER_PORTRAIT_SURFACE_SELECTOR,
+  DECORATE_PANE_SELECTOR,
   INFORMATION_SIDEBAR_SELECTOR,
   SIDEBAR_PORTAL_SELECTOR,
 } from './selectors';
@@ -114,14 +115,20 @@ function firstOutsideJournal(root: ParentNode, selector: string): HTMLElement | 
 }
 
 function findPortraitSurface(root: ParentNode): HTMLElement | null {
-  const legacyPortrait = root.querySelector(CHARACTER_PORTRAIT_SELECTOR);
-  if (isHtmlImageElement(legacyPortrait)) {
+  const legacyPortrait = findFirstOutsideDecoratePane(
+      root,
+      CHARACTER_PORTRAIT_SELECTOR,
+      isHtmlImageElement,
+  );
+  if (legacyPortrait !== null) {
     return legacyPortrait;
   }
 
   const portraitSurfaces = [...root.querySelectorAll(
       CHARACTER_PORTRAIT_SURFACE_SELECTOR,
-  )].filter(isHtmlElement);
+  )].filter((element): element is HTMLElement =>
+    isHtmlElement(element) && !isInsideDecoratePane(element),
+  );
 
   if (portraitSurfaces.length === 0) {
     return null;
@@ -130,6 +137,26 @@ function findPortraitSurface(root: ParentNode): HTMLElement | null {
   return portraitSurfaces.reduce((largest, candidate) => (
     getElementArea(candidate) >= getElementArea(largest) ? candidate : largest
   ));
+}
+
+function findFirstOutsideDecoratePane<T extends Element>(
+    root: ParentNode,
+    selector: string,
+    isMatch: (element: Element) => element is T,
+): T | null {
+  for (const candidate of root.querySelectorAll(selector)) {
+    if (!isMatch(candidate) || isInsideDecoratePane(candidate)) {
+      continue;
+    }
+
+    return candidate;
+  }
+
+  return null;
+}
+
+function isInsideDecoratePane(element: Element): boolean {
+  return element.closest(DECORATE_PANE_SELECTOR) !== null;
 }
 
 function getElementArea(element: HTMLElement): number {

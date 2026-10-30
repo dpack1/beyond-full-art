@@ -55,6 +55,12 @@ export const CURRENT_INFORMATION_SIDEBAR_FIXTURE = `
           class="ddbc-character-avatar__portrait styles_avatar__t7tEz ddbc-character-avatar__portrait--none"
           style="background-image: url(&quot;https://www.dndbeyond.com/avatars/58196/625/1581111423-169418374.jpeg?width=150&amp;height=150&amp;fit=crop&amp;quality=95&amp;auto=webp&quot;); width: 130px; height: 130px;">
         </div>
+        <div class="ct-decorate-pane__current-selections">
+          <img
+            class="ddbc-character-avatar__portrait ct-decorate-pane__portrait"
+            alt="Character portrait"
+            src="https://www.dndbeyond.com/avatars/58196/625/1581111423-169418374.jpeg?width=150&height=150&fit=crop&quality=95&auto=webp">
+        </div>
       </div>
     </aside>
   </div>

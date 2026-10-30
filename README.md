@@ -26,11 +26,11 @@ The toolbar icon opens one popup. That popup holds the optional settings and the
 
 ### Fullscreen viewer
 
-On a character sheet, the extension makes the portrait in the right-side information panel open a fullscreen overlay. If full art is stored for that character, the viewer shows that image. Otherwise it shows the current D&D Beyond portrait. Escape, the close button, or the backdrop dismisses it, and focus returns to the portrait.
+On a character sheet, the extension makes the portrait in the sidebar summary open a fullscreen overlay. The portrait in Current Decorations does not. If full art is stored for that character, the viewer shows that image. Otherwise it shows the current D&D Beyond portrait. Escape, the close button, or the backdrop dismisses it, and focus returns to the portrait.
 
 ### Portrait edit panel
 
-Inside D&D Beyond's portrait manager (the sheet sidebar and the builder modal), the extension injects its own status and actions. That panel shows the current stored full art, a preview of a newly chosen image, and **Crop portrait** or **Edit portrait crop**. Narrow sidebars use a compact layout. It keeps D&D Beyond's file picker and saves the selected file locally only after the native **Change Portrait** button is used.
+Inside D&D Beyond's portrait manager (the sheet sidebar and the builder modal), the extension adds **Crop portrait** or **Edit portrait crop** under the native portrait preview, stacked with **Change Portrait** at the same width. It does not add a full-art preview beside that row. Narrow sidebars use a compact layout. It keeps D&D Beyond's file picker and saves the selected file locally only after the native **Change Portrait** button is used.
 
 ### Portrait crop
 
