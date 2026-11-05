@@ -25,6 +25,7 @@ Use these until the store listing has its own copy.
 | Homepage | https://github.com/dpack1/beyond-full-art |
 | Privacy policy | https://github.com/dpack1/beyond-full-art/blob/main/PRIVACY.md |
 | Support | https://github.com/dpack1/beyond-full-art/issues |
+| Optional tip | https://ko-fi.com/dpack1 |
 
 The privacy URL works after this repository is public. The store requires that URL because the extension stores character art and journals.
 
@@ -33,6 +34,10 @@ Single purpose, for the dashboard:
 > Beyond Full Art keeps a local full-art image, portrait crop, and character journal for D&D Beyond characters. It can also sharpen card portraits and show one companion portrait from Extras. It does not replace the character sheet.
 
 The item is not affiliated with or endorsed by D&D Beyond or Wizards of the Coast. Say that in the store description. The manifest description already starts with "Unofficial".
+
+Add this sentence to the store description. Leave the Support URL on the issue tracker. The tip link is optional and does not unlock a feature.
+
+> Beyond Full Art stays free. If it helps your table, you can leave a tip at https://ko-fi.com/dpack1. A tip does not unlock anything.
 
 Screenshots of the journal, folder, copy prompt, and deletion prompt are a separate README pass. The store accepts 1280×800 or 640×400 PNGs. Do not use a screenshot that shows someone else's account or a private character you do not want public.
 

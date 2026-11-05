@@ -103,7 +103,7 @@ src/
     fullscreen-viewer/                  accessible fullscreen overlay
   platform/chrome/                      storage, IndexedDB, runtime messages
   platform/dndbeyond/                   selector map, URLs, DOM adapters
-  popup/                                toolbar settings, storage readout, backup folder, inventory
+  popup/                                toolbar settings, storage readout, backup folder, inventory, Ko-fi link
   folder/                               backup-folder picker window
   shared/                               DOM, download, and result helpers
 tests/
@@ -126,7 +126,7 @@ Preserve these boundaries:
 - Chrome API access lives behind `src/platform/chrome/` where tests need a seam.
 - UI components own their markup, behavior, and styles.
 - Storage code stays separate from DOM integration.
-- The popup is one surface: settings toggles, the storage readout, the backup-folder connection, and the stored-art inventory. The directory picker itself runs in `folder/setup.html`.
+- The popup is one surface: settings toggles, the storage readout, the backup-folder connection, the stored-art inventory, and a Ko-fi link. The directory picker itself runs in `folder/setup.html`. The Ko-fi button is a local copy of Ko-fi's badge at `src/popup/kofi-button.svg`. The build copies it next to `settings.html`. Do not hotlink it. The link is https://ko-fi.com/dpack1 and does not unlock a feature.
 
 Avoid large files. Consider splitting a file that approaches 250 lines when it has more than one responsibility. Do not split cohesive code merely to satisfy a line count. `src/features/character-art/upload-control.ts` and `src/platform/chrome/messages.ts` are already past that guideline; split them only when changing their behavior.
 
@@ -191,7 +191,7 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - Full art is written only after D&D Beyond's native **Change Portrait** action. A chosen file, and a crop made from that file, stay pending until that confirmation.
 - One active full-art image is stored per character. Replacement writes the new blob before deleting the old one.
 - Supported uploads are `image/png`, `image/jpeg`, and `image/webp`, up to 3 MB. The generated crop is a 512×512 PNG.
-- Popup styles are injected by `src/popup/settings.ts` from `settings.css?raw`. `settings.html` has no stylesheet link. The build copies the HTML and bundles the script to `dist/popup/settings.js`. The backup-folder window does the same with `src/folder/setup.css` and `dist/folder/setup.js`.
+- Popup styles are injected by `src/popup/settings.ts` from `settings.css?raw`. `settings.html` has no stylesheet link. The build copies the HTML, `kofi-button.svg`, and bundles the script to `dist/popup/settings.js`. The backup-folder window does the same with `src/folder/setup.css` and `dist/folder/setup.js`.
 - Backup folder setup runs outside the toolbar popup because that popup closes when Chrome's directory picker opens. A new folder must be empty aside from `.DS_Store`, `Thumbs.db`, or `desktop.ini`. An existing folder is accepted when its `beyond-full-art.json` marker is version 1 or 2. A confirmed copy writes checked files. A second confirm removes this browser's copies only when they still match the folder, and later saves go to the folder. A mismatch leaves both copies in place. The marker becomes version 2 after a fully successful copy, or when an empty browser starts saving in the folder. The handle lives in the IndexedDB `backupFolder` store. A stored handle is often permission `prompt` until Choose folder calls `requestPermission`. The setup window moves to the bottom-right corner while that allow question is open, then returns. The service worker still opens `characters/` when that query stays `prompt`. The journal shows the allow-access message when that open fails. The folder stays the library; its files are not copied into this browser.
 - Folder-library deletion writes hashed tombstone JSON and preserves every `character.json` tombstone on later writes. Deleted note files are removed; their photo files remain but are hidden by image tombstones. A tombstoned note id cannot be saved until the explicit restore path clears its note and image tombstones.
 - `src/platform/chrome/folder-library-snapshot.ts` reads browser and folder sync state. `folder-library-compare.ts` owns cross-computer identity and pure comparison. Together they hash browser image bytes, use the shared note fingerprint, treat a local record covered by a folder tombstone as a conflict, and list Drive conflict siblings without opening them. `folder-library-union.ts` writes browser-only additions and rechecks before verified adoption. Conflict choices own later writes.

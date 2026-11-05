@@ -2,6 +2,12 @@
   <img src="assets/readme/banner.png" alt="Beyond Full Art banner" width="900" />
 </p>
 
+<p align="center">
+  <a href="https://ko-fi.com/dpack1"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" /></a>
+</p>
+
+Beyond Full Art stays free. A tip does not unlock anything.
+
 Beyond Full Art is a Chrome Manifest V3 extension for D&D Beyond character art. It keeps D&D Beyond's portrait flow and adds local full-art storage, a portrait crop tool, a fullscreen viewer, sharper character-card portraits, a companion portrait, and a local character journal.
 
 This file is the runbook: what the extension does, how to install it, and how to build, run, and test it. Product and architecture detail lives in `docs/`. The D&D Beyond sheet reference is [docs/ddb-reference/README.md](docs/ddb-reference/README.md). The journal note panel follows the Information Sidebar in [docs/ddb-reference/sidebar.md](docs/ddb-reference/sidebar.md). Shipped features are listed in `.agent/FEATURES.md`. Work that has not shipped lives in `.agent/plans/` and follows `.agent/PLANS.md`. Agent-facing conventions live in `AGENTS.md`.
@@ -22,7 +28,7 @@ Beyond Full Art adds a fullscreen viewer so character art can actually be seen a
 
 ## Features
 
-The toolbar icon opens one popup. That popup holds the optional settings and the stored-art inventory.
+The toolbar icon opens one popup. That popup holds the optional settings, the stored-art inventory, and a Ko-fi link.
 
 ### Fullscreen viewer
 
@@ -238,7 +244,7 @@ Toolbar popup
 | `src/platform/dndbeyond/` | URL parsing and the DOM adapters that import the map. |
 | `src/platform/chrome/` | Storage, IndexedDB, and runtime-message validation. |
 | `src/background/service-worker.ts` | Owns art reads and writes. Treat it as ephemeral. |
-| `src/popup/` | Toolbar popup: three settings, the backup folder, the storage readout, and the stored-art inventory. |
+| `src/popup/` | Toolbar popup: three settings, the backup folder, the storage readout, the stored-art inventory, and a Ko-fi link. |
 | `src/folder/` | Window where Chrome's directory picker prepares the backup folder. |
 | `src/shared/` | Small DOM, download, and result helpers. |
 | `tests/unit`, `tests/dom`, `tests/e2e` | Pure logic, jsdom fixtures, and Playwright extension fixtures. |
@@ -260,7 +266,7 @@ D&D Beyond selectors and private endpoints are unstable. Every selector the exte
 | `npm run test:e2e` | Build, then run Playwright against local fixtures. |
 | `npm run test:all` | Typecheck, unit/DOM tests, build, and Playwright. |
 
-`npm run watch` copies `manifest.json`, icons, and `src/popup/settings.html` once at startup. After editing those static files, stop watch and run `npm run build`. CSS imported with `?raw` is part of the script bundles, so watch does rebuild it.
+`npm run watch` copies `manifest.json`, icons, `src/popup/settings.html`, and `src/popup/kofi-button.svg` once at startup. After editing those static files, stop watch and run `npm run build`. CSS imported with `?raw` is part of the script bundles, so watch does rebuild it.
 
 ### Start and stop
 

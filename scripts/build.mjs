@@ -82,6 +82,10 @@ async function copyPopupHtml() {
       path.join(distRoot, 'popup/settings.html'),
   );
   await copyFile(
+      path.join(repoRoot, 'src/popup/kofi-button.svg'),
+      path.join(distRoot, 'popup/kofi-button.svg'),
+  );
+  await copyFile(
       path.join(repoRoot, 'src/folder/setup.html'),
       path.join(distRoot, 'folder/setup.html'),
   );

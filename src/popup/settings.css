@@ -392,3 +392,27 @@
   cursor: default;
   opacity: 0.7;
 }
+
+.bfa-popup__support {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.bfa-popup__support-link {
+  line-height: 0;
+}
+
+.bfa-popup__support-link img {
+  height: 30px;
+  width: 223px;
+}
+
+.bfa-popup__support-note {
+  color: #c3c9d2;
+  font-size: 12px;
+  margin: 0;
+  text-align: center;
+}
