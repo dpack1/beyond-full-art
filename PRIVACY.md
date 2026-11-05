@@ -31,6 +31,10 @@ The journal and stored artwork are displayed inside the D&D Beyond page. Like an
 
 Beyond Full Art's use of information received from Chrome APIs and D&D Beyond is limited to providing and improving the extension's single purpose described above. The extension does not sell user data, use it for advertising or credit decisions, or transfer it to third parties. The developer does not read locally stored user data unless a user explicitly chooses to share specific material for support. Beyond Full Art's use of information received from Chrome APIs adheres to the Chrome Web Store User Data Policy, including the Limited Use requirements.
 
+## Support link
+
+The popup includes a link to [Ko-fi](https://ko-fi.com/dpack1). The button image is packaged with the extension. Opening the popup does not contact Ko-fi. The page opens only if you choose the link. The extension does not see the tip or any payment details.
+
 ## What is not collected
 
 - no analytics
@@ -49,4 +53,4 @@ Deleting one character from the extension removes that character's stored data a
 
 Questions about this policy can go to the [issue tracker](https://github.com/dpack1/beyond-full-art/issues). Do not include character files, session cookies, or folder contents in an issue.
 
-This policy applies to the extension distributed from this repository. It was last updated on 2026-10-29.
+This policy applies to the extension distributed from this repository. It was last updated on 2026-11-05.

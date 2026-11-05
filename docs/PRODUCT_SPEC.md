@@ -77,6 +77,7 @@ As a user, I can upload the original full artwork for a character and have it st
 - Allow downloading the locally stored full artwork from the fullscreen viewer.
 - Provide a popup inventory for locally stored full artwork, including per-item open, download, and delete actions.
 - Show `chrome.storage.local` usage against its quota, and the browser's IndexedDB estimate, in the popup.
+- Offer an optional Ko-fi link in the popup. The extension stays free. A tip does not unlock anything, and the extension does not see the payment.
 - Clearly communicate that uninstalling the extension removes locally stored art.
 
 ### Current implementation defaults
