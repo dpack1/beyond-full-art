@@ -114,7 +114,7 @@ tests/
 docs/                                   spec, architecture, decisions, research
 docs/ddb-reference/                     live sheet structure; sidebar.md is the journal panel reference
 .agent/                                 shipped features and future plans
-assets/icons/                           extension icons; icon-source.png is the master
+assets/icons/                           extension icons; full-size and toolbar masters
 assets/readme/                          README images only
 scripts/build.mjs                       esbuild bundle into dist/
 scripts/package.mjs                     store zip of a release build
@@ -202,7 +202,7 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - Journal photos belong to the character. A note embeds one with `![[img:<id>]]`, optionally `![[img:<id>|caption|300]]`, and still stores that image record. The catalog is metadata only: `bfa.journal.library.<characterId>` in `chrome.storage.local`, and `characters/<characterId>/journal/photos.json` when the folder is the library. While the library is this browser, bytes live in IndexedDB under keys prefixed `bfa.journal.image.`. After the folder is the library, the photo file is `characters/<characterId>/journal/images/<imageId>.<ext>` and the put message includes that character id. Do not store image bytes in `chrome.storage.local`. A file over 3 MB is resized to a 2048px long edge before it is stored. The source file can be up to 25 MB. Stored bytes stay at or under 3 MB. Photos already stored are left as they are. Taking a photo out of a note, or deleting the note, leaves the file in Photos. Delete photo is the only action that removes it. In folder mode that delete uses the existing image tombstone.
 - The journal follows the sheet's light or dark appearance and scrolls inside the sheet's content pane. Opening it claims the whole tab hit target, including padding, on pointerdown. It conceals the sheet section with `display: none !important` while Journal is open. The note panel mirrors the Information Sidebar recorded in `docs/ddb-reference/sidebar.md`. Hide, Lock, Overlay, Fixed, and Align sit outside the content box and follow that sidebar: Hide collapses the note, Lock keeps it up across sheet tabs until that section opens the sheet sidebar, Overlay also collapses for an outside click or Escape, Fixed shifts the sheet, and Align docks left or right. The choice lasts for the page. Prev and Next stay in the scroller. While the note is open, including while it is collapsed, the sheet's own edge bar is hidden. Do not copy `ct-sidebar` onto that panel.
 - Playwright journal screenshots are written to `/opt/cursor/artifacts/journal/` by `tests/e2e/character-journal.spec.ts` and `tests/e2e/character-journal-sheet.spec.ts`. The suite loads the unpacked `dist/` extension against local character-sheet fixtures, not the live site.
-- `assets/icons/icon-source.png` is the icon master. The build copies only `icon-16.png`, `icon-32.png`, `icon-48.png`, and `icon-128.png`.
+- `assets/icons/icon-source.png` is the full-size icon master for 48px and 128px Chrome surfaces. `assets/icons/icon-mini-source.png` is the simplified toolbar master for 16px and 32px. The build copies only `icon-16.png`, `icon-32.png`, `icon-48.png`, and `icon-128.png`.
 - `assets/readme/` holds the banner and source PNGs for public feature
   highlights. Live captures use Matilda, exclude browser chrome and account
   details, and are visually reviewed before they are committed.
