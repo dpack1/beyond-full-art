@@ -41,6 +41,8 @@ Add this sentence to the store description. Leave the Support URL on the issue t
 
 Store screenshots are the 1280×800 PNGs in `assets/store/`. Upload them in this order: `01-portrait-crop.png`, `02-journal-note.png`, `03-journal-notes.png`, `04-journal-photos.png`, `05-companion.png`. `02-journal-note.png` is a crop of the sheet capture with the notes list and the open note. The other four are crops of the README captures. The SVG callout labels are not included. Folder setup, the copy prompt, and the deletion prompt are not in this set. The note shot shows the campaign name Salty Eyes. Do not upload a screenshot that shows someone else's account.
 
+The small promo tile is `assets/store/small-promo.png` at 440×280. The marquee promo tile is `assets/store/marquee-promo.png` at 1400×560. The small tile is required. The marquee is the optional featured banner.
+
 ## Permission justifications
 
 `storage`: save art metadata, journal text, and settings on this browser.
