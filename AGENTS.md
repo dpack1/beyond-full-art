@@ -203,7 +203,15 @@ Avoid large files. Consider splitting a file that approaches 250 lines when it h
 - The journal follows the sheet's light or dark appearance and scrolls inside the sheet's content pane. Opening it claims the whole tab hit target, including padding, on pointerdown. It conceals the sheet section with `display: none !important` while Journal is open. The note panel mirrors the Information Sidebar recorded in `docs/ddb-reference/sidebar.md`. Hide, Lock, Overlay, Fixed, and Align sit outside the content box and follow that sidebar: Hide collapses the note, Lock keeps it up across sheet tabs until that section opens the sheet sidebar, Overlay also collapses for an outside click or Escape, Fixed shifts the sheet, and Align docks left or right. The choice lasts for the page. Prev and Next stay in the scroller. While the note is open, including while it is collapsed, the sheet's own edge bar is hidden. Do not copy `ct-sidebar` onto that panel.
 - Playwright journal screenshots are written to `/opt/cursor/artifacts/journal/` by `tests/e2e/character-journal.spec.ts` and `tests/e2e/character-journal-sheet.spec.ts`. The suite loads the unpacked `dist/` extension against local character-sheet fixtures, not the live site.
 - `assets/icons/icon-source.png` is the icon master. The build copies only `icon-16.png`, `icon-32.png`, `icon-48.png`, and `icon-128.png`.
-- README diagrams under `assets/readme/svg/` are the labeled screenshots. Do not commit generated `dist/` or `test-results/`.
+- `assets/readme/` holds the banner and source PNGs for public feature
+  highlights. Live captures use Matilda, exclude browser chrome and account
+  details, and are visually reviewed before they are committed.
+  `assets/readme/svg/` holds the annotated frames shown by the README: embedded
+  screenshots with shared red labels, warm parchment connector curves, and
+  red targets with white rings and soft depth. When a significant UI layout,
+  style, or flow change makes a README image stale, replace its source PNG and
+  annotated SVG in the same change; wording-only changes do not require a
+  recapture. Do not commit generated `dist/` or `test-results/`.
 - `.agent/` is tracked. `FEATURES.md` lists shipped features, including the character journal (beta). `PLANS.md` and `plans/` hold work that has not shipped. When a feature ships, record it in `FEATURES.md`, update the durable product and architecture docs, and remove its completed plan. Shared design decisions go in `docs/DECISIONS.md`. Phase status goes in `docs/IMPLEMENTATION_PLAN.md`.
 
 ## Validation
@@ -244,3 +252,8 @@ Update documentation in the same change when behavior, architecture, permissions
 Record meaningful architecture changes in `docs/DECISIONS.md`.
 
 When D&D Beyond's sheet changes, update `docs/ddb-reference/README.md` and the selector map together. The refresh steps are at the bottom of that reference.
+
+Keep README feature highlights separate from structural sheet references.
+`assets/readme/` is public-facing product imagery;
+`docs/ddb-reference/` documents the D&D Beyond contract and may include markup
+or context that is not suitable for marketing.
