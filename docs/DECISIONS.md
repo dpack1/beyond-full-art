@@ -491,9 +491,16 @@ can be confirmed the same way, without copying files back into the browser.
 Later saves and reads go through the service worker to that folder. If this
 browser has not granted the folder, the sheet asks the player to choose it
 again and allow access, and does not fall back to an empty browser copy. A
-handle loaded from IndexedDB is often still `prompt`. Choose folder calls
-`requestPermission` from that click before opening the directory picker
-again. The folder's files stay in the folder.
+handle loaded from IndexedDB is often still `prompt`. The popup calls
+`requestPermission` for that saved folder as soon as it opens, before the
+other settings load. Choose folder asks again when that first ask does not
+land, before opening the directory picker. Chrome drops the grant when the
+last extension page closes, so
+a hidden `folder/session.html` page stays open and keeps trying to open
+`characters/` until that succeeds, then holds the handle. Sheet refreshes
+keep reading the folder while that page is open, without Choose folder.
+Quitting the browser or reloading the extension can require opening the
+popup once more. The folder's files stay in the folder.
 
 Forgetting the folder removes only the handle on this browser. Files in the
 folder stay there. The library mode stays `folder`, so the sheet keeps asking

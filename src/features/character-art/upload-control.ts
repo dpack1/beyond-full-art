@@ -66,6 +66,9 @@ type ScheduledRenderHandle = ReturnType<typeof globalThis.setTimeout>;
 
 const COMPACT_LAYOUT_MAX_WIDTH_PX = 540;
 const COMPACT_UPLOAD_RULES_TEXT = '150 x 150 recommended, 3 MB max';
+// D&D Beyond portrait URLs use width=150&height=150&fit=crop. That center-covers
+// the file into the square the sheet shows. The manage-portrait preview matches it.
+const SHEET_PORTRAIT_SQUARE_PX = 150;
 
 export function installCharacterArtControls(
     target: CharacterArtControlsTarget,
@@ -347,8 +350,9 @@ export function installCharacterArtControls(
   function mountCropButton() {
     buttonRow.replaceChildren();
 
-    const shouldShowCropButton =
-      state.fullArtMetadata !== null && hasSelectedPortraitUpload(target.uploadInput);
+    // A chosen file can be cropped before it is saved. Stored art is not required,
+    // so a folder read failure must not hide the button.
+    const shouldShowCropButton = hasSelectedPortraitUpload(target.uploadInput);
     if (!shouldShowCropButton) {
       buttonRow.hidden = true;
       return;
@@ -569,8 +573,13 @@ function applySelectedRowLayout(
     setImportantStyle(nativePreviewContainer, 'width', 'max-content');
     const nativePreviewImage = nativePreviewContainer.querySelector('img');
     if (isHtmlElement(nativePreviewImage)) {
-      setImportantStyle(nativePreviewImage, 'height', 'auto');
-      setImportantStyle(nativePreviewImage, 'max-width', '100%');
+      const square = `${SHEET_PORTRAIT_SQUARE_PX}px`;
+      setImportantStyle(nativePreviewImage, 'width', square);
+      setImportantStyle(nativePreviewImage, 'height', square);
+      setImportantStyle(nativePreviewImage, 'max-width', square);
+      setImportantStyle(nativePreviewImage, 'max-height', square);
+      setImportantStyle(nativePreviewImage, 'object-fit', 'cover');
+      setImportantStyle(nativePreviewImage, 'object-position', 'center');
     }
   }
 
@@ -624,8 +633,12 @@ function clearSelectedPortraitLayout(uploadSection: HTMLElement): void {
     clearImportantStyle(nativePreviewContainer, propertyName);
   }
   if (isHtmlElement(nativePreviewImage)) {
+    clearImportantStyle(nativePreviewImage, 'width');
     clearImportantStyle(nativePreviewImage, 'height');
     clearImportantStyle(nativePreviewImage, 'max-width');
+    clearImportantStyle(nativePreviewImage, 'max-height');
+    clearImportantStyle(nativePreviewImage, 'object-fit');
+    clearImportantStyle(nativePreviewImage, 'object-position');
   }
   for (const propertyName of [
     'display',

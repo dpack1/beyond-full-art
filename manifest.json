@@ -14,7 +14,7 @@
   "action": {
     "default_popup": "popup/settings.html"
   },
-  "permissions": ["storage", "webRequest"],
+  "permissions": ["offscreen", "storage", "webRequest"],
   "host_permissions": [
     "https://character-service.dndbeyond.com/character/v5/character*"
   ],

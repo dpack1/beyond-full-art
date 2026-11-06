@@ -6,6 +6,7 @@ import {
 import {
   submitFileToPortraitUploadInput,
 } from '../../src/platform/dndbeyond/portrait-upload-handoff';
+import {FOLDER_LIBRARY_BLOCKED_MESSAGE} from '../../src/platform/chrome/library-mode';
 import {err, ok} from '../../src/shared/result';
 import {PORTRAIT_MANAGER_FIXTURE} from '../fixtures/portrait-manager';
 
@@ -326,6 +327,7 @@ describe('upload controls', () => {
     const nativePreview = selectedRow?.querySelector<HTMLElement>(
         '.bfa-art-sync__selected-preview-container',
     );
+    const nativePreviewImage = nativePreview?.querySelector('img');
 
     expect(changePortraitActions?.contains(cropButton ?? null)).toBe(true);
     expect(cropButton?.textContent).toContain('Crop portrait');
@@ -338,7 +340,69 @@ describe('upload controls', () => {
     expect(selectedRow?.style.getPropertyValue('width')).toBe('max-content');
     expect(selectedRow?.style.getPropertyValue('grid-template-columns')).toBe('max-content');
     expect(nativePreview?.style.getPropertyValue('width')).toBe('max-content');
+    expect(nativePreviewImage?.style.getPropertyValue('width')).toBe('150px');
+    expect(nativePreviewImage?.style.getPropertyValue('height')).toBe('150px');
+    expect(nativePreviewImage?.style.getPropertyValue('object-fit')).toBe('cover');
+    expect(nativePreviewImage?.style.getPropertyValue('object-position')).toBe('center');
     expect(manager?.querySelector('.bfa-art-sync__preview')).toBeNull();
+  });
+
+  it('shows the crop button when a file is selected and the folder cannot be read', async () => {
+    const manager = document.querySelector<HTMLElement>('.ct-decoration-manager');
+    const uploadSection = document.querySelector<HTMLElement>('.ct-decoration-manager__upload');
+    const uploadInput = document.querySelector<HTMLInputElement>(
+        '.ct-decoration-manager__upload-file-input',
+    );
+    expect(manager).not.toBeNull();
+    expect(uploadSection).not.toBeNull();
+    expect(uploadInput).not.toBeNull();
+    const openForCharacter = vi.fn(async () => ok(null));
+
+    installCharacterArtControls(
+        {manager: manager!, uploadInput: uploadInput!, uploadSection: uploadSection!},
+        {
+          deleteArt: async () => ok(undefined),
+          getCropMetadata: async () => ok(null),
+          getMetadata: async () => err(FOLDER_LIBRARY_BLOCKED_MESSAGE),
+          resolveViewerImage: async () => ({
+            altText: 'stored full art',
+            imageUrl: 'blob:stored-full-art',
+            releaseImageUrl: () => {},
+            usingStoredArt: false,
+            warningMessage: null,
+          }),
+          saveArt: async () => err('Not used'),
+          savePortraitCrop: async () => err('Not used'),
+          getPortraitCropImageData: async () => ok(null),
+          loadCropSource: async () => err('Not used'),
+        },
+        {openForCharacter},
+        '169418374',
+        document,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const file = new File(['image-bytes'], 'Matilda.png', {
+      type: 'image/png',
+    });
+    Object.defineProperty(uploadInput!, 'files', {
+      configurable: true,
+      value: [file],
+    });
+    uploadInput!.dispatchEvent(new Event('change', {bubbles: true}));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const cropButton = uploadSection?.querySelector<HTMLButtonElement>('.bfa-art-sync__button');
+    expect(cropButton?.textContent).toContain('Crop portrait');
+    expect(uploadSection?.textContent).toContain(FOLDER_LIBRARY_BLOCKED_MESSAGE);
+
+    cropButton?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(openForCharacter).toHaveBeenCalledWith('169418374', uploadInput, {
+      existingCropRect: null,
+      selectedFile: file,
+    });
   });
 
   it('keeps the selected portrait when the crop workflow writes the upload input', async () => {
@@ -568,7 +632,7 @@ describe('upload controls', () => {
 
     expect(saveArt).not.toHaveBeenCalled();
     expect(uploadSection?.querySelector('.bfa-art-sync__preview')).toBeNull();
-    expect(uploadSection?.textContent).not.toContain('Crop portrait');
+    expect(uploadSection?.textContent).toContain('Crop portrait');
   });
 
   it('saves selected portrait uploads locally after change portrait is clicked', async () => {

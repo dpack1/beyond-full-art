@@ -131,7 +131,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 20. While the folder is the library, click **Check folder** in the popup. Confirm its status shows the check time, newest folder change, saved-character count, and any Drive conflict-copy count, and that Stored content refreshes.
 21. Open a Journal note, make an unsaved edit, then change that note from another computer and let Drive finish. Click the **Sync folder** icon beside **New Note** in the Journal. Confirm the draft remains visible and the newer-folder warning offers Save, Discard draft, and Keep both. Save is refused while stale. Discard draft loads the folder note. Keep both creates an ` (other computer)` note with independent photo IDs, then loads the folder note.
 22. Open D&D Beyond's portrait manager so the extension loads current full art. Replace the folder's full-art file through the other computer, let Drive finish, then try to commit a different portrait from the already-open manager. Confirm the extension refuses the save and keeps the newly selected portrait pending.
-23. On a browser that restores the folder handle as `prompt` (Brave does this), the popup says the folder is selected and access is still needed. Click **Choose folder** and allow access. Confirm the directory picker can stay closed, the popup says art and notes are saved in that folder, and the sheet reads those files. Nothing is copied into this browser.
+23. On a browser that restores the folder handle as `prompt` (Brave does this), open the popup. It allows the saved folder without the directory picker, without an internal Chrome error, and says art and notes are saved there. Choose folder is not required for a folder that is already selected. The open journal reloads and the allow-access line goes away. Close the popup, refresh the sheet, and confirm the notes are still there. Quitting the browser or reloading the extension can require opening the popup once more. Nothing is copied into this browser.
 24. Change a popup toggle and a companion checkbox, then open the same folder in another browser and allow access. Those choices match. `settings.json` is the only new file at the folder root.
 
 ## Full-art storage manual checklist
@@ -139,7 +139,7 @@ Automated tests cannot prove that private D&D Beyond DOM and endpoints still mat
 1. Build the extension.
 2. Load the unpacked build directory in Chrome.
 3. Open a D&D Beyond character sheet with no stored full art.
-4. Open D&D Beyond's portrait-management UI from the right sidebar and choose a valid PNG, JPEG, or WebP image smaller than `3 MB`.
+4. Open D&D Beyond's portrait-management UI from the right sidebar and choose a valid PNG, JPEG, or WebP image smaller than `3 MB`. The preview is a 150×150 center crop, including when the file is taller than it is wide. **Crop portrait** sits under **Change Portrait**. It is still there when the backup folder asks for access again.
 5. Without clicking `Change Portrait`, refresh the page and confirm the prior stored full art is unchanged.
 6. Repeat the flow, then click D&D Beyond's native `Change Portrait`.
 7. Confirm the extension reports that the portrait was saved locally as full art.

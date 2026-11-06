@@ -36,7 +36,8 @@ import {
   restoreNativeTabAfterJournal,
   setJournalTabSelected,
 } from '../../platform/dndbeyond/character-sheet-tabs-adapter';
-import {isFolderLibrary} from '../../platform/chrome/library-mode';
+import {FOLDER_SESSION_READY_KEY} from '../../platform/chrome/folder-session';
+import {FOLDER_LIBRARY_BLOCKED_MESSAGE, isFolderLibrary} from '../../platform/chrome/library-mode';
 import {
   DEFAULT_JOURNAL_LIST_PREFERENCES,
   type JournalListPreferences,
@@ -179,6 +180,10 @@ export function createCharacterJournalSection(
       void notes.savePanel();
     }
   });
+  const storageEvents = globalThis.chrome?.storage?.onChanged;
+  if (storageEvents !== undefined) {
+    storageEvents.addListener(onFolderSessionReady);
+  }
 
   return {
     destroy,
@@ -231,6 +236,7 @@ export function createCharacterJournalSection(
       state.notes = opened.notes;
       state.photos = opened.photos;
       state.migration = opened.migration === 'failed' ? 'failed' : 'current';
+      state.fileError = null;
       await hydrateImages(opened.notes);
       await hydratePhotos(opened.photos);
     } catch (error) {
@@ -397,7 +403,24 @@ export function createCharacterJournalSection(
     list.root.style.removeProperty('max-height');
   }
 
+  function onFolderSessionReady(
+      changes: Record<string, chrome.storage.StorageChange>,
+      area: string,
+  ): void {
+    if (area !== 'local' || changes[FOLDER_SESSION_READY_KEY] === undefined) {
+      return;
+    }
+    if (state.fileError !== FOLDER_LIBRARY_BLOCKED_MESSAGE || !isShown()) {
+      return;
+    }
+    void reload().catch((error: unknown) => {
+      state.fileError = journalSaveErrorMessage(error);
+      list.setAlert(state.fileError);
+    });
+  }
+
   function destroy(): void {
+    globalThis.chrome?.storage?.onChanged?.removeListener(onFolderSessionReady);
     doc.removeEventListener('click', keepNotePanelDocked, true);
     doc.removeEventListener('click', keepNotePanelDocked);
     doc.removeEventListener('click', dismissNoteFromOutside);
@@ -498,6 +521,7 @@ export function createCharacterJournalSection(
     state.notes = opened.notes;
     state.photos = opened.photos;
     state.migration = opened.migration === 'failed' ? 'failed' : 'current';
+    state.fileError = null;
     await hydrateImages(opened.notes);
     await hydratePhotos(opened.photos);
     if (!reloadIsCurrent(request, generation, characterId)) {

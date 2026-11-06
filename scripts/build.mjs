@@ -89,6 +89,10 @@ async function copyPopupHtml() {
       path.join(repoRoot, 'src/folder/setup.html'),
       path.join(distRoot, 'folder/setup.html'),
   );
+  await copyFile(
+      path.join(repoRoot, 'src/folder/session.html'),
+      path.join(distRoot, 'folder/session.html'),
+  );
 }
 
 async function buildOnce() {
@@ -149,6 +153,7 @@ async function buildOnce() {
       target: 'chrome114',
     }),
     esbuild.build(folderSetupBuildOptions()),
+    esbuild.build(folderSessionBuildOptions()),
   ]);
 }
 
@@ -173,6 +178,20 @@ function folderSetupBuildOptions() {
     entryPoints: ['src/folder/setup.ts'],
     format: 'iife',
     outfile: 'dist/folder/setup.js',
+    platform: 'browser',
+    plugins: [rawCssPlugin],
+    sourcemap,
+    target: 'chrome114',
+  };
+}
+
+function folderSessionBuildOptions() {
+  return {
+    absWorkingDir: repoRoot,
+    bundle: true,
+    entryPoints: ['src/folder/session.ts'],
+    format: 'iife',
+    outfile: 'dist/folder/session.js',
     platform: 'browser',
     plugins: [rawCssPlugin],
     sourcemap,
@@ -243,6 +262,7 @@ async function main() {
   });
 
   const folderSetupContext = await esbuild.context(folderSetupBuildOptions());
+  const folderSessionContext = await esbuild.context(folderSessionBuildOptions());
   const deletionContext = await esbuild.context(characterDeletionBuildOptions(
       'src/content/character-deletion-entry.ts',
       'dist/content/character-deletion-entry.js',
@@ -262,6 +282,7 @@ async function main() {
     cardPortraitsContext.watch(),
     popupContext.watch(),
     folderSetupContext.watch(),
+    folderSessionContext.watch(),
     deletionContext.watch(),
     deletionMainContext.watch(),
     copyContext.watch(),

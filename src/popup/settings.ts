@@ -6,7 +6,7 @@ import {
   setCampaignCardPortraitUpgradeEnabled,
   setCharacterJournalEnabled,
 } from '../platform/chrome/storage';
-import {installBackupFolder} from './backup-folder';
+import {allowSavedBackupFolder, installBackupFolder} from './backup-folder';
 import {installStorageUsage} from './storage-usage';
 import {installStoredContent} from './stored-content';
 import {
@@ -35,6 +35,9 @@ void initializePopup(document);
 
 export async function initializePopup(doc: Document): Promise<void> {
   ensureStyles(doc);
+  // Ask before the other settings load. A saved folder can only be allowed
+  // while this popup still has the toolbar click.
+  await allowSavedBackupFolder();
 
   const checkbox = doc.querySelector<HTMLInputElement>(
       '#campaign-card-portrait-upgrade',

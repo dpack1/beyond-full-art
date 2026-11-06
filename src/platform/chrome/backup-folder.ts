@@ -97,8 +97,9 @@ export async function ensureDirectoryPermission(
     return current;
   }
 
-  // A handle restored from IndexedDB stays `prompt` until this runs inside
-  // the Choose folder click. The directory picker is a later step.
+  // A handle restored from IndexedDB stays `prompt` until this runs in the
+  // popup as soon as it opens, or on the Choose folder click. The directory
+  // picker is a later step.
   return readPermission(handle, 'requestPermission');
 }
 

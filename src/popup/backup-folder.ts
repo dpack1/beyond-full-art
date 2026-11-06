@@ -7,6 +7,11 @@ import {
 import {listCommittedCharacterIds} from '../platform/chrome/backup-folder-copy';
 import {getStoredBackupFolder} from '../platform/chrome/indexed-db';
 import {syncFolderSettings} from '../platform/chrome/folder-settings';
+import {
+  ensureFolderSession,
+  markFolderSessionReady,
+  touchFolderSession,
+} from '../platform/chrome/folder-session';
 import {isFolderLibrary} from '../platform/chrome/library-mode';
 import {
   readFolderLibraryStatus,
@@ -16,6 +21,24 @@ import {
 const ERROR_CLASS_NAME = 'bfa-popup__status--error';
 
 let storedPromptHandle: object | null = null;
+
+export async function allowSavedBackupFolder(): Promise<void> {
+  try {
+    if (!await isFolderLibrary()) {
+      return;
+    }
+    const stored = await getStoredBackupFolder();
+    if (stored === null) {
+      return;
+    }
+    // Chrome accepts this only during a user gesture. The popup asks before
+    // the other settings load so the toolbar click can still count. Choose
+    // folder asks again when that first ask does not land.
+    await ensureDirectoryPermission(stored.handle);
+  } catch {
+    // The toolbar click can expire before the permission request.
+  }
+}
 
 export async function installBackupFolder(doc: Document): Promise<void> {
   const choose = doc.querySelector<HTMLButtonElement>('#backup-folder-choose');
@@ -44,8 +67,12 @@ async function refresh(
     status: HTMLParagraphElement,
 ): Promise<void> {
   try {
-    const connection = await readBackupFolderConnection();
+    let connection = await readBackupFolderConnection();
     const savingInFolder = await isFolderLibrary();
+    if (savingInFolder && connection?.permission === 'prompt') {
+      await allowSavedBackupFolder();
+      connection = await readBackupFolderConnection();
+    }
     storedPromptHandle = null;
     if (connection?.permission === 'prompt') {
       const stored = await getStoredBackupFolder();
@@ -57,6 +84,7 @@ async function refresh(
       || connection.permission !== 'granted';
     status.classList.remove(ERROR_CLASS_NAME);
     if (savingInFolder && connection?.permission === 'granted') {
+      await armFolderSession();
       await syncFolderSettings();
     }
     status.textContent = connectionMessage(
@@ -110,6 +138,7 @@ async function openSetup(
   try {
     const handle = storedPromptHandle;
     if (handle !== null && await ensureDirectoryPermission(handle) === 'granted') {
+      await armFolderSession();
       await refresh(check, forget, status);
       doc.dispatchEvent(new Event('bfa-folder-checked'));
       return;
@@ -142,6 +171,7 @@ async function forgetConnection(
   forget.disabled = true;
   try {
     await forgetBackupFolder();
+    await touchFolderSession();
     await refresh(check, forget, status);
   } catch {
     status.classList.add(ERROR_CLASS_NAME);
@@ -213,6 +243,20 @@ export function connectionMessage(
     return `“${connection.folderName}” has ${copiedCharacterCount} saved ${label}. Open the folder again to remove this browser's copies and save there from now on.`;
   }
   return `Connected to “${connection.folderName}”. Art and notes still stay in this browser.`;
+}
+
+async function armFolderSession(): Promise<void> {
+  try {
+    await ensureFolderSession();
+    await touchFolderSession();
+  } catch {
+    // The grant still stands when the hidden page cannot open.
+  }
+  try {
+    await markFolderSessionReady();
+  } catch {
+    // The hidden page records the same key when it opens the folder.
+  }
 }
 
 async function copiedCharacterCount(
