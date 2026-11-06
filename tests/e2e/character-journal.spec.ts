@@ -94,16 +94,16 @@ test('uses the journal for notes, photos, and search', async ({
     path: path.join(ARTIFACT_DIR, 'journal-photo-viewer.png'),
   });
   await page.getByRole('button', {name: 'Close photo'}).click();
-  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
-  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.getByRole('dialog').getByRole('button', {name: 'Hide sidebar'}).click();
+  await expect(page.getByRole('button', {name: 'Show sidebar'})).toBeVisible();
 
   await page.getByRole('button', {name: 'New Note'}).click();
   await page.getByRole('combobox', {name: 'Type'}).selectOption('place');
   await page.getByRole('textbox', {name: 'Title'}).fill('Market day');
   await page.getByRole('textbox', {name: 'Note', exact: true}).fill('Bought rope and rations before the rain.');
   await expect(page.getByText('Saved', {exact: true})).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
-  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.getByRole('dialog').getByRole('button', {name: 'Hide sidebar'}).click();
+  await expect(page.getByRole('button', {name: 'Show sidebar'})).toBeVisible();
 
   await page.getByLabel('Search notes').fill('chapel');
   await expect(page.getByRole('button', {name: /The locked door/})).toBeVisible();

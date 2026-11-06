@@ -16,11 +16,15 @@
     "controls": "inside the fixed sidebar and above the pane"
   },
   "optionalClasses": ["ct-sidebar--is-dark-mode", "styles_dark__6-qrS"],
-  "omittedControls": [
+  "chromeControls": [
     "Unlocked",
     "Set to overlay position",
     "Set to fixed position",
     "Align Left",
+    "Align Right"
+  ],
+  "activeControls": [
+    "Set to overlay position",
     "Align Right"
   ],
   "nodes": [
@@ -66,6 +70,21 @@
         "display": "flex",
         "justifyContent": "space-between"
       }
+    },
+    {
+      "role": "visibility",
+      "match": ".styles_visibility__MJ05x",
+      "className": "styles_visibility__MJ05x"
+    },
+    {
+      "role": "overlay",
+      "match": ".styles_overlay__Uf4kU",
+      "className": "styles_overlay__Uf4kU"
+    },
+    {
+      "role": "placement",
+      "match": ".styles_placement__SZZi-",
+      "className": "styles_placement__SZZi-"
     },
     {
       "role": "hide",

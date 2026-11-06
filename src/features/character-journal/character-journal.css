@@ -834,10 +834,39 @@
   }
 }
 
+.bfa-journal-panel [role='dialog'] {
+  transition: left 0.15s, right 0.15s, width 0.15s, box-shadow 0.15s;
+}
+
+.bfa-journal-panel[data-bfa-journal-slide='in'] [role='dialog'] {
+  animation: bfa-journal-slide-right 0.15s ease;
+  transition: none;
+}
+
+.bfa-journal-panel[data-bfa-journal-slide='out'] [role='dialog'] {
+  animation: bfa-journal-slide-right 0.15s ease reverse forwards;
+}
+
+.bfa-journal-panel[data-bfa-journal-align='left'][data-bfa-journal-slide='in'] [role='dialog'],
+.bfa-journal-panel[data-bfa-journal-align='left'][data-bfa-journal-slide='out'] [role='dialog'] {
+  animation-name: bfa-journal-slide-left;
+}
+
+@keyframes bfa-journal-slide-right {
+  from { transform: translateX(110%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes bfa-journal-slide-left {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bfa-journal-panel [role='dialog'],
   .bfa-journal-button,
   .bfa-journal-row {
+    animation: none;
     transition: none;
   }
 

@@ -198,10 +198,10 @@ journal by the operating system's theme.
 6. Create `[[Someone new]]` from autocomplete. The placeholder shows Needs details and appears under Mentioned in on the note that named them.
 7. Add a PNG under 3 MB at the cursor with Image, then Upload photo. The editor shows `![[img:<id>]]` there, and read mode shows the image inline. Move that line and the image follows. A file over 3 MB is resized and the note text remains. A file over 25 MB shows the size and the limit, and the note text remains. Image also offers From photos. Notes is selected when Journal opens, and Photos sits above the search row. Remove from note leaves the photo in Photos. Delete photo names the notes that use it, removes it from those notes, and leaves the notes.
 8. Unsaved edit, switch to Spells, choose to keep editing. The confirm was on screen. The draft is still there.
-9. Turn the popup setting off, keep editing, then close. The Journal tab leaves.
+9. Turn the popup setting off, keep editing, then leave Journal and discard. The Journal tab leaves.
 10. If the live sheet can change character without a reload, a note in progress does not appear on the next character.
-11. A narrow window: the toolbar stays one row, the panel covers the screen, and Close in the pane chrome returns to the list.
-12. Keyboard only: open Journal, open a row, Edit, Close. Focus returns to the row. Tab never lands on an invisible file input.
+11. A narrow window: the toolbar stays one row. The open note starts at the top of the sheet and sits against the sheet, and it slides when it opens, hides, or closes. Hide collapses the note to an edge strip, and Show brings the same note back. Fixed is not available under 1600px wide. On a wide window, Fixed nudges the sheet column and the artwork still reaches the window edge.
+12. Keyboard only: open Journal, open a row, Edit, Escape. The note collapses and the draft stays. Show brings it back. Tab never lands on an invisible file input. Lock keeps Escape and an outside click from collapsing it. With Lock on, switching to Actions leaves that note up and shows Actions. The note closes if that section opens the sheet sidebar.
 13. A version 1 note and photo created before the upgrade are present once, with the text intact.
 14. From the popup, export all journals. Open the ZIP and confirm each character ID has title-named Markdown notes and original-filename photos, plus root `backup.json`.
 15. After export, create a disposable note, then import the ZIP. Confirm the disposable note remains and backed-up notes are not duplicated. Delete one backed-up note, import again, and confirm it and its photos return.

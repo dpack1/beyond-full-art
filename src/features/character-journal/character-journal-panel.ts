@@ -1,3 +1,7 @@
+import {
+  sidebarDismissesOnOutside,
+  type SidebarChrome,
+} from '../../platform/dndbeyond/sidebar-chrome';
 import {SIDEBAR_TEXTAREA_CLASS} from '../../platform/dndbeyond/selectors';
 import {trapTabKey} from '../fullscreen-viewer/focus';
 import {applyJournalFormat, type JournalFormatKind} from './character-journal-format';
@@ -10,7 +14,7 @@ import {
 import {renderJournalMarkdown} from './character-journal-markdown';
 import {journalTypeLabel} from './character-journal-query';
 import {createJournalSidebar} from './character-journal-sidebar';
-import {placeJournalSidebar} from './character-journal-sidebar-place';
+import {beginJournalSidebarShow, placeJournalSidebar} from './character-journal-sidebar-place';
 import type {JournalEntryType} from './character-journal-types';
 
 export interface PanelImageModel {
@@ -63,6 +67,7 @@ export interface PanelHandlers {
   onBack: () => void;
   onNext: () => void;
   onCheckbox: (index: number, checked: boolean) => void;
+  onChrome?: () => void;
   onClose: () => void;
   onConfirm: (accepted: boolean) => void;
   onDelete: () => void;
@@ -83,6 +88,9 @@ export interface PanelHandlers {
 }
 
 export interface JournalPanelView {
+  chrome(): SidebarChrome;
+  collapse(): void;
+  expand(): void;
   fileInput: HTMLInputElement;
   place(): void;
   readDraft(): {body: string; title: string};
@@ -197,7 +205,6 @@ export function createJournalPanel(
     return read;
   }
 
-  closeButton.addEventListener('click', () => handlers.onClose());
   prevButton.addEventListener('click', () => handlers.onBack());
   nextButton.addEventListener('click', () => handlers.onNext());
   editButton.addEventListener('click', () => handlers.onEdit());
@@ -240,9 +247,15 @@ export function createJournalPanel(
     }
 
     if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      handlers.onClose();
+      if (sidebarDismissesOnOutside(shell.chrome())) {
+        event.preventDefault();
+        event.stopPropagation();
+        shell.collapse();
+      }
+      return;
+    }
+
+    if (!shell.chrome().visible) {
       return;
     }
 
@@ -251,11 +264,22 @@ export function createJournalPanel(
     }
   });
 
+  function place(): void {
+    shell.fitViewport(doc.defaultView?.innerWidth ?? 0);
+    placeJournalSidebar(root, shell.dialog, doc, shell.chrome());
+  }
+
+  shell.setOnChromeChange(() => {
+    placeJournalSidebar(root, shell.dialog, doc, shell.chrome());
+    handlers.onChrome?.();
+  });
+
   return {
+    chrome: shell.chrome,
+    collapse: shell.collapse,
+    expand: shell.expand,
     fileInput,
-    place() {
-      placeJournalSidebar(root, shell.dialog, doc);
-    },
+    place,
     readDraft() {
       return {
         body: textarea?.value ?? '',
@@ -291,7 +315,7 @@ export function createJournalPanel(
       const modeScrollProgress = renderedId === model.entryId && previousMode !== model.mode
         ? scrollProgress(previousMode === 'edit' ? textarea : scroller)
         : null;
-      root.hidden = false;
+      beginJournalSidebarShow(root);
       root.dataset.bfaJournalMode = model.mode;
       shell.dialog.setAttribute('aria-label', model.title || 'Journal note');
       nav.hidden = !model.back && !model.next;
@@ -393,7 +417,7 @@ export function createJournalPanel(
       if (!root.contains(doc.activeElement)) {
         closeButton.focus();
       }
-      placeJournalSidebar(root, shell.dialog, doc);
+      place();
     },
     root,
     setDark,

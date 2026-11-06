@@ -250,10 +250,13 @@ the gap, and the scroll body. The note uses `ct-note-manage-pane` and
 `z-index: 10001`. Its top follows the open native sidebar, and its height is
 the viewport minus that top. Opening a note hides an open native sidebar.
 Class strings live in `selectors.ts`. The snapshot is
-`docs/ddb-reference/sidebar.md`. Hide closes the note. Prev and Next walk the
-note history. Lock, overlay, and align are not rendered. The sheet's own
-sidebar body is still a closed switch with no slot for extension content, so
-nothing is mounted into it, and the portrait search skips `.bfa-journal-panel`.
+`docs/ddb-reference/sidebar.md`. Hide collapses the note. Lock keeps it up across sheet tabs until that section opens the sheet sidebar.
+Overlay also collapses on an outside click or Escape. Fixed shifts the sheet.
+Align docks it left or right. That choice lasts for the page. Prev and Next
+walk the note history. While the note is open, the sheet's own edge bar is
+hidden. The sheet's sidebar body is still a closed switch with no slot for
+extension content, so nothing is mounted into it, and the portrait search
+skips `.bfa-journal-panel`.
 The extension does not ship D&D Beyond's script. Title and note fields are the
 full width of the content box inside its padding.
 

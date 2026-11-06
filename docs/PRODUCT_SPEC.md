@@ -296,9 +296,11 @@ a single long native notes field.
 - On a note, Image offers Upload photo and From photos. From photos inserts
   the existing photo and does not copy the file. Paste and drop still upload.
 - The list sits in the same content box as Notes and Extras and hides that
-  box's native section while Journal is open. The note panel uses the
-  right-hand slide-in's edge controls: close and back sit outside the
-  content box.
+  box's native section while Journal is open. The note panel copies the
+  right-hand slide-in's edge bar. Hide collapses the note. Lock keeps it
+  up, including across sheet tabs until that section opens the sheet sidebar. Overlay also collapses on an outside click or Escape. Fixed shifts
+  the sheet. Align docks it left or right. That choice lasts for the page.
+  While the note is open, the sheet's own edge bar is hidden.
 - The extension does not upload art or notes to its own server. A backup folder the user chose can sit in a folder another service syncs, such as Google Drive. There is no GM view and no D&D Beyond field sync.
 
 ### Deferred product decisions
