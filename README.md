@@ -2,10 +2,6 @@
   <img src="assets/readme/banner.png" alt="Beyond Full Art" width="900" />
 </p>
 
-<p align="center">
-  <a href="https://ko-fi.com/dpack1"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" /></a>
-</p>
-
 <h1 align="center">Beyond Full Art</h1>
 
 <p align="center"><strong>See the whole character. Keep the whole story.</strong></p>
@@ -20,6 +16,10 @@
   <a href="#made-for-your-character">Features</a> ·
   <a href="docs/USAGE.md">How to use</a> ·
   <a href="PRIVACY.md">Privacy</a>
+</p>
+
+<p align="center">
+  <a href="https://ko-fi.com/dpack1"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" /></a>
 </p>
 
 ## Install
