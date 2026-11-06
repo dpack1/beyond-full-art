@@ -188,6 +188,10 @@ export function installCharacterSheetEnhancement(
         markNextNativeTab(event.currentTarget);
       }
 
+      if (journalSection.holdLockedNote()) {
+        return;
+      }
+
       journalSection.requestHide(undefined, () => {
         if (event.currentTarget instanceof HTMLElement) {
           clearNextNativeTab(event.currentTarget);
@@ -202,14 +206,16 @@ export function installCharacterSheetEnhancement(
     doc.addEventListener('mousedown', stopSheetTabGesture, true);
     doc.addEventListener('click', onClick, true);
     for (const nativeTab of target.nativeTabs) {
-      nativeTab.addEventListener('click', onNativeTabClick);
+      // Capture runs before the sheet opens a sidebar from this same click,
+      // so a locked note can see that sidebar arrive.
+      nativeTab.addEventListener('click', onNativeTabClick, true);
     }
     releaseJournalBinding = () => {
       doc.removeEventListener('pointerdown', onPointerDown, true);
       doc.removeEventListener('mousedown', stopSheetTabGesture, true);
       doc.removeEventListener('click', onClick, true);
       for (const nativeTab of target.nativeTabs) {
-        nativeTab.removeEventListener('click', onNativeTabClick);
+        nativeTab.removeEventListener('click', onNativeTabClick, true);
       }
     };
 

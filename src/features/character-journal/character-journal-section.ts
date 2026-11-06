@@ -17,6 +17,11 @@ import {
 } from './character-journal-photos';
 import {previewJournalText} from './character-journal-markdown';
 import {installJournalNotes, type JournalNotes, type OpenPanel} from './character-journal-notes';
+import {
+  concealNativeSidebarControls,
+  stopNativeSidebarWatch,
+  whenNativeSidebarOpens,
+} from './character-journal-sidebar-place';
 import {createJournalPhotoViewer} from './character-journal-photo-viewer';
 import {
   journalEmptyLabel,
@@ -40,6 +45,7 @@ import {
 export interface CharacterJournalSection {
   destroy(): void;
   hide(): void;
+  holdLockedNote(): boolean;
   isShown(): boolean;
   requestHide(onHidden?: () => void, onCancel?: () => void): void;
   setListPreferences(preferences: JournalListPreferences): void;
@@ -61,6 +67,7 @@ export function createCharacterJournalSection(
   const photoViewer = createJournalPhotoViewer(doc);
   const photoUrls = new Map<string, string>();
   let showGeneration = 0;
+  let lockedYieldGeneration = 0;
   let reloadSerial = 0;
   let nativeContentObserver: MutationObserver | null = null;
   const flags = {
@@ -173,7 +180,16 @@ export function createCharacterJournalSection(
     }
   });
 
-  return {destroy, hide, isShown, requestHide, setListPreferences, show, syncRoute};
+  return {
+    destroy,
+    hide,
+    holdLockedNote,
+    isShown,
+    requestHide,
+    setListPreferences,
+    show,
+    syncRoute,
+  };
 
   function setListPreferences(preferences: JournalListPreferences): void {
     state.listPreferences = {...preferences};
@@ -181,6 +197,7 @@ export function createCharacterJournalSection(
   }
 
   async function show(options: CharacterJournalSectionShowOptions): Promise<void> {
+    cancelLockedYield();
     const generation = ++showGeneration;
     state.characterId = options.characterId;
     state.routeId = options.characterId;
@@ -233,6 +250,17 @@ export function createCharacterJournalSection(
   function syncRoute(characterId: CharacterId | null): void {
     state.routeId = characterId;
     if (!isShown()) {
+      // The list is hidden, but a locked note can still be on screen.
+      if (notes.panel.root.hidden || characterId === state.characterId) {
+        return;
+      }
+      if (characterId === null || state.panel === null) {
+        requestHide();
+        return;
+      }
+      state.panel.mismatch = true;
+      state.panel.status = 'error';
+      notes.renderPanel();
       return;
     }
 
@@ -258,12 +286,19 @@ export function createCharacterJournalSection(
   }
 
   function requestHide(onHidden?: () => void, onCancel?: () => void): void {
-    if (!isShown()) {
+    const panelOpen = !notes.panel.root.hidden;
+    // A locked note can stay up after the list is hidden. Leaving the
+    // character, or turning Journal off, still has to ask before a dirty
+    // draft is dropped.
+    if (!isShown() && (!panelOpen || !notes.isDirty())) {
+      if (panelOpen) {
+        hide();
+      }
       onHidden?.();
       return;
     }
 
-    if (!notes.isDirty()) {
+    if (isShown() && !notes.isDirty()) {
       const teardown = onHidden ?? flags.pendingTeardown;
       flags.pendingTeardown = null;
       flags.hideCancel = null;
@@ -284,11 +319,67 @@ export function createCharacterJournalSection(
       return;
     }
 
+    notes.panel.expand();
     state.panel.confirm = 'hide';
     notes.renderPanel();
   }
 
+  function holdLockedNote(): boolean {
+    const root = notes.panel.root;
+    if (root.hidden || !notes.panel.chrome().locked) {
+      return false;
+    }
+
+    list.root.hidden = true;
+    list.root.inert = false;
+    restoreNativeContent();
+    if (state.tab !== null) {
+      setTabActive(state.tab, false);
+    }
+    if (root.dataset.bfaJournalYield === 'true') {
+      return true;
+    }
+
+    root.dataset.bfaJournalYield = 'true';
+    whenNativeSidebarOpens(doc, root, () => {
+      void yieldLockedNote();
+    });
+    return true;
+  }
+
+  function cancelLockedYield(): void {
+    lockedYieldGeneration += 1;
+    stopNativeSidebarWatch();
+    delete notes.panel.root.dataset.bfaJournalYield;
+  }
+
+  async function yieldLockedNote(): Promise<void> {
+    const generation = lockedYieldGeneration;
+    const root = notes.panel.root;
+    stopNativeSidebarWatch();
+    // The sheet sidebar is taking this edge. Restore its bar before the
+    // note slides away, or place() hides that bar for the rest of the slide.
+    concealNativeSidebarControls(doc, root, false);
+    if (notes.isDirty()) {
+      await notes.savePanel();
+    }
+    if (
+      generation !== lockedYieldGeneration
+      || root.dataset.bfaJournalYield !== 'true'
+      || root.hidden
+      || !notes.panel.chrome().locked
+      || notes.isDirty()
+      || state.panel?.confirm !== null
+    ) {
+      return;
+    }
+
+    delete root.dataset.bfaJournalYield;
+    notes.closePanel();
+  }
+
   function hide(): void {
+    cancelLockedYield();
     showGeneration += 1;
     notes.cancelSave();
     photoViewer.close();

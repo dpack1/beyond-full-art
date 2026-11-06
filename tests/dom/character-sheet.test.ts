@@ -14,6 +14,10 @@ vi.mock('../../src/platform/chrome/messages', () => chromeMessageMocks);
 
 import {installCharacterSheetEnhancement} from '../../src/content/character-sheet';
 import {
+  SIDEBAR_CLASS,
+  SIDEBAR_PORTAL_CLASS,
+} from '../../src/platform/dndbeyond/selectors';
+import {
   CHARACTER_MANAGE_PANE_FIXTURE,
   CURRENT_INFORMATION_SIDEBAR_FIXTURE,
 } from '../fixtures/character-manage-pane';
@@ -311,6 +315,80 @@ describe('character sheet enhancement', () => {
     cleanup();
   });
 
+  it('keeps a locked note open when a sheet tab is selected', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CURRENT_CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    const title = await openLockedNote();
+    title.value = 'Still here';
+    const nativePanel = document.querySelector<HTMLElement>(
+        '[data-testid="native-character-panel"]',
+    );
+
+    clickTab('FEATURES & TRAITS');
+
+    expect(document.querySelector('.bfa-journal-confirm')).toBeNull();
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+    expect(title.value).toBe('Still here');
+    expect(document.querySelector('.bfa-character-journal-section')?.hasAttribute('hidden'))
+        .toBe(true);
+    expect(nativePanel?.hidden).toBe(false);
+    expect(document.querySelector('[aria-label="Locked"]')).not.toBeNull();
+
+    cleanup();
+  });
+
+  it('closes a locked note when another tab opens the sheet sidebar', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CURRENT_CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    await openLockedNote();
+    const sheetSidebar = mountedSheetSidebar();
+    clickTab('FEATURES & TRAITS');
+
+    expect(sheetSidebar.clicks).toBe(1);
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+
+    sheetSidebar.setWidth(40);
+    await flushMutations();
+    expect(sheetSidebar.clicks).toBe(1);
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+
+    sheetSidebar.setWidth(340);
+    await flushMutations();
+    expect(sheetSidebar.clicks).toBe(1);
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(document.querySelector('.bfa-journal-confirm')).toBeNull();
+
+    cleanup();
+  });
+
+  it('still asks before a parked dirty note is dropped', async () => {
+    window.history.replaceState({}, '', '/characters/169418374');
+    document.body.innerHTML = CURRENT_CHARACTER_SHEET_TABS_FIXTURE;
+
+    const cleanup = installCharacterSheetEnhancement(document);
+    const title = await openLockedNote();
+    title.value = 'Unsaved title';
+    clickTab('FEATURES & TRAITS');
+
+    expect(document.querySelector('.bfa-journal-confirm')).toBeNull();
+    expect(title.value).toBe('Unsaved title');
+
+    await setStorage({'bfa.preferences.characterJournalEnabled': false});
+    await flushMutations();
+
+    expect(document.querySelector('.bfa-journal-confirm')?.textContent)
+        .toContain('Keep editing');
+    expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
+        .not.toBeNull();
+    expect(title.value).toBe('Unsaved title');
+
+    cleanup();
+  });
+
   it('opens Journal from the tab padding before the sheet handles pointerdown', async () => {
     window.history.replaceState({}, '', '/characters/169418374');
     document.body.innerHTML = LIVE_CHARACTER_SHEET_TABS_FIXTURE;
@@ -415,7 +493,7 @@ describe('character sheet enhancement', () => {
         .toBe(false);
     expect(title.value).toBe('Unsaved title');
 
-    document.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click();
+    buttonByText('Actions')?.click();
     buttonByText('Discard')?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(document.querySelector('[data-bfa-character-journal-tab="true"]'))
@@ -574,6 +652,69 @@ type StorageChangeListener = (
   changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void;
+
+async function openLockedNote(): Promise<HTMLInputElement> {
+  await flushMutations();
+  document.querySelector<HTMLElement>(
+      '[data-bfa-character-journal-tab="true"]',
+  )?.click();
+  await flushMutations();
+  buttonByText('New Note')?.click();
+  document.querySelector<HTMLButtonElement>('[aria-label="Unlocked"]')?.click();
+  const title = document.querySelector<HTMLInputElement>('.bfa-journal-title-field');
+  if (title === null) {
+    throw new Error('Missing journal title');
+  }
+  return title;
+}
+
+function clickTab(label: string): void {
+  Array.from(document.querySelectorAll<HTMLElement>('.ct-character-sheet-tab'))
+      .find((tab) => tab.textContent?.includes(label))
+      ?.click();
+}
+
+function mountedSheetSidebar(): {clicks: number; setWidth: (width: number) => void} {
+  let width = 340;
+  let clicks = 0;
+  const sidebar = document.createElement('div');
+  sidebar.className = SIDEBAR_CLASS;
+  const hide = document.createElement('button');
+  hide.type = 'button';
+  hide.setAttribute('aria-label', 'Hide sidebar');
+  hide.addEventListener('click', () => {
+    clicks += 1;
+  });
+  sidebar.append(hide);
+  vi.spyOn(sidebar, 'getBoundingClientRect').mockImplementation(() => ({
+    bottom: 800,
+    height: 800,
+    left: 0,
+    right: width,
+    toJSON: () => ({}),
+    top: 0,
+    width,
+    x: 0,
+    y: 0,
+  }) as DOMRect);
+  const portal = document.createElement('div');
+  portal.className = SIDEBAR_PORTAL_CLASS;
+  portal.append(sidebar);
+  document.body.append(portal);
+  return {
+    get clicks() {
+      return clicks;
+    },
+    setWidth(next: number) {
+      width = next;
+      sidebar.setAttribute('data-bfa-test-width', String(next));
+    },
+  };
+}
+
+function flushMutations(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 function buttonByText(label: string): HTMLButtonElement | undefined {
   return Array.from(document.querySelectorAll<HTMLButtonElement>('button'))

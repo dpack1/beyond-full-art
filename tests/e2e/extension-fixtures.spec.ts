@@ -128,7 +128,7 @@ test('adds a local character journal tab with persisted entries', async ({
   await page.getByRole('textbox', {name: 'Title'}).fill('Session note');
   await page.getByRole('textbox', {name: 'Note', exact: true}).fill('Matilda wrote this locally.');
   await expect(page.getByText('Saved', {exact: true})).toBeVisible();
-  await page.getByRole('button', {name: 'Close', exact: true}).click();
+  await page.getByRole('button', {name: 'Hide sidebar'}).click();
 
   await page.reload();
   await waitForContentScript(page);
@@ -137,7 +137,7 @@ test('adds a local character journal tab with persisted entries', async ({
 
   await expect(page.getByRole('heading', {name: 'Session note'})).toBeVisible();
   await expect(page.getByRole('dialog').getByText('Matilda wrote this locally.')).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
+  await page.getByRole('dialog').getByRole('button', {name: 'Hide sidebar'}).click();
 
   await page.getByRole('button', {name: 'Actions'}).click();
   await expect(page.locator('.bfa-character-journal-section')).toBeHidden();

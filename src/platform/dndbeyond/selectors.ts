@@ -504,7 +504,20 @@ export const SIDEBAR_FRAME_CLASS =
   'styles_sidebar__RrEHr styles_right__e4y1G styles_visible__6s+G-';
 export const SIDEBAR_CONTROLS_CLASS = 'styles_controls__NSnn3';
 export const SIDEBAR_VISIBILITY_CLASS = 'styles_visibility__MJ05x';
+export const SIDEBAR_OVERLAY_CLASS = 'styles_overlay__Uf4kU';
+export const SIDEBAR_PLACEMENT_CLASS = 'styles_placement__SZZi-';
+export const SIDEBAR_ACTIVE_CLASS = 'styles_active__tWFiD';
 export const SIDEBAR_HIDE_CLASS = 'styles_arrows__182cG';
+// Edge-bar states from character-app main.b9f1c122.js / main.fd608b62.css,
+// read 2026-11-05. The open-bar hashes above are unchanged from 2026-10-21.
+export const SIDEBAR_RIGHT_CLASS = 'styles_right__e4y1G';
+export const SIDEBAR_LEFT_CLASS = 'styles_left__N7X7-';
+export const SIDEBAR_VISIBLE_CLASS = 'styles_visible__6s+G-';
+export const SIDEBAR_COLLAPSED_CLASS = 'styles_hidden__NRO1j';
+export const SIDEBAR_LOCKED_CLASS = 'styles_locked__acLz2';
+export const SIDEBAR_CONTROLS_LEFT_CLASS = 'styles_left__4n2Ak';
+export const SIDEBAR_CLUSTER_HIDDEN_CLASS = 'styles_hidden__TZAl9';
+export const SIDEBAR_CLOSED_CLASS = 'styles_closed__eORko';
 export const SIDEBAR_PANE_CLASS = 'styles_pane__AOt0h';
 export const SIDEBAR_BORDER_CLASS = 'styles_border__jHreB';
 export const SIDEBAR_BORDER_BOTTOM_CLASS = 'styles_bottom__De0fd';
@@ -524,6 +537,11 @@ export const SIDEBAR_TEXTAREA_CLASS = 'styles_textarea__7oQCq';
 
 export const CHARACTER_SHEET_CLASS = 'ct-character-sheet';
 export const CHARACTER_SHEET_SHELL_CLASS = 'ct-character-sheet-shell';
+// Centered sheet column. max-width 1200px, margin auto. The character app
+// measures this node's width for sidebar placement (sheetRef in
+// main.b9f1c122.js, read 2026-11-05). The outer ct-character-sheet is the
+// full-width page, so measuring it pins a note to the window.
+export const CHARACTER_SHEET_INNER_CLASS = 'ct-character-sheet__inner';
 export const CHARACTER_SHEET_SELECTOR =
   `.${CHARACTER_SHEET_CLASS}, .${CHARACTER_SHEET_SHELL_CLASS}`;
 export const SHEET_TAB_NAV_CLASS = 'ddbc-tab-list__nav';
@@ -597,6 +615,16 @@ export const CHARACTER_SHEET_DARK_MODE_SELECTOR =
   `.${CHARACTER_SHEET_DARK_MODE_CLASS}`;
 export const NATIVE_BUTTON_CLASS_PATTERN =
   /ddbc-button|ct-button|Button_button|ButtonVariants_/;
+
+const characterSheetInner = selector({
+  features: [CHARACTER_JOURNAL],
+  id: 'character-sheet-inner',
+  liveSheet: true,
+  lookFor: 'The centered sheet column, class ct-character-sheet__inner, inside ct-character-sheet. It is max-width 1200px and margin auto. The journal lines the note panel up with this box. The outer sheet is full width and is the wrong edge.',
+  selector: `.${CHARACTER_SHEET_INNER_CLASS}`,
+  source: 'live',
+  targets: 'Centered character sheet column.',
+});
 
 const characterSheet = selector({
   features: [CHARACTER_JOURNAL],
@@ -732,6 +760,7 @@ export const DDB_SELECTORS: readonly DdbSelectorEntry[] = [
   sheetTabLabels,
   sheetTabList,
   characterSheet,
+  characterSheetInner,
   sheetTabNavItem,
   sheetTabNavItemActive,
   sheetSectionFilter,

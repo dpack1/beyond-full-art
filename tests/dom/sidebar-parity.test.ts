@@ -4,12 +4,20 @@ import {fileURLToPath} from 'node:url';
 
 import {afterEach, describe, expect, it} from 'vitest';
 
-import {classTokenDrift} from '../../src/platform/dndbeyond/sidebar-parity';
 import {
   createJournalPanel,
   type PanelHandlers,
   type PanelModel,
 } from '../../src/features/character-journal/character-journal-panel';
+import {concealNativeSidebarControls} from '../../src/features/character-journal/character-journal-sidebar-place';
+import {classTokenDrift} from '../../src/platform/dndbeyond/sidebar-parity';
+import {
+  SIDEBAR_ACTIVE_CLASS,
+  SIDEBAR_CONTROLS_CLASS,
+  SIDEBAR_VISIBILITY_CLASS,
+  CHARACTER_SHEET_CLASS,
+  CHARACTER_SHEET_INNER_CLASS,
+} from '../../src/platform/dndbeyond/selectors';
 
 interface SidebarNode {
   className: string;
@@ -24,10 +32,15 @@ const spec = JSON.parse(readFileSync(
         '../../docs/ddb-reference/sidebar.json',
     ),
     'utf8',
-)) as {nodes: SidebarNode[]; omittedControls: string[]};
+)) as {
+  activeControls: string[];
+  chromeControls: string[];
+  nodes: SidebarNode[];
+};
 
 describe('sidebar parity', () => {
   afterEach(() => {
+    concealNativeSidebarControls(document, document.body, false);
     document.body.innerHTML = '';
   });
 
@@ -59,9 +72,27 @@ describe('sidebar parity', () => {
       }
     }
 
-    for (const label of spec.omittedControls) {
-      if (view.root.querySelector(`[aria-label="${label}"]`) !== null) {
-        misses.push(`rendered ${label}`);
+    const hide = view.root.querySelector('[aria-label="Hide sidebar"]');
+    if (!(hide instanceof HTMLButtonElement) || hide.getAttribute('aria-disabled') === 'true') {
+      misses.push('hide control drifted');
+    }
+
+    for (const label of spec.chromeControls) {
+      const button = view.root.querySelector(`[aria-label="${label}"]`);
+      if (!(button instanceof HTMLButtonElement)) {
+        misses.push(`missing ${label}`);
+        continue;
+      }
+      if (
+        button.getAttribute('aria-disabled') === 'true'
+        || button.tabIndex === -1
+        || button.getAttribute('aria-hidden') === 'true'
+      ) {
+        misses.push(`${label} is not operable`);
+      }
+      const active = spec.activeControls.includes(label);
+      if (button.classList.contains(SIDEBAR_ACTIVE_CLASS) !== active) {
+        misses.push(`${label} active state drifted`);
       }
     }
 
@@ -103,6 +134,8 @@ describe('sidebar parity', () => {
     expect(dialog.style.width).toBe('min(400px, calc(100vw - 36px))');
     expect(dialog.style.zIndex).toBe('10001');
     expect(dialog.style.top).toBe('124px');
+    expect(view.root.dataset.bfaJournalSlide).toBe('in');
+    expect(view.root.dataset.bfaJournalAlign).toBe('right');
     expect(dialog.style.height.endsWith('px')).toBe(true);
     expect(Number.parseFloat(dialog.style.height)).toBeGreaterThanOrEqual(240);
     expect(dialog.contains(controls)).toBe(true);
@@ -110,7 +143,196 @@ describe('sidebar parity', () => {
     expect(hidden).toBe(true);
     expect(portal.nextElementSibling).toBe(view.root);
   });
+
+  it('hides the sheet edge bar while the note is open', async () => {
+    const portal = document.createElement('div');
+    portal.className = 'ct-sidebar__portal';
+    const sidebar = document.createElement('div');
+    sidebar.className = 'ct-sidebar';
+    const nativeControls = document.createElement('div');
+    nativeControls.className = SIDEBAR_CONTROLS_CLASS;
+    nativeControls.style.display = 'flex';
+    sidebar.append(nativeControls);
+    portal.append(sidebar);
+    document.body.append(portal);
+
+    let closes = 0;
+    const view = createJournalPanel(document, {
+      ...handlers(),
+      onClose: () => {
+        closes += 1;
+      },
+    }, () => null, () => []);
+    document.body.append(view.root);
+    view.render(model());
+
+    const ours = view.root.querySelector(`.${SIDEBAR_CONTROLS_CLASS}`);
+    expect(ours).toBeInstanceOf(HTMLElement);
+    if (ours instanceof HTMLElement) {
+      expect(ours.style.display).toBe('flex');
+    }
+    expect(nativeControls.style.display).toBe('none');
+    expect(nativeControls.dataset.bfaJournalConcealed).toBe('true');
+    view.root.querySelector('[aria-label="Set to overlay position"]')
+        ?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    expect(closes).toBe(0);
+
+    nativeControls.style.display = 'flex';
+    await flushMutations();
+    expect(nativeControls.style.display).toBe('none');
+
+    const replacement = document.createElement('div');
+    replacement.className = SIDEBAR_CONTROLS_CLASS;
+    replacement.style.display = 'flex';
+    nativeControls.replaceWith(replacement);
+    await flushMutations();
+    expect(replacement.style.display).toBe('none');
+    expect(replacement.dataset.bfaJournalConcealed).toBe('true');
+
+    concealNativeSidebarControls(document, view.root, false);
+    expect(replacement.style.display).toBe('flex');
+    expect(replacement.dataset.bfaJournalConcealed).toBeUndefined();
+    replacement.style.display = 'block';
+    await flushMutations();
+    expect(replacement.style.display).toBe('block');
+  });
+
+  it('docks, locks, collapses, and shifts the sheet like the sidebar', () => {
+    const sheet = document.createElement('div');
+    sheet.className = CHARACTER_SHEET_CLASS;
+    sheet.style.transform = 'scale(1)';
+    sheet.getBoundingClientRect = () => rect(0, 1200, 800);
+    document.body.append(sheet);
+    const previousWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', {configurable: true, value: 1800});
+
+    try {
+      const view = createJournalPanel(document, handlers(), () => null, () => []);
+      document.body.append(view.root);
+      view.render(model());
+      const dialog = view.root.querySelector('[role="dialog"]');
+      const pane = view.root.querySelector('.styles_pane__AOt0h');
+      expect(dialog).toBeInstanceOf(HTMLElement);
+      expect(pane).toBeInstanceOf(HTMLElement);
+      if (!(dialog instanceof HTMLElement) || !(pane instanceof HTMLElement)) {
+        return;
+      }
+
+      expect(dialog.style.right).toBe('0px');
+      expect(sheet.style.transform).toBe('scale(1)');
+
+      clickLabel('Set to fixed position');
+      expect(sheet.style.transform).toBe('translateX(-170px)');
+      expect(dialog.style.right).toBe('55px');
+
+      clickLabel('Align Left');
+      expect(sheet.style.transform).toBe('translateX(170px)');
+      expect(dialog.style.left).toBe('55px');
+      expect(dialog.style.right).toBe('auto');
+
+      clickLabel('Hide sidebar');
+      expect(sheet.style.transform).toBe('scale(1)');
+      expect(view.root.querySelector('[aria-label="Show sidebar"]')).toBeInstanceOf(HTMLButtonElement);
+      expect(pane.style.display).toBe('none');
+      expect(dialog.style.width).toBe('1.5625rem');
+      expect(dialog.style.left).toBe('0px');
+      expect(view.root.dataset.bfaJournalSlide).toBeUndefined();
+      expect(view.root.hidden).toBe(false);
+
+      clickLabel('Show sidebar');
+      expect(view.root.querySelector('[aria-label="Hide sidebar"]')).toBeInstanceOf(HTMLButtonElement);
+      expect(pane.style.display).toBe('flex');
+      expect(sheet.style.transform).toBe('translateX(170px)');
+
+      clickLabel('Unlocked');
+      const visibility = view.root.querySelector(`.${SIDEBAR_VISIBILITY_CLASS}`);
+      expect(visibility).toBeInstanceOf(HTMLElement);
+      if (visibility instanceof HTMLElement) {
+        expect(visibility.hidden).toBe(true);
+      }
+      clickLabel('Locked');
+      if (visibility instanceof HTMLElement) {
+        expect(visibility.hidden).toBe(false);
+      }
+    } finally {
+      Object.defineProperty(window, 'innerWidth', {configurable: true, value: previousWidth});
+    }
+  });
+
+  it('docks an open note against the sheet column', () => {
+    const sheet = document.createElement('div');
+    sheet.className = CHARACTER_SHEET_INNER_CLASS;
+    sheet.getBoundingClientRect = () => rect(180, 1200, 900);
+    document.body.append(sheet);
+    const previousWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', {configurable: true, value: 2400});
+
+    try {
+      const view = createJournalPanel(document, handlers(), () => null, () => []);
+      document.body.append(view.root);
+      view.render(model());
+      const dialog = view.root.querySelector('[role="dialog"]');
+      expect(dialog).toBeInstanceOf(HTMLElement);
+      if (!(dialog instanceof HTMLElement)) {
+        return;
+      }
+
+      expect(dialog.style.top).toBe('180px');
+      expect(dialog.style.right).toBe('185px');
+      expect(dialog.style.left).toBe('auto');
+      expect(view.root.dataset.bfaJournalSlide).toBe('in');
+      expect(view.root.dataset.bfaJournalAlign).toBe('right');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', {configurable: true, value: previousWidth});
+    }
+  });
+
+  it('nudges the sheet column and leaves the artwork in place', async () => {
+    const artwork = document.createElement('div');
+    artwork.className = CHARACTER_SHEET_CLASS;
+    artwork.style.transform = 'none';
+    const column = document.createElement('div');
+    column.className = CHARACTER_SHEET_INNER_CLASS;
+    column.style.transform = 'translateX(0px)';
+    column.getBoundingClientRect = () => rect(0, 1200, 800);
+    artwork.append(column);
+    document.body.append(artwork);
+    const previousWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', {configurable: true, value: 1800});
+
+    try {
+      const view = createJournalPanel(document, handlers(), () => null, () => []);
+      document.body.append(view.root);
+      view.render(model());
+
+      clickLabel('Set to fixed position');
+      expect(column.style.transform).toBe('translateX(-170px)');
+      expect(artwork.style.transform).toBe('none');
+
+      column.style.transform = 'translateX(0px)';
+      await flushMutations();
+      expect(column.style.transform).toBe('translateX(-170px)');
+      expect(artwork.style.transform).toBe('none');
+
+      clickLabel('Set to overlay position');
+      expect(column.style.transform).toBe('translateX(0px)');
+      expect(artwork.style.transform).toBe('none');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', {configurable: true, value: previousWidth});
+    }
+  });
 });
+
+function clickLabel(label: string): void {
+  document.querySelector(`[aria-label="${label}"]`)
+      ?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+}
+
+function flushMutations(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
 
 function rect(top: number, width: number, height: number): DOMRect {
   return {

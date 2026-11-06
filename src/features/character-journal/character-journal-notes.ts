@@ -1,3 +1,4 @@
+import {sidebarDismissesOnOutside} from '../../platform/dndbeyond/sidebar-chrome';
 import type {CharacterId} from '../character-art/art-types';
 import {restoreFocus} from '../fullscreen-viewer/focus';
 import {journalImageEmbed} from './character-journal-embeds';
@@ -7,6 +8,12 @@ import {mentionCounts, resolveWikiTitle, wikiLinkNames} from './character-journa
 import type {JournalListView} from './character-journal-list';
 import {patchTaskCheckbox} from './character-journal-markdown';
 import {createJournalPanel, type JournalPanelView, type PanelConfirmModel, type PanelModel} from './character-journal-panel';
+import {
+  cancelJournalSidebarHide,
+  concealNativeSidebarControls,
+  hideJournalSidebar,
+  releaseJournalSheetShift,
+} from './character-journal-sidebar-place';
 import {createJournalPhotoViewer} from './character-journal-photo-viewer';
 import {journalTypeLabel} from './character-journal-query';
 import {applyCopiedControlClasses, paintJournalSurface} from './character-journal-sheet-style';
@@ -98,7 +105,6 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     state,
   } = deps;
   let saveTimer = 0;
-  let outsideDiscardPending = false;
   let afterClose: (() => void) | null = null;
   const photoPicker = createJournalPhotoPicker(doc);
 
@@ -151,6 +157,11 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       state.panel.note = {...state.panel.note, body: next};
       scheduleSave();
     },
+    onChrome: () => {
+      if (state.panel !== null) {
+        list.root.inert = panel.chrome().visible;
+      }
+    },
     onClose: () => closeNote(),
     onConfirm: (accepted) => {
       const kind = state.panel?.confirm;
@@ -159,7 +170,6 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       }
 
       if (!accepted) {
-        outsideDiscardPending = false;
         afterClose = null;
         const cancel = flags.hideCancel;
         flags.hideCancel = null;
@@ -184,7 +194,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       if (kind === 'discard') {
         const next = afterClose;
         afterClose = null;
-        closePanel({restoreFocus: !outsideDiscardPending && next === null});
+        closePanel({restoreFocus: next === null});
         next?.();
         return;
       }
@@ -336,12 +346,13 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     state.fileError = null;
     list.setAlert(null);
     const timestamp = new Date().toISOString();
+    const id = createId();
     openNote({
       body: '',
       characterId: state.characterId,
       createdAt: timestamp,
       featuredImageId: null,
-      id: createId(),
+      id,
       images: [],
       needsDetails: false,
       questStatus: null,
@@ -351,7 +362,9 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       type,
       updatedAt: timestamp,
     }, 'edit', returnFocus, []);
-    panel.titleField?.focus();
+    if (state.panel?.note.id === id) {
+      panel.titleField?.focus();
+    }
   }
 
   function openNote(
@@ -362,8 +375,19 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       forward: string[] = [],
   ): void {
     if (state.panel !== null && state.panel.note.id !== note.id) {
+      if (isDirty()) {
+        afterClose = () => {
+          openNote(note, mode, returnFocus, history, forward);
+        };
+        panel.expand();
+        state.panel.confirm = 'discard';
+        renderPanel();
+        return;
+      }
+
       flushScheduledSave();
     }
+    afterClose = null;
     state.panel = {
       confirm: null,
       error: null,
@@ -380,8 +404,8 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       stale: false,
       status: null,
     };
-    outsideDiscardPending = false;
-    list.root.inert = true;
+    panel.expand();
+    list.root.inert = panel.chrome().visible;
     renderPanel();
     watchEditorAutocomplete();
     if (mode === 'read') {
@@ -404,11 +428,13 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     const adoptRoute = state.routeId !== null && state.routeId !== state.characterId;
     state.panel = null;
     state.fileError = null;
-    panel.root.hidden = true;
+    hideJournalSidebar(panel.root, () => {
+      concealNativeSidebarControls(panel.root.ownerDocument, panel.root, false);
+      releaseJournalSheetShift(panel.root.ownerDocument);
+    });
     photoPicker.close();
     list.root.inert = false;
     list.setAlert(null);
-    outsideDiscardPending = false;
     if (options.restoreFocus !== false) {
       restoreFocus(returnTarget);
     }
@@ -420,8 +446,11 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
 
   function renderPanel(): void {
     if (state.panel === null) {
-      panel.root.hidden = true;
       list.root.inert = false;
+      hideJournalSidebar(panel.root, () => {
+        concealNativeSidebarControls(panel.root.ownerDocument, panel.root, false);
+        releaseJournalSheetShift(panel.root.ownerDocument);
+      });
       return;
     }
 
@@ -466,6 +495,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     applyCopiedControlClasses(panel.root, paint);
     panel.setDark(paint.mode === 'dark');
     panel.root.classList.add('bfa-journal-panel');
+    list.root.inert = panel.chrome().visible;
   }
 
   function closeNote(): void {
@@ -493,14 +523,11 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       return;
     }
 
-    if (state.panel.mismatch || !isDirty()) {
-      closePanel({restoreFocus: false});
+    if (!sidebarDismissesOnOutside(panel.chrome())) {
       return;
     }
 
-    outsideDiscardPending = true;
-    state.panel.confirm = 'discard';
-    renderPanel();
+    panel.collapse();
   }
 
   function finishPendingHide(): void {
@@ -914,6 +941,7 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
       return;
     }
     afterClose = then;
+    panel.expand();
     state.panel.confirm = 'discard';
     renderPanel();
   }
@@ -945,6 +973,10 @@ export function installJournalNotes(deps: JournalNotesDeps): JournalNotes {
     openNote,
     panel,
     release() {
+      cancelJournalSidebarHide(panel.root);
+      panel.root.hidden = true;
+      concealNativeSidebarControls(panel.root.ownerDocument, panel.root, false);
+      releaseJournalSheetShift(panel.root.ownerDocument);
       photoPicker.destroy();
     },
     renderPanel,

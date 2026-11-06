@@ -62,19 +62,23 @@ test('saves light and dark journal screens beside the sheet reference', async ({
     path: path.join(BUILD_DIR, 'panel-read-dark-desktop.png'),
   });
   await shotHeader(page, 'header-read-dark.png');
-  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
-  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.getByRole('dialog').getByRole('button', {name: 'Hide sidebar'}).click();
+  await expect(page.getByRole('button', {name: 'Show sidebar'})).toBeVisible();
   await page.screenshot({
     path: path.join(BUILD_DIR, 'list-populated-dark-desktop.png'),
   });
 
   await page.getByRole('button', {name: 'New Note'}).click();
-  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
+  await page.getByRole('textbox', {name: 'Title'}).fill('Leave this');
+  await page.getByRole('dialog').getByRole('button', {name: 'Hide sidebar'}).click();
+  await page.locator('.bfa-journal-photo-switch').getByRole('radio', {name: 'Photos'}).click();
   await expect(page.getByText('This note is not saved yet.')).toBeVisible();
   await page.screenshot({
     path: path.join(BUILD_DIR, 'panel-discard-dark-desktop.png'),
   });
   await page.getByRole('button', {name: 'Discard'}).click();
+  await page.locator('.bfa-journal-photo-switch').getByRole('radio', {name: 'Notes'}).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
 
   await page.setViewportSize({width: 375, height: 812});
   await page.screenshot({
@@ -84,8 +88,8 @@ test('saves light and dark journal screens beside the sheet reference', async ({
   await page.screenshot({
     path: path.join(BUILD_DIR, 'panel-read-dark-375.png'),
   });
-  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
-  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.getByRole('dialog').getByRole('button', {name: 'Hide sidebar'}).click();
+  await expect(page.getByRole('button', {name: 'Show sidebar'})).toBeVisible();
 
   await page.setViewportSize({width: 1280, height: 900});
   await page.getByRole('button', {name: 'Appearance'}).click();
@@ -117,16 +121,19 @@ test('saves light and dark journal screens beside the sheet reference', async ({
   });
   await shotHeader(page, 'header-edit-light.png');
   await page.getByRole('button', {name: 'Done editing'}).click();
-  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
-  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.getByRole('dialog').getByRole('button', {name: 'Hide sidebar'}).click();
+  await expect(page.getByRole('button', {name: 'Show sidebar'})).toBeVisible();
 
   await page.getByRole('button', {name: 'New Note'}).click();
-  await page.getByRole('dialog').getByRole('button', {name: 'Close', exact: true}).click();
+  await page.getByRole('textbox', {name: 'Title'}).fill('Leave this');
+  await page.getByRole('dialog').getByRole('button', {name: 'Hide sidebar'}).click();
+  await page.locator('.bfa-journal-photo-switch').getByRole('radio', {name: 'Photos'}).click();
   await expect(page.getByText('This note is not saved yet.')).toBeVisible();
   await page.screenshot({
     path: path.join(BUILD_DIR, 'panel-discard-light-desktop.png'),
   });
   await page.getByRole('button', {name: 'Discard'}).click();
+  await page.locator('.bfa-journal-photo-switch').getByRole('radio', {name: 'Notes'}).click();
   await expect(page.getByRole('dialog')).toBeHidden();
 
   await page.setViewportSize({width: 375, height: 812});

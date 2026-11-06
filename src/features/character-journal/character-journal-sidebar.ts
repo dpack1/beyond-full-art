@@ -1,3 +1,4 @@
+import type {SidebarChrome} from '../../platform/dndbeyond/sidebar-chrome';
 import {
   SIDEBAR_BORDER_BG_CLASS,
   SIDEBAR_BORDER_BOTTOM_CLASS,
@@ -16,13 +17,16 @@ import {
   SIDEBAR_HEADING_CLASS,
   SIDEBAR_HEADING_HASH_CLASS,
   SIDEBAR_HIDE_CLASS,
+  SIDEBAR_LOCKED_CLASS,
   SIDEBAR_INNER_CLASS,
   SIDEBAR_MASK_CLASS,
   SIDEBAR_NAV_BUTTON_CLASS,
   SIDEBAR_NAV_CLASS,
   SIDEBAR_NAV_LABEL_CLASS,
   SIDEBAR_NOTE_PANE_CLASS,
+  SIDEBAR_OVERLAY_CLASS,
   SIDEBAR_PANE_CLASS,
+  SIDEBAR_PLACEMENT_CLASS,
   SIDEBAR_PORTAL_CLASS,
   SIDEBAR_SURFACE_DARK_CLASS,
   SIDEBAR_SWIPEABLE_CLASS,
@@ -30,14 +34,19 @@ import {
   SIDEBAR_VISIBILITY_CLASS,
   SIDEBAR_WRAPPER_CLASS,
 } from '../../platform/dndbeyond/selectors';
+import {bindSidebarChrome} from './character-journal-sidebar-chrome';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export interface JournalSidebarShell {
   body: HTMLElement;
   callout: HTMLElement;
+  chrome(): SidebarChrome;
   closeButton: HTMLButtonElement;
+  collapse(): void;
   dialog: HTMLElement;
+  expand(): void;
+  fitViewport(viewportWidth: number): void;
   footer: HTMLElement;
   nav: HTMLElement;
   nextButton: HTMLButtonElement;
@@ -45,6 +54,7 @@ export interface JournalSidebarShell {
   root: HTMLElement;
   scroller: HTMLElement;
   setDark(on: boolean): void;
+  setOnChromeChange(listener: () => void): void;
   title: HTMLElement;
 }
 
@@ -81,11 +91,26 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
   controls.dataset.bfaJournalNativeChrome = 'true';
   const visibility = doc.createElement('div');
   visibility.className = SIDEBAR_VISIBILITY_CLASS;
-  const closeButton = iconButton(doc, 'Close', SIDEBAR_HIDE_CLASS, hideIcon(doc));
+  const closeButton = iconButton(doc, 'Hide sidebar', SIDEBAR_HIDE_CLASS, hideIcon(doc));
   closeButton.classList.add('bfa-journal-close');
   closeButton.dataset.bfaJournalClose = 'true';
-  visibility.append(tooltip(doc, closeButton));
-  controls.append(visibility);
+  const hideTip = tooltip(doc, closeButton);
+  const unlockButton = iconButton(doc, 'Unlocked', '', lockIcon(doc));
+  const unlockTip = tooltip(doc, unlockButton);
+  visibility.append(hideTip, unlockTip);
+  const overlayButton = iconButton(doc, 'Set to overlay position', '', overlayIcon(doc));
+  const fixedButton = iconButton(doc, 'Set to fixed position', '', fixedIcon(doc));
+  const overlay = doc.createElement('div');
+  overlay.className = SIDEBAR_OVERLAY_CLASS;
+  overlay.append(tooltip(doc, overlayButton), tooltip(doc, fixedButton));
+  const alignLeft = iconButton(doc, 'Align Left', '', alignLeftIcon(doc));
+  const alignRight = iconButton(doc, 'Align Right', '', alignRightIcon(doc));
+  const placement = doc.createElement('div');
+  placement.className = SIDEBAR_PLACEMENT_CLASS;
+  placement.append(tooltip(doc, alignLeft), tooltip(doc, alignRight));
+  const lockButton = iconButton(doc, 'Locked', SIDEBAR_LOCKED_CLASS, lockedIcon(doc));
+  lockButton.hidden = true;
+  controls.append(lockButton, visibility, overlay, placement);
 
   const pane = doc.createElement('div');
   pane.className = SIDEBAR_PANE_CLASS;
@@ -141,11 +166,36 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
   root.append(mask, swipeHost);
 
   const darkTargets = [border, gap, content, bottom];
+  const chrome = bindSidebarChrome({
+    alignLeft,
+    alignRight,
+    controls,
+    dialog,
+    doc,
+    fixed: fixedButton,
+    hide: closeButton,
+    hideIcon: () => hideIcon(doc),
+    hideTip,
+    lock: lockButton,
+    mask,
+    overlay: overlayButton,
+    overlayGroup: overlay,
+    pane,
+    placementGroup: placement,
+    showIcon: () => showIcon(doc),
+    unlock: unlockButton,
+    unlockTip,
+    visibility,
+  });
   return {
     body,
     callout,
+    chrome: chrome.chrome,
     closeButton,
+    collapse: chrome.collapse,
     dialog,
+    expand: chrome.expand,
+    fitViewport: chrome.fitViewport,
     footer,
     nav,
     nextButton,
@@ -158,6 +208,7 @@ export function createJournalSidebar(doc: Document): JournalSidebarShell {
         target.classList.toggle(SIDEBAR_SURFACE_DARK_CLASS, on);
       }
     },
+    setOnChromeChange: chrome.setOnChromeChange,
     title,
   };
 }
@@ -202,6 +253,80 @@ function hideIcon(doc: Document): SVGElement {
       d: 'M5.21.36h0A2.25,2.25,0,0,1,7.89.53L16,8,7.89,15.47a2.25,2.25,0,0,1-2.68.17h0A1.3,1.3,0,0,1,5,13.52L11,8,5,2.48A1.3,1.3,0,0,1,5.21.36Z',
     }),
     svg(doc, 'polygon', {points: '9.09 8 0 0 0 16 9.09 8'}),
+  ]);
+}
+
+function showIcon(doc: Document): SVGElement {
+  return svg(doc, 'svg', {viewBox: '0 0 16 16', width: '1em', height: '1em'}, [
+    svg(doc, 'path', {
+      d: 'M11,2.48,5,8l6,5.52a1.3,1.3,0,0,1-.21,2.12h0a2.25,2.25,0,0,1-2.68-.17L0,8,8.11.53A2.25,2.25,0,0,1,10.79.36h0A1.3,1.3,0,0,1,11,2.48Z',
+    }),
+    svg(doc, 'polygon', {points: '6.92 8 16 0 16 16 6.92 8'}),
+  ]);
+}
+
+function lockedIcon(doc: Document): SVGElement {
+  return svg(doc, 'svg', {
+    height: '1em',
+    viewBox: '0 0 448 512',
+    width: '1em',
+    xmlns: SVG_NS,
+  }, [svg(doc, 'path', {
+    d: 'M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z',
+  })]);
+}
+
+function lockIcon(doc: Document): SVGElement {
+  return svg(doc, 'svg', {
+    height: '1em',
+    viewBox: '0 0 448 512',
+    width: '1em',
+    xmlns: SVG_NS,
+  }, [svg(doc, 'path', {
+    d: 'M144 144c0-44.2 35.8-80 80-80c31.9 0 59.4 18.6 72.3 45.7c7.6 16 26.7 22.8 42.6 15.2s22.8-26.7 15.2-42.6C331 33.7 281.5 0 224 0C144.5 0 80 64.5 80 144v48H64c-35.3 0-64 28.7-64 64V448c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V256c0-35.3-28.7-64-64-64H144V144z',
+  })]);
+}
+
+function overlayIcon(doc: Document): SVGElement {
+  return svg(doc, 'svg', {viewBox: '0 0 24 24', width: '1em', height: '1em'}, [
+    svg(doc, 'path', {d: 'M14.5,3V21H3V3H14.5m3-3H0V24H17.5V0Z'}),
+    svg(doc, 'rect', {x: '17.59', y: '0.5', width: '5.91', height: '23'}),
+    svg(doc, 'path', {d: 'M23,1V23H18.09V1H23m1-1H17.09V24H24V0Z'}),
+    svg(doc, 'polygon', {points: '6.28 12.32 12.5 19.14 12.5 5.5 6.28 12.32'}),
+  ]);
+}
+
+function fixedIcon(doc: Document): SVGElement {
+  return svg(doc, 'svg', {viewBox: '0 0 24 24', width: '1em', height: '1em'}, [
+    svg(doc, 'path', {d: 'M15.5,3V21H3V3H15.5m3-3H0V24H18.5V0Z'}),
+    svg(doc, 'rect', {x: '17.59', y: '0.5', width: '5.91', height: '23'}),
+    svg(doc, 'path', {d: 'M23,1V23H18.09V1H23m1-1H17.09V24H24V0Z'}),
+    svg(doc, 'line', {
+      fill: 'none',
+      stroke: '#000',
+      'stroke-miterlimit': '10',
+      'stroke-width': '3px',
+      x1: '12',
+      x2: '12',
+      y1: '5.5',
+      y2: '19',
+    }),
+  ]);
+}
+
+function alignLeftIcon(doc: Document): SVGElement {
+  return svg(doc, 'svg', {viewBox: '0 0 24 24', width: '1em', height: '1em'}, [
+    svg(doc, 'path', {d: 'M21,3V21H9.5V3H21m3-3H6.5V24H24V0Z'}),
+    svg(doc, 'rect', {x: '0.5', y: '0.5', width: '5.91', height: '23'}),
+    svg(doc, 'path', {d: 'M5.91,1V23H1V1H5.91m1-1H0V24H6.91V0Z'}),
+  ]);
+}
+
+function alignRightIcon(doc: Document): SVGElement {
+  return svg(doc, 'svg', {viewBox: '0 0 24 24', width: '1em', height: '1em'}, [
+    svg(doc, 'path', {d: 'M15.5,3V21H3V3H15.5m3-3H0V24H18.5V0Z'}),
+    svg(doc, 'rect', {x: '17.59', y: '0.5', width: '5.91', height: '23'}),
+    svg(doc, 'path', {d: 'M23,1V23H18.09V1H23m1-1H17.09V24H24V0Z'}),
   ]);
 }
 

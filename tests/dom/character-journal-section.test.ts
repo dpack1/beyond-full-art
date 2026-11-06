@@ -350,7 +350,7 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('closes a clean panel on Escape and returns focus to the row', async () => {
+  it('collapses a clean panel on Escape and Show brings the same note back', async () => {
     const section = createCharacterJournalSection(createFakeService([
       note({id: 'door', title: 'Locked door'}),
     ]));
@@ -358,19 +358,26 @@ describe('character journal section', () => {
     const row = document.querySelector<HTMLButtonElement>('.bfa-journal-row');
     row?.focus();
     row?.click();
+    const focused = document.activeElement;
 
     document.querySelector('.bfa-journal-panel')?.dispatchEvent(new KeyboardEvent('keydown', {
       bubbles: true,
       key: 'Escape',
     }));
 
-    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
-    expect(document.activeElement).toBe(row);
+    const panel = document.querySelector('.bfa-journal-panel');
+    expect(panel?.hasAttribute('hidden')).toBe(false);
+    expect(document.querySelector('[aria-label="Show sidebar"]')).toBeInstanceOf(HTMLButtonElement);
+    expect(document.activeElement).toBe(focused);
     expect(section.isShown()).toBe(true);
+
+    buttonNamed('Show sidebar')?.click();
+    expect(document.querySelector('[aria-label="Hide sidebar"]')).toBeInstanceOf(HTMLButtonElement);
+    expect(document.querySelector('.bfa-journal-panel-title')?.textContent).toBe('Locked door');
     section.destroy();
   });
 
-  it('closes a clean note when clicking outside without stealing focus', async () => {
+  it('collapses a clean note when clicking outside without stealing focus', async () => {
     const section = createCharacterJournalSection(createFakeService([
       note({id: 'door', title: 'Locked door'}),
     ]));
@@ -383,7 +390,8 @@ describe('character journal section', () => {
 
     outside.click();
 
-    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+    expect(document.querySelector('[aria-label="Show sidebar"]')).toBeInstanceOf(HTMLButtonElement);
     expect(document.activeElement).toBe(outside);
     section.destroy();
   });
@@ -443,7 +451,7 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('asks before discarding a dirty note clicked away from the sidebar', async () => {
+  it('keeps a dirty note when the sidebar collapses', async () => {
     const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);
     openNewSession();
@@ -455,19 +463,44 @@ describe('character journal section', () => {
 
     outside.click();
 
-    expect(document.querySelector('.bfa-journal-confirm')?.textContent)
-        .toContain('This note is not saved yet.');
-    expect(titleField().value).toBe('Keep this draft');
-    buttonNamed('Keep editing')?.click();
+    expect(document.querySelector('.bfa-journal-confirm')).toBeNull();
+    expect(document.querySelector('[aria-label="Show sidebar"]')).toBeInstanceOf(HTMLButtonElement);
     expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
 
-    outside.click();
-    buttonNamed('Discard')?.click();
-    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    buttonNamed('Show sidebar')?.click();
+    expect(titleField().value).toBe('Keep this draft');
+    expect(document.querySelector('[aria-label="Hide sidebar"]')).toBeInstanceOf(HTMLButtonElement);
     section.destroy();
   });
 
-  it('discards an empty new note when clicking away without saving it', async () => {
+  it('asks before opening another note over a dirty draft', async () => {
+    const section = createCharacterJournalSection(createFakeService([
+      note({id: 'door', title: 'Locked door'}),
+      note({id: 'gate', title: 'Old Gate'}),
+    ]));
+    await showSection(section);
+    rowNamed('Locked door')?.click();
+    buttonNamed('Edit')?.click();
+    titleField().value = 'Keep this draft';
+    titleField().dispatchEvent(new Event('input'));
+    buttonNamed('Hide sidebar')?.click();
+
+    rowNamed('Old Gate')?.click();
+
+    expect(document.querySelector('.bfa-journal-confirm')?.textContent)
+        .toContain('This note is not saved yet.');
+    buttonNamed('Keep editing')?.click();
+    expect(titleField().value).toBe('Keep this draft');
+
+    buttonNamed('Hide sidebar')?.click();
+    rowNamed('Old Gate')?.click();
+    buttonNamed('Discard')?.click();
+    expect(document.querySelector('.bfa-journal-panel-title')?.textContent).toBe('Old Gate');
+    expect(document.querySelector('.bfa-journal-confirm')).toBeNull();
+    section.destroy();
+  });
+
+  it('collapses an empty new note when clicking away without saving it', async () => {
     let saves = 0;
     const service = createFakeService([]);
     const save = service.save.bind(service);
@@ -493,7 +526,8 @@ describe('character journal section', () => {
     outside.click();
 
     expect(saves).toBe(0);
-    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
+    expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(false);
+    expect(document.querySelector('[aria-label="Show sidebar"]')).toBeInstanceOf(HTMLButtonElement);
     expect(document.querySelector('.bfa-journal-row')).toBeNull();
     section.destroy();
   });
@@ -511,17 +545,19 @@ describe('character journal section', () => {
     section.destroy();
   });
 
-  it('returns to the journal list when Close discards a draft', async () => {
+  it('returns to the journal list when Photos discards a draft', async () => {
     const section = createCharacterJournalSection(createFakeService([]));
     await showSection(section);
     openNewSession();
     titleField().value = 'Leave this';
     titleField().dispatchEvent(new Event('input'));
 
-    document.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click();
+    buttonNamed('Hide sidebar')?.click();
+    buttonNamed('Photos')?.click();
     expect(document.querySelector('.bfa-journal-confirm')?.textContent)
         .toContain('This note is not saved yet.');
     buttonNamed('Discard')?.click();
+    buttonNamed('Notes')?.click();
 
     expect(section.isShown()).toBe(true);
     expect(document.querySelector('.bfa-journal-panel')?.hasAttribute('hidden')).toBe(true);
@@ -789,7 +825,7 @@ describe('character journal section', () => {
     const unsetSelect = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
     expect(unsetSelect?.querySelector<HTMLOptionElement>('option[value="unset"]')?.disabled)
         .toBe(false);
-    document.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click();
+    document.querySelector<HTMLButtonElement>('[aria-label="Hide sidebar"]')?.click();
 
     openNewSession();
     const select = document.querySelector<HTMLSelectElement>('.bfa-journal-type');
@@ -1080,8 +1116,8 @@ describe('character journal section', () => {
       const listType = list instanceof HTMLElement ? getComputedStyle(list).listStyleType : '';
       expect(['disc', '']).toContain(listType);
     }
-    expect(document.querySelector('[data-bfa-journal-native-chrome] [aria-label="Close"]')).not.toBeNull();
-    expect(document.querySelector('.ct-note-manage-pane [aria-label="Close"]')).toBeNull();
+    expect(document.querySelector('[data-bfa-journal-native-chrome] [aria-label="Hide sidebar"]')).not.toBeNull();
+    expect(document.querySelector('.ct-note-manage-pane [aria-label="Hide sidebar"]')).toBeNull();
 
     const header = document.querySelector('.bfa-journal-header-primary');
     const direction = header instanceof HTMLElement ? getComputedStyle(header).flexDirection : '';
@@ -1100,7 +1136,7 @@ describe('character journal section', () => {
     expect(header?.contains(title)).toBe(true);
     expect(document.querySelector('.bfa-journal-sticky-tools')?.contains(done ?? null)).toBe(true);
     expect(notePane?.contains(editor)).toBe(true);
-    expect(notePane?.contains(document.querySelector('[aria-label="Close"]'))).toBe(false);
+    expect(notePane?.contains(document.querySelector('[aria-label="Hide sidebar"]'))).toBe(false);
     section.destroy();
   });
 });

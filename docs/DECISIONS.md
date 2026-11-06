@@ -294,8 +294,11 @@ not mounted inside the live sidebar. The dialog is `position: fixed` on the
 viewport, because the native sidebar's absolute box only lands on the right
 when `body` is the containing block. Opening a note closes an open native
 sidebar. That body is still a closed switch on
-the sheet's pane id. Hide closes the note. Prev and Next walk note history.
-Lock, overlay, and align are omitted. The portrait search ignores this copy.
+the sheet's pane id. Hide collapses the note. Lock keeps it up across sheet tabs until that section opens the sheet sidebar. Overlay also
+collapses on an outside click or Escape. Fixed shifts the sheet. Align docks
+it left or right. That choice lasts for the page. Prev and Next walk note
+history. While the note is open, the sheet's own edge bar is hidden. The
+portrait search ignores this copy.
 
 Why:
 
