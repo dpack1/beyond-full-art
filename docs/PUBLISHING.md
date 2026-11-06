@@ -45,7 +45,7 @@ Screenshots of the journal, folder, copy prompt, and deletion prompt are a separ
 
 `storage`: save art metadata, journal text, and settings on this browser.
 
-`webRequest` with host `https://character-service.dndbeyond.com/character/v5/character*`: notice a finished character delete. The listener is not blocking. The same host is the only one the extension asks for.
+`webRequest` with host `https://character-service.dndbeyond.com/character/v5/character*`: notice a finished character delete. The listener is not blocking. The same host is the only one the extension asks for. `offscreen` keeps a hidden extension page open so the backup folder stays readable after the toolbar popup closes. It does not add a host.
 
 Content scripts on `https://www.dndbeyond.com/characters*` and `https://www.dndbeyond.com/campaigns/*`: draw the viewer, journal, crop controls, card portraits, and companion portrait on those pages.
 

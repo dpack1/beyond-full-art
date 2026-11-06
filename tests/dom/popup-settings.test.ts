@@ -123,7 +123,7 @@ describe('popup settings', () => {
     });
   });
 
-  it('allows the saved folder from Choose folder without opening setup', async () => {
+  it('allows the saved folder when the popup opens', async () => {
     const requestPermission = vi.fn().mockResolvedValue('granted');
     const handle = {
       getDirectoryHandle: async () => {
@@ -171,8 +171,6 @@ describe('popup settings', () => {
     });
 
     await initializePopup(document);
-    document.querySelector<HTMLButtonElement>('#backup-folder-choose')?.click();
-    await nextTask();
 
     expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
     expect(create).not.toHaveBeenCalled();

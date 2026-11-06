@@ -3,6 +3,10 @@ import {installDeletionCleanup} from './deletion-cleanup';
 import {installJournalImageMessageHandler} from './journal-image-handler';
 import {installLibraryMessageHandler} from './library-handler';
 import {installFolderSettingsSync} from '../platform/chrome/folder-settings';
+import {
+  ensureFolderSession,
+  installFolderSessionMessages,
+} from '../platform/chrome/folder-session';
 import {isTrustedMessageSender} from './message-sender';
 import type {
   CharacterArtMetadata,
@@ -57,6 +61,10 @@ import {
 installJournalImageMessageHandler();
 installLibraryMessageHandler();
 installFolderSettingsSync();
+installFolderSessionMessages();
+void ensureFolderSession().catch(() => {
+  // A missing hidden page does not block a folder the popup already opened.
+});
 installDeletionCleanup({deleteArt: deleteCharacterArt});
 installCharacterCopy();
 

@@ -36,7 +36,7 @@ On a character sheet, the extension makes the portrait in the sidebar summary op
 
 ### Portrait edit panel
 
-Inside D&D Beyond's portrait manager (the sheet sidebar and the builder modal), the extension adds **Crop portrait** or **Edit portrait crop** under the native portrait preview, stacked with **Change Portrait** at the same width. It does not add a full-art preview beside that row. Narrow sidebars use a compact layout. It keeps D&D Beyond's file picker and saves the selected file locally only after the native **Change Portrait** button is used.
+Inside D&D Beyond's portrait manager (the sheet sidebar and the builder modal), the extension adds **Crop portrait** or **Edit portrait crop** under the native portrait preview, stacked with **Change Portrait** at the same width. A chosen file is previewed as the 150×150 center crop the character sheet will show. **Crop portrait** stays available for that file when the backup folder still needs access. It does not add a full-art preview beside that row. Narrow sidebars use a compact layout. It keeps D&D Beyond's file picker and saves the selected file locally only after the native **Change Portrait** button is used.
 
 ### Portrait crop
 
@@ -53,7 +53,7 @@ Click the toolbar icon to open the popup.
 - **Sharper card portraits** upgrades small campaign and My Characters avatars to a sharper image URL. It is on by default.
 - **Character Journal** shows or hides the sheet's Journal tab. Turning it off does not delete entries. It is on by default. Its list is compact by default; optional controls add updated dates, text previews, and image thumbnails.
 - **Companion portrait** shows selection checkboxes in Extras and the chosen portrait beside the character portrait. Turning it off keeps the saved choice. It is on by default.
-- **Backup folder** prepares one empty folder, or reconnects a folder this extension already prepared. The setup window can copy art and notes into that folder, check the files, and then remove the copies in this browser. New art and notes save in the folder. A prepared folder is read in place. If this browser asks, choose the folder again and allow access. **Check folder** re-reads it and refreshes the inventory. Put the folder inside Google Drive for Desktop if you want Drive to sync it.
+- **Backup folder** prepares one empty folder, or reconnects a folder this extension already prepared. The setup window can copy art and notes into that folder, check the files, and then remove the copies in this browser. New art and notes save in the folder. A prepared folder is read in place. A folder you already set up loads on the sheet without **Choose folder**. After you quit the browser or reload the extension, open the popup once and it allows that saved folder again. Later refreshes keep reading it until you quit. **Check folder** re-reads it and refreshes the inventory. Put the folder inside Google Drive for Desktop if you want Drive to sync it.
 - When that folder is the library, deleting art or a journal entry records the deletion there. Deleted notes do not silently return, and their photo files are retained so setup can restore a browser copy explicitly.
 - **Local storage** shows how much of Chrome's about 10 MB extension cap notes and settings are using, and Chrome's separate IndexedDB estimate for images.
 - **Stored content** groups local full art and journals by character. Each character can be opened, its art downloaded or deleted, and its journal exported or imported. Journal exports are ZIP files with Markdown notes, photos, and versioned recovery data. **Export all journals** and **Import backup** support whole-extension recovery, including a fresh install with no stored characters yet.
@@ -245,7 +245,7 @@ Toolbar popup
 | `src/platform/chrome/` | Storage, IndexedDB, and runtime-message validation. |
 | `src/background/service-worker.ts` | Owns art reads and writes. Treat it as ephemeral. |
 | `src/popup/` | Toolbar popup: three settings, the backup folder, the storage readout, the stored-art inventory, and a Ko-fi link. |
-| `src/folder/` | Window where Chrome's directory picker prepares the backup folder. |
+| `src/folder/` | Window where Chrome's directory picker prepares the backup folder, and the hidden page that keeps that folder readable. |
 | `src/shared/` | Small DOM, download, and result helpers. |
 | `tests/unit`, `tests/dom`, `tests/e2e` | Pure logic, jsdom fixtures, and Playwright extension fixtures. |
 | `docs/ddb-reference/` | Living reference for Matilda Greywolf's sheet: layout, tabs, theme, and the hooks the extension uses. |

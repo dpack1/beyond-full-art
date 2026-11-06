@@ -123,6 +123,7 @@ This phase requires research into whether and how D&D Beyond portrait upload can
 ### Current implementation defaults
 
 - Crop aspect ratio: square
+- A chosen file is previewed in the portrait manager as a 150×150 center crop, matching D&D Beyond's `width=150&height=150&fit=crop` sheet portrait. **Crop portrait** is available for that file on the sheet and in the builder even when stored art could not be read.
 - Generated crop output: `512 x 512` PNG
 - Crop state is saved separately from the original full art
 - When a user crops a newly selected portrait file before clicking D&D Beyond's native `Change Portrait`, the crop remains pending in page state until that native confirmation commits the matching full art locally

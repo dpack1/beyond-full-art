@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
+import {FOLDER_LIBRARY_BLOCKED_MESSAGE} from '../../src/platform/chrome/library-mode';
 import {createCharacterJournalSection} from '../../src/features/character-journal/character-journal-section';
 import type {CharacterJournalService} from '../../src/features/character-journal/character-journal-service';
 import {colorsContrast} from '../../src/features/character-journal/character-journal-theme';
@@ -1137,6 +1138,72 @@ describe('character journal section', () => {
     expect(document.querySelector('.bfa-journal-sticky-tools')?.contains(done ?? null)).toBe(true);
     expect(notePane?.contains(editor)).toBe(true);
     expect(notePane?.contains(document.querySelector('[aria-label="Hide sidebar"]'))).toBe(false);
+    section.destroy();
+  });
+
+  it('clears the folder warning after the notes load', async () => {
+    const stored = [note({id: 'beginning', title: 'My Beginning'})];
+    let blocked = true;
+    const service = createFakeService(stored);
+    const open = service.open.bind(service);
+    service.open = async (characterId) => {
+      if (blocked) {
+        blocked = false;
+        throw new Error(FOLDER_LIBRARY_BLOCKED_MESSAGE);
+      }
+      return open(characterId);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+
+    expect(document.querySelector('.bfa-journal-alert')?.textContent)
+        .toBe(FOLDER_LIBRARY_BLOCKED_MESSAGE);
+
+    buttonNamed('Sync folder')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelector('.bfa-journal-alert')?.hasAttribute('hidden')).toBe(true);
+    expect(titles()).toEqual(['My Beginning']);
+    section.destroy();
+  });
+
+  it('reloads notes when the folder session becomes ready', async () => {
+    const listeners: Array<(
+      changes: Record<string, {newValue?: unknown}>,
+      area: string,
+    ) => void> = [];
+    vi.stubGlobal('chrome', {
+      storage: {
+        onChanged: {
+          addListener(listener: (
+            changes: Record<string, {newValue?: unknown}>,
+            area: string,
+          ) => void) {
+            listeners.push(listener);
+          },
+          removeListener() {},
+        },
+      },
+    });
+    const stored = [note({id: 'beginning', title: 'My Beginning'})];
+    let blocked = true;
+    const service = createFakeService(stored);
+    const open = service.open.bind(service);
+    service.open = async (characterId) => {
+      if (blocked) {
+        blocked = false;
+        throw new Error(FOLDER_LIBRARY_BLOCKED_MESSAGE);
+      }
+      return open(characterId);
+    };
+    const section = createCharacterJournalSection(service);
+    await showSection(section);
+
+    listeners[0]?.({'bfa.folder.sessionReady': {newValue: '2026-11-06T00:00:00.000Z'}}, 'local');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelector('.bfa-journal-alert')?.hasAttribute('hidden')).toBe(true);
+    expect(titles()).toEqual(['My Beginning']);
     section.destroy();
   });
 });

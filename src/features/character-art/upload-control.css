@@ -103,8 +103,12 @@
 
 .bfa-art-sync__selected-row .bfa-art-sync__selected-preview-container img {
   display: block;
-  height: auto;
-  max-width: 100%;
+  height: 150px;
+  max-height: 150px;
+  max-width: 150px;
+  object-fit: cover;
+  object-position: center;
+  width: 150px;
 }
 
 .bfa-art-sync__selected-row .bfa-art-sync__button,

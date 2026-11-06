@@ -19,6 +19,7 @@ import {
   readDirectoryPermission,
   type BackupFolderPermission,
 } from './backup-folder';
+import {ensureFolderSession} from './folder-session';
 import {getStoredBackupFolder} from './indexed-db';
 import {FOLDER_LIBRARY_BLOCKED_MESSAGE, readLibraryMode} from './library-mode';
 
@@ -77,6 +78,11 @@ export type LibraryTarget =
 export async function resolveLibrary(): Promise<LibraryTarget> {
   if (await readLibraryMode() !== 'folder') {
     return {kind: 'local'};
+  }
+  try {
+    await ensureFolderSession();
+  } catch {
+    // A missing hidden page does not by itself block a folder that is already open.
   }
   const stored = await getStoredBackupFolder();
   if (stored === null) {
