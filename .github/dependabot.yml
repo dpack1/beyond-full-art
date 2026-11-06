@@ -4,4 +4,23 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # One pull request for the whole npm set. Separate lockfile bumps
+    # conflict with each other, and the open-PR limit then drops the rest.
     open-pull-requests-limit: 5
+    groups:
+      npm:
+        patterns:
+          - "*"
+    ignore:
+      # .nvmrc is Node 20.18. These majors need a newer Node.
+      - dependency-name: vitest
+        versions: [">=5"]
+      - dependency-name: vite
+        versions: [">=7"]
+      - dependency-name: jsdom
+        versions: [">=27"]
+      - dependency-name: "@types/jsdom"
+        versions: [">=27"]
+      # @types/node tracks the Node release. This repo stays on the 24 line.
+      - dependency-name: "@types/node"
+        versions: [">=25"]
