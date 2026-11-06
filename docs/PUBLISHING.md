@@ -39,7 +39,7 @@ Add this sentence to the store description. Leave the Support URL on the issue t
 
 > Beyond Full Art stays free. If it helps your table, you can leave a tip at https://ko-fi.com/dpack1. A tip does not unlock anything.
 
-Screenshots of the journal, folder, copy prompt, and deletion prompt are a separate README pass. The store accepts 1280×800 or 640×400 PNGs. Do not use a screenshot that shows someone else's account or a private character you do not want public.
+Store screenshots are the 1280×800 PNGs in `assets/store/`. Upload them in this order: `01-portrait-crop.png`, `02-journal-note.png`, `03-journal-notes.png`, `04-journal-photos.png`, `05-companion.png`. `02-journal-note.png` is a crop of the sheet capture with the notes list and the open note. The other four are crops of the README captures. The SVG callout labels are not included. Folder setup, the copy prompt, and the deletion prompt are not in this set. The note shot shows the campaign name Salty Eyes. Do not upload a screenshot that shows someone else's account.
 
 ## Permission justifications
 
