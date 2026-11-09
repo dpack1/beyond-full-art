@@ -19,7 +19,8 @@ import {
   readDirectoryPermission,
   type BackupFolderPermission,
 } from './backup-folder';
-import {ensureFolderSession} from './folder-session';
+import {openHeldFolderDirectory} from './folder-holder';
+import {ensureFolderSession, readActiveFolderDirectory, rememberActiveFolderDirectory} from './folder-session';
 import {getStoredBackupFolder} from './indexed-db';
 import {FOLDER_LIBRARY_BLOCKED_MESSAGE, readLibraryMode} from './library-mode';
 
@@ -84,16 +85,37 @@ export async function resolveLibrary(): Promise<LibraryTarget> {
   } catch {
     // A missing hidden page does not by itself block a folder that is already open.
   }
+  const active = readActiveFolderDirectory();
+  if (active !== null) {
+    const activePermission = await readDirectoryPermission(active);
+    if (await libraryDirectoryIsOpen(active, activePermission)) {
+      return {directory: active, kind: 'ready'};
+    }
+    rememberActiveFolderDirectory(null);
+  }
   const stored = await getStoredBackupFolder();
   if (stored === null) {
-    return {folderName: 'Backup folder', kind: 'blocked'};
+    return heldLibraryOrBlocked('Backup folder');
   }
   const folderName = backupFolderLabel(stored.handle);
   const permission = await readDirectoryPermission(stored.handle);
-  if (!await libraryDirectoryIsOpen(stored.handle, permission)) {
+  if (permission === 'denied') {
     return {folderName, kind: 'blocked'};
   }
+  if (!await libraryDirectoryIsOpen(stored.handle, permission)) {
+    return heldLibraryOrBlocked(folderName);
+  }
   return {directory: stored.handle, kind: 'ready'};
+}
+
+async function heldLibraryOrBlocked(folderName: string): Promise<LibraryTarget> {
+  // The setup window still has the directory the user allowed. Use it when
+  // this worker's own handle cannot open characters/.
+  const held = await openHeldFolderDirectory();
+  if (held !== null) {
+    return {directory: held, kind: 'ready'};
+  }
+  return {folderName, kind: 'blocked'};
 }
 
 export async function libraryDirectoryIsOpen(

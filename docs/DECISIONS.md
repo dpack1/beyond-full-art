@@ -485,16 +485,29 @@ crops, notes, and photos with those files. On a full match it sets
 missing blob, or a failed copy leaves the browser copies in place and keeps
 saving on this browser. Declining the cleanup prompt does the same.
 
-An empty folder with nothing saved in the browser can be confirmed as the
-place new art and notes are saved. An existing folder and an empty browser
-can be confirmed the same way, without copying files back into the browser.
-Later saves and reads go through the service worker to that folder. If this
+An empty folder with nothing saved in the browser becomes the place new art
+and notes are saved, without another question. An existing folder and an
+empty browser do the same, without copying files back into the browser.
+Removing copies that are already on this browser still asks first. The setup
+window then says the folder is ready: the heading changes, the choose button
+goes away, and the in-page close button hides so the window is not dismissed.
+Chrome grants the folder to that window only. Cloning the handle does not let
+the toolbar popup or the service worker open `characters/`. The setup window
+stays open, opens the toolbar popup, then moves to the corner and performs
+the reads and writes. That popup lists the journals without another click. Closing the setup window drops the grant, and the
+popup button then says Show journals. Later saves and reads go through the
+service worker, which asks that window while it is open. If this
 browser has not granted the folder, the sheet asks the player to choose it
 again and allow access, and does not fall back to an empty browser copy. A
-handle loaded from IndexedDB is often still `prompt`. The popup calls
+handle loaded from IndexedDB is often still `prompt`. The setup window calls
+`requestPermission` before it moves aside, so the click still counts, then
+parks at the bottom-right while that question is open. The popup calls
 `requestPermission` for that saved folder as soon as it opens, before the
-other settings load. Choose folder asks again when that first ask does not
-land, before opening the directory picker. Chrome drops the grant when the
+other settings load, and without a `queryPermission` wait first. When the
+folder is already the library and `characters/` opens, or the setup window
+still has the folder, the popup shows Check
+folder and loads the inventory even if a later query is still `prompt`.
+Chrome drops the grant when the
 last extension page closes, so
 a hidden `folder/session.html` page stays open and keeps trying to open
 `characters/` until that succeeds, then holds the handle. Sheet refreshes

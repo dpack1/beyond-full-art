@@ -175,7 +175,163 @@ describe('popup settings', () => {
     expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
     expect(create).not.toHaveBeenCalled();
     expect(document.querySelector('#backup-folder-status')?.textContent)
-        .toBe('“Beyond-Full-Art” is where art and notes are saved. This browser is not keeping a second copy.');
+        .toBe('“Beyond-Full-Art” is connected. Journals and art in that folder show in the extension popup. Leave the folder setup window open. This browser is not keeping a second copy.');
+    expect(document.querySelector<HTMLButtonElement>('#backup-folder-check')?.hidden)
+        .toBe(false);
+  });
+
+  it('shows Check folder when the saved folder already opens', async () => {
+    const requestPermission = vi.fn().mockResolvedValue('prompt');
+    const handle = {
+      getDirectoryHandle: async () => ({}),
+      name: 'Beyond-Full-Art',
+      queryPermission: async () => 'prompt',
+      requestPermission,
+    };
+    vi.spyOn(indexedDbApi, 'getStoredBackupFolder').mockResolvedValue({
+      connectedAt: '2026-10-28T00:00:00.000Z',
+      handle: handle as unknown as FileSystemDirectoryHandle,
+      id: 'selected',
+    });
+    stubFolderLibraryChrome();
+
+    await initializePopup(document);
+
+    expect(document.querySelector<HTMLButtonElement>('#backup-folder-check')?.hidden)
+        .toBe(false);
+    expect(document.querySelector('#backup-folder-choose')?.textContent)
+        .toBe('Choose folder');
+    expect(document.querySelector('#backup-folder-status')?.textContent)
+        .toBe('“Beyond-Full-Art” is connected. Journals and art in that folder show in the extension popup. Leave the folder setup window open. This browser is not keeping a second copy.');
+  });
+
+  it('lists the folder when the hidden page already has it open', async () => {
+    const requestPermission = vi.fn().mockResolvedValue('prompt');
+    const handle = {
+      getDirectoryHandle: async () => {
+        throw new Error('blocked');
+      },
+      name: 'Beyond-Full-Art',
+      queryPermission: async () => 'prompt',
+      requestPermission,
+    };
+    vi.spyOn(indexedDbApi, 'getStoredBackupFolder').mockResolvedValue({
+      connectedAt: '2026-10-28T00:00:00.000Z',
+      handle: handle as unknown as FileSystemDirectoryHandle,
+      id: 'selected',
+    });
+    vi.stubGlobal('chrome', {
+      runtime: {
+        getURL: (path: string) => `chrome-extension://test/${path}`,
+        sendMessage: vi.fn().mockResolvedValue({open: true}),
+      },
+      storage: {
+        local: {
+          get: (
+              _key: string,
+              callback: (value: Record<string, unknown>) => void,
+          ) => {
+            callback({'bfa.library.mode': 'folder'});
+          },
+          set: (_values: unknown, callback: () => void) => {
+            callback();
+          },
+        },
+      },
+      windows: {create: vi.fn()},
+    });
+
+    await initializePopup(document);
+
+    expect(document.querySelector<HTMLButtonElement>('#backup-folder-check')?.hidden)
+        .toBe(false);
+    expect(document.querySelector('#backup-folder-choose')?.textContent)
+        .toBe('Choose folder');
+    expect(document.querySelector('#backup-folder-status')?.textContent)
+        .toBe('“Beyond-Full-Art” is connected. Journals and art in that folder show in the extension popup. Leave the folder setup window open. This browser is not keeping a second copy.');
+  });
+
+  it('lists the folder while the setup window still has it open', async () => {
+    const requestPermission = vi.fn().mockResolvedValue('prompt');
+    const handle = {
+      getDirectoryHandle: async () => {
+        throw new Error('blocked');
+      },
+      name: 'Beyond-Full-Art',
+      queryPermission: async () => 'prompt',
+      requestPermission,
+    };
+    vi.spyOn(indexedDbApi, 'getStoredBackupFolder').mockResolvedValue({
+      connectedAt: '2026-10-28T00:00:00.000Z',
+      handle: handle as unknown as FileSystemDirectoryHandle,
+      id: 'selected',
+    });
+    vi.stubGlobal('chrome', {
+      runtime: {
+        getURL: (path: string) => `chrome-extension://test/${path}`,
+        sendMessage: vi.fn((message: {type?: string}) => Promise.resolve(
+            message.type === 'bfa.folder.holder'
+              ? {name: 'Beyond-Full-Art', ok: true, open: true}
+              : {open: false},
+        )),
+      },
+      storage: {
+        local: {
+          get: (
+              _key: string,
+              callback: (value: Record<string, unknown>) => void,
+          ) => {
+            callback({'bfa.library.mode': 'folder'});
+          },
+          set: (_values: unknown, callback: () => void) => {
+            callback();
+          },
+        },
+      },
+      windows: {create: vi.fn()},
+    });
+
+    await initializePopup(document);
+
+    expect(document.querySelector<HTMLButtonElement>('#backup-folder-check')?.hidden)
+        .toBe(false);
+    expect(document.querySelector('#backup-folder-choose')?.textContent)
+        .toBe('Choose folder');
+  });
+
+  it('offers Show journals when the saved folder is still closed', async () => {
+    const requestPermission = vi.fn().mockResolvedValue('prompt');
+    const handle = {
+      getDirectoryHandle: async () => {
+        throw new Error('blocked');
+      },
+      name: 'Beyond-Full-Art',
+      queryPermission: async () => 'prompt',
+      requestPermission,
+    };
+    vi.spyOn(indexedDbApi, 'getStoredBackupFolder').mockResolvedValue({
+      connectedAt: '2026-10-28T00:00:00.000Z',
+      handle: handle as unknown as FileSystemDirectoryHandle,
+      id: 'selected',
+    });
+    const create = stubFolderLibraryChrome();
+
+    await initializePopup(document);
+
+    expect(create).not.toHaveBeenCalled();
+    expect(document.querySelector('#backup-folder-choose')?.textContent)
+        .toBe('Show journals');
+    expect(document.querySelector<HTMLButtonElement>('#backup-folder-check')?.hidden)
+        .toBe(true);
+    expect(document.querySelector('#backup-folder-status')?.textContent)
+        .toBe('“Beyond-Full-Art” is connected. The folder setup window was closed, so the list could not load. Click Show journals to list the art and journals in that folder.');
+
+    document.querySelector<HTMLButtonElement>('#backup-folder-choose')?.click();
+    await nextTask();
+    await nextTask();
+
+    expect(create).not.toHaveBeenCalled();
+    expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
   });
 
   it('says a selected folder is waiting for access', () => {
@@ -184,7 +340,7 @@ describe('popup settings', () => {
       folderName: 'Beyond-Full-Art',
       permission: 'prompt',
     }, null, true)).toBe(
-        '“Beyond-Full-Art” is selected. Allow access to show the art and notes saved in that folder. Choose the folder and allow access when asked.',
+        '“Beyond-Full-Art” is connected. The folder setup window was closed, so the list could not load. Click Show journals to list the art and journals in that folder.',
     );
   });
 
@@ -491,6 +647,30 @@ function createJournalNote(characterId: string) {
     type: 'place',
     updatedAt: '2026-10-21T00:00:00.000Z',
   };
+}
+
+function stubFolderLibraryChrome(): ReturnType<typeof vi.fn> {
+  const create = vi.fn().mockResolvedValue({id: 1});
+  vi.stubGlobal('chrome', {
+    runtime: {
+      getURL: (path: string) => `chrome-extension://test/${path}`,
+    },
+    storage: {
+      local: {
+        get: (
+            _key: string,
+            callback: (value: Record<string, unknown>) => void,
+        ) => {
+          callback({'bfa.library.mode': 'folder'});
+        },
+        set: (_values: unknown, callback: () => void) => {
+          callback();
+        },
+      },
+    },
+    windows: {create},
+  });
+  return create;
 }
 
 function createPopupFixture(): string {

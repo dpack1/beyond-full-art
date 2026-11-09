@@ -3,6 +3,8 @@ import {
   getStoredBackupFolder,
   setStoredBackupFolder,
 } from './indexed-db';
+import {releaseFolderHolder} from './folder-holder';
+import {releaseActiveFolderDirectory} from './folder-session';
 
 export const BACKUP_FOLDER_MARKER_NAME = 'beyond-full-art.json';
 export const BACKUP_FOLDER_SETTINGS_NAME = 'settings.json';
@@ -97,9 +99,16 @@ export async function ensureDirectoryPermission(
     return current;
   }
 
-  // A handle restored from IndexedDB stays `prompt` until this runs in the
-  // popup as soon as it opens, or on the Choose folder click. The directory
-  // picker is a later step.
+  // A handle restored from IndexedDB stays `prompt` until this runs during a
+  // user gesture. Skip the query when the caller already knows it is `prompt`:
+  // that extra wait drops the gesture and the request returns `prompt` with
+  // no question.
+  return requestDirectoryPermission(handle);
+}
+
+export async function requestDirectoryPermission(
+    handle: object,
+): Promise<BackupFolderPermission> {
   return readPermission(handle, 'requestPermission');
 }
 
@@ -144,6 +153,8 @@ export async function readBackupFolderConnection(
 
 export async function forgetBackupFolder(factory?: IDBFactory): Promise<void> {
   await deleteStoredBackupFolder(factory);
+  await releaseActiveFolderDirectory();
+  await releaseFolderHolder();
 }
 
 export async function markBackupFolderCopied(

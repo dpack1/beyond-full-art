@@ -119,6 +119,9 @@ describe('backup folder setup window', () => {
     expect(document.querySelector('#folder-setup-status')?.textContent)
         .toContain('Removed this browser\'s copies of 1 character');
     expect(copyButton().hidden).toBe(true);
+    expect(document.querySelector('#folder-setup-title')?.textContent).toBe('Folder ready');
+    expect(document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.hidden).toBe(true);
+    expect(document.querySelector<HTMLButtonElement>('#folder-setup-close')?.hidden).toBe(true);
   });
 
   it('leaves the browser copy when removal is declined', async () => {
@@ -152,6 +155,9 @@ describe('backup folder setup window', () => {
         .toContain('still keeps its own copies');
     expect(copyButton().hidden).toBe(false);
     expect(copyButton().textContent).toBe('Remove browser copies');
+    expect(document.querySelector('#folder-setup-title')?.textContent)
+        .toBe('Choose a backup folder');
+    expect(document.querySelector<HTMLElement>('.bfa-folder-setup__copy')?.hidden).toBe(false);
   });
 
   it('does not copy when the confirmation is declined', async () => {
@@ -462,7 +468,7 @@ describe('backup folder setup window', () => {
     document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
     await flush();
 
-    expect(order).toEqual(['update', 'request', 'update']);
+    expect(order).toEqual(['request', 'update', 'update', 'update']);
     expect(update).toHaveBeenNthCalledWith(1, 7, {focused: false, left: 948, top: 328});
     expect(update).toHaveBeenNthCalledWith(2, 7, {
       focused: true,
@@ -472,7 +478,56 @@ describe('backup folder setup window', () => {
       top: 80,
       width: 440,
     });
+    expect(update).toHaveBeenNthCalledWith(3, 7, {focused: false, left: 948, top: 328});
     expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
+  });
+
+  it('opens the toolbar popup before parking the setup window', async () => {
+    document.body.innerHTML = setupMarkup();
+    const order: string[] = [];
+    const directory = {name: 'Campaign art'} as FileSystemDirectoryHandle;
+    const openPopup = vi.fn().mockImplementation(async () => {
+      order.push('popup');
+    });
+    const update = vi.fn().mockImplementation(async () => {
+      order.push('update');
+      return {};
+    });
+    vi.stubGlobal('chrome', {
+      action: {openPopup},
+      windows: {
+        getAll: vi.fn().mockResolvedValue([{focused: true, id: 3}]),
+        getCurrent: vi.fn().mockResolvedValue({
+          height: 560,
+          id: 7,
+          width: 440,
+        }),
+        update,
+      },
+    });
+    Object.defineProperty(window.screen, 'availWidth', {configurable: true, value: 1400});
+    Object.defineProperty(window.screen, 'availHeight', {configurable: true, value: 900});
+
+    await initializeFolderSetup(document, {
+      adoptLibrary: vi.fn().mockResolvedValue({characters: 0, kind: 'saving-in-folder'}),
+      connect: vi.fn().mockResolvedValue({
+        folderName: 'Campaign art',
+        kind: 'initialized',
+      }),
+      isSavingInFolder: async () => false,
+      listCommitted: async () => new Set(),
+      pickDirectory: async () => directory,
+      readBrowserItems: async () => [],
+      readStoredFolder: async () => null,
+    });
+    document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
+    await flush();
+
+    expect(order).toEqual(['update', 'popup', 'update']);
+    expect(update).toHaveBeenNthCalledWith(1, 3, {focused: true});
+    expect(openPopup).toHaveBeenCalledWith({windowId: 3});
+    expect(update).toHaveBeenNthCalledWith(2, 7, {focused: false, left: 948, top: 328});
+    expect(document.querySelector<HTMLButtonElement>('#folder-setup-close')?.hidden).toBe(true);
   });
 
   it('reads the saved folder once this browser allows it', async () => {
@@ -498,7 +553,7 @@ describe('backup folder setup window', () => {
     expect(requestPermission).toHaveBeenCalledWith({mode: 'readwrite'});
     expect(pickDirectory).not.toHaveBeenCalled();
     expect(document.querySelector('#folder-setup-status')?.textContent)
-        .toBe('“Beyond-Full-Art” is where art and notes are saved. This browser is not keeping a second copy.');
+        .toBe('“Beyond-Full-Art” is connected. Journals and art in that folder show in the extension popup. This browser is not keeping a second copy. Leave this window open so the popup can keep listing them.');
   });
 
   it('opens the picker when the saved folder stays blocked', async () => {
@@ -572,9 +627,10 @@ describe('backup folder setup window', () => {
     document.body.innerHTML = setupMarkup();
     const directory = {name: 'Campaign art'} as FileSystemDirectoryHandle;
     const adoptLibrary = vi.fn().mockResolvedValue({characters: 0, kind: 'saving-in-folder'});
+    const confirmRemove = vi.fn().mockReturnValue(true);
     await initializeFolderSetup(document, {
       adoptLibrary,
-      confirmRemove: () => true,
+      confirmRemove,
       connect: vi.fn().mockResolvedValue({
         folderName: 'Campaign art',
         kind: 'initialized',
@@ -588,14 +644,52 @@ describe('backup folder setup window', () => {
     document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
     await flush();
 
+    expect(confirmRemove).not.toHaveBeenCalled();
     expect(adoptLibrary).toHaveBeenCalledWith(directory);
     expect(document.querySelector('#folder-setup-status')?.textContent)
         .toContain('not keeping a second copy');
+    expect(document.querySelector('#folder-setup-title')?.textContent).toBe('Folder ready');
+    expect(document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.hidden).toBe(true);
+    expect(document.querySelector<HTMLButtonElement>('#folder-setup-close')?.hidden).toBe(true);
+    expect(document.querySelector<HTMLElement>('.bfa-folder-setup__copy')?.hidden).toBe(true);
+    const closeWindow = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    document.querySelector<HTMLButtonElement>('#folder-setup-close')?.click();
+    expect(closeWindow).not.toHaveBeenCalled();
+    closeWindow.mockRestore();
+  });
+
+  it('starts saving in a prepared folder when this browser has nothing', async () => {
+    document.body.innerHTML = setupMarkup();
+    const directory = {name: 'Campaign art'} as FileSystemDirectoryHandle;
+    const adoptLibrary = vi.fn().mockResolvedValue({characters: 0, kind: 'saving-in-folder'});
+    const confirmRemove = vi.fn();
+    await initializeFolderSetup(document, {
+      adoptLibrary,
+      compareLibrary: async () => ({kind: 'match', siblings: []}),
+      confirmRemove,
+      connect: vi.fn().mockResolvedValue({
+        folderName: 'Campaign art',
+        kind: 'reconnected',
+      }),
+      isSavingInFolder: async () => false,
+      listCommitted: async () => new Set(['172153137']),
+      pickDirectory: async () => directory,
+      readBrowserItems: async () => [],
+      readStoredFolder: async () => null,
+    });
+    document.querySelector<HTMLButtonElement>('#folder-setup-choose')?.click();
+    await flush();
+
+    expect(confirmRemove).not.toHaveBeenCalled();
+    expect(adoptLibrary).toHaveBeenCalledWith(directory);
+    expect(document.querySelector('#folder-setup-title')?.textContent).toBe('Folder ready');
   });
 });
 
 function setupMarkup(): string {
   return `
+    <h1 id="folder-setup-title">Choose a backup folder</h1>
+    <p class="bfa-folder-setup__copy">Create a blank folder, then choose it here.</p>
     <button id="folder-setup-choose" type="button">Choose an empty folder</button>
     <button id="folder-setup-copy" type="button" hidden>Copy into folder</button>
     <button id="folder-setup-close" type="button">Close</button>
