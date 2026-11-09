@@ -206,6 +206,7 @@ journal by the operating system's theme.
 14. From the popup, export all journals. Open the ZIP and confirm each character ID has title-named Markdown notes and original-filename photos, plus root `backup.json`.
 15. After export, create a disposable note, then import the ZIP. Confirm the disposable note remains and backed-up notes are not duplicated. Delete one backed-up note, import again, and confirm it and its photos return.
 16. Edit a backed-up note after export, then import the older ZIP. Confirm the newer local edit wins. Import from a character row and confirm only that character is accepted.
+17. Open `https://www.dndbeyond.com/characters/172153137/builder/class/manage` and use the builder's Go to Character Sheet icon. Journal is in the sheet tab row. From that sheet, open the builder again and come back the same way. Journal is there again.
 
 Automated coverage for the simple fixture is `tests/e2e/character-journal.spec.ts`. The live-shaped sheet, first click, theme, and scroll coverage is `tests/e2e/character-journal-sheet.spec.ts`. Build screenshots are `tests/e2e/character-journal-build-shots.spec.ts`. None of them open the live site.
 

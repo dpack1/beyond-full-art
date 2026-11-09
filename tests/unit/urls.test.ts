@@ -5,6 +5,7 @@ import {
   isCampaignPageUrl,
   isCharacterCollectionPageUrl,
   isCharacterPageUrl,
+  isCharacterSheetPath,
   parseCharacterIdFromCharacterPageUrl,
 } from '../../src/platform/dndbeyond/urls';
 
@@ -20,7 +21,26 @@ describe('character page urls', () => {
     const url = new URL('https://www.dndbeyond.com/characters/169418374/builder');
 
     expect(isCharacterPageUrl(url)).toBe(true);
+    expect(isCharacterSheetPath(url)).toBe(false);
     expect(parseCharacterIdFromCharacterPageUrl(url)).toBe('169418374');
+  });
+
+  it('treats the sheet and a share link as sheet paths', () => {
+    expect(isCharacterSheetPath(
+        new URL('https://www.dndbeyond.com/characters/172153137'),
+    )).toBe(true);
+    expect(isCharacterSheetPath(
+        new URL('https://www.dndbeyond.com/characters/172153137/'),
+    )).toBe(true);
+    expect(isCharacterSheetPath(
+        new URL('https://www.dndbeyond.com/characters/172153137/share-token'),
+    )).toBe(true);
+    expect(isCharacterSheetPath(
+        new URL('https://www.dndbeyond.com/characters/172153137/builder/class/manage'),
+    )).toBe(false);
+    expect(isCharacterSheetPath(
+        new URL('https://www.dndbeyond.com/characters/builder'),
+    )).toBe(false);
   });
 
   it('rejects non-character paths', () => {

@@ -7,7 +7,6 @@ These are not product ambiguities that block the MVP. They are implementation de
 - Which stable DOM attributes or structural relationships identify the right-side character panel portrait?
   - Observed on 2026-08-06 from the provided manage-pane subtree: `[data-testid="character-manage-pane"]` contains `img.ddbc-character-avatar__portrait[alt="Character portrait"]`, with `.ct-sidebar__portal` available as a sidebar portal root.
 - Does D&D Beyond replace the portrait node when the panel rerenders?
-- Does client-side navigation reuse the same document?
 - Is `currentSrc` the best available image URL, or is a larger source already present in `srcset`, a parent link, or page data?
 - Are there alternate character sheet layouts at different viewport widths?
 

@@ -1,6 +1,6 @@
 # D&D Beyond character sheet reference
 
-**Last verified:** 2026-10-30 for the Current Decorations portrait hook on Matilda's sheet. Sheet layout and colors were last measured 2026-10-22.
+**Last verified:** 2026-10-30 for the Current Decorations portrait hook on Matilda's sheet. Sheet layout and colors were last measured 2026-10-22. Builder-to-sheet navigation was checked 2026-11-09 in character-app `main.b9f1c122.js`.
 
 **Reference and live-QA character:** Matilda Greywolf, Level 2 Warlock
 
@@ -66,6 +66,8 @@ Approximate sizes from the original 1920×1200 captures, measured to the outer e
 Main row, left to right: Actions, Spells, Inventory, Features & Traits, Background, Notes, Extras. **from-screenshot**
 
 The same labels are the set the journal adapter uses to recognize the row. **from-code**
+
+The builder and the sheet are the same character-app document. Checked 2026-11-09, bundle `main.b9f1c122.js`. `/characters/<id>` and `/characters/<id>/builder/...` share that document. The builder's Go to Character Sheet control is an anchor with href `/characters/<id>`. Its visible class is a hashed `styles_characterSheetIcon__*` and is not a selector the extension uses. The app router handles the click. The content script keeps running and inserts Journal when the Extras row appears.
 
 A second row sits just under the main row and changes with the section. **from-screenshot**
 
