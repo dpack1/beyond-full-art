@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import journalStyles from '../../src/features/character-journal/character-journal.css?raw';
 import {
@@ -257,7 +257,82 @@ describe('character sheet tabs adapter', () => {
     expect(indicatorCount(actionsItem)).toBe(1);
     expect(indicatorCount(journalItem)).toBe(indicatorCount(actionsItem));
   });
+
+  it('inserts Journal after the builder route becomes the sheet', async () => {
+    vi.useFakeTimers();
+    const originalHref = window.location.href;
+    window.history.replaceState(
+        {},
+        '',
+        '/characters/172153137/builder/class/manage',
+    );
+    document.body.innerHTML = CURRENT_CHARACTER_SHEET_TABS_FIXTURE;
+    const sheet = document.querySelector<HTMLElement>('.ct-character-sheet');
+    if (sheet === null) {
+      throw new Error('Missing sheet');
+    }
+
+    const tabs = sheet.innerHTML;
+    sheet.innerHTML = '';
+    const stopObserving = observeJournalTabTargets(() => {});
+    try {
+      await spendJournalScanBudget(sheet);
+      sheet.innerHTML = tabs;
+      await flushJournalScan();
+      expect(journalTab()).toBeNull();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(journalTab()).toBeNull();
+
+      window.history.replaceState({}, '', '/characters/172153137');
+      await vi.advanceTimersByTimeAsync(400);
+      expect(journalTab()?.textContent).toBe('Journal');
+    } finally {
+      stopObserving();
+      window.history.replaceState({}, '', originalHref);
+      vi.useRealTimers();
+    }
+  });
+
+  it('inserts Journal when the watched sheet root is replaced', async () => {
+    vi.useFakeTimers();
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/characters/172153137');
+    document.body.innerHTML = '<div class="ct-character-sheet" id="stale-sheet"></div>';
+    const stopObserving = observeJournalTabTargets(() => {});
+    try {
+      document.getElementById('stale-sheet')
+          ?.append(document.createElement('span'));
+      await flushJournalScan();
+      document.body.innerHTML = CURRENT_CHARACTER_SHEET_TABS_FIXTURE;
+      await flushJournalScan();
+      expect(journalTab()).toBeNull();
+
+      await vi.advanceTimersByTimeAsync(500);
+      expect(journalTab()?.textContent).toBe('Journal');
+    } finally {
+      stopObserving();
+      window.history.replaceState({}, '', originalHref);
+      vi.useRealTimers();
+    }
+  });
 });
+
+async function flushJournalScan(): Promise<void> {
+  await vi.advanceTimersByTimeAsync(0);
+}
+
+async function spendJournalScanBudget(sheet: HTMLElement): Promise<void> {
+  await flushJournalScan();
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    sheet.append(document.createElement('span'));
+    await flushJournalScan();
+  }
+}
+
+function journalTab(): Element | null {
+  return document.querySelector('[data-bfa-character-journal-tab="true"]');
+}
 
 function indicatorCount(root: HTMLElement): number {
   const view = root.ownerDocument.defaultView;

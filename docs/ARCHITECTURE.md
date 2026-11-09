@@ -190,6 +190,16 @@ at the top of the right-hand content box, not along the bottom of the page.
 The content host is the body under the row. See
 [docs/ddb-reference/README.md](ddb-reference/README.md).
 
+The builder and the sheet are one character-app document. Checked 2026-11-09
+against `main.b9f1c122.js`: `/characters/<id>` and
+`/characters/<id>/builder/...` return the same HTML shell, and the app swaps
+the builder for the sheet on the client. Go to Character Sheet is an anchor
+whose href is `/characters/<id>`. The click does not inject
+`character-sheet-entry.js` again. The journal observer keeps watching through
+that route change. A sheet root that is removed is observed from `document.body`
+again, and a sheet path keeps looking for Extras after the short scan budget
+is spent. The builder path does not keep that timer.
+
 When the journal tab is active, the extension hides the native sheet content
 children in that host, appends `bfa-character-journal-section`, and restores the
 native content when a native D&D Beyond tab is clicked.

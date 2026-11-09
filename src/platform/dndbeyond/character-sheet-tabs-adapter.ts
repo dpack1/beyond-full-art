@@ -1,4 +1,5 @@
 import type {Cleanup} from '../../shared/types';
+import {isCharacterSheetPath} from './urls';
 import {
   CHARACTER_SHEET_JOURNAL_TAB_ATTRIBUTE_NAME,
   CHARACTER_SHEET_JOURNAL_TAB_CLASS_NAME,
@@ -19,6 +20,13 @@ const CORE_SHEET_TAB_LABELS = [
   'extras',
 ];
 
+// Six looks per two seconds matches the old mutation budget. The retry and
+// the route poll exist because that budget used to be the last look.
+const JOURNAL_TAB_SCAN_LIMIT = 6;
+const JOURNAL_TAB_SCAN_WINDOW_MS = 2000;
+const JOURNAL_TAB_RETRY_MS = 250;
+const JOURNAL_TAB_ROUTE_POLL_MS = 400;
+
 export interface CharacterSheetJournalTabTarget {
   cleanup: Cleanup;
   contentHost: HTMLElement;
@@ -34,22 +42,95 @@ export function observeJournalTabTargets(
   let insertAttempts = 0;
   let attemptWindowStartedAt = Date.now();
   let scanScheduled = false;
+  let retryTimer: number | null = null;
+  let observedPathname = doc.location.pathname;
+  const view = doc.defaultView;
   const sheetSelector = CHARACTER_SHEET_SELECTOR;
+  // The builder and the sheet are one character-app document. Go to Character
+  // Sheet updates the history entry, so this script is not injected again.
+  // The sheet root can also be replaced, which leaves a narrower observer
+  // attached to a node that is no longer in the page.
+  let observerRoot: Node = doc.body;
+
+  const clearRetry = () => {
+    if (retryTimer === null || view === null) {
+      retryTimer = null;
+      return;
+    }
+
+    view.clearTimeout(retryTimer);
+    retryTimer = null;
+  };
+
+  const scheduleRetry = () => {
+    if (retryTimer !== null || view === null) {
+      return;
+    }
+
+    let sheetPath = false;
+    try {
+      sheetPath = isCharacterSheetPath(new URL(doc.location.href));
+    } catch {
+      sheetPath = false;
+    }
+    if (!sheetPath) {
+      return;
+    }
+
+    const elapsed = Date.now() - attemptWindowStartedAt;
+    const wait = insertAttempts >= JOURNAL_TAB_SCAN_LIMIT
+      ? Math.max(20, JOURNAL_TAB_SCAN_WINDOW_MS - elapsed + 20)
+      : JOURNAL_TAB_RETRY_MS;
+    retryTimer = view.setTimeout(() => {
+      retryTimer = null;
+      scan();
+    }, wait);
+  };
+
+  const ensureObserverAttached = () => {
+    if (observerRoot.isConnected) {
+      return;
+    }
+
+    const nextRoot = doc.body ?? doc.documentElement;
+    if (nextRoot === null) {
+      return;
+    }
+
+    observer.disconnect();
+    observerRoot = nextRoot;
+    observer.observe(nextRoot, {
+      childList: true,
+      subtree: true,
+    });
+  };
 
   const scan = () => {
+    ensureObserverAttached();
+    const pathname = doc.location.pathname;
+    if (pathname !== observedPathname) {
+      observedPathname = pathname;
+      insertAttempts = 0;
+      attemptWindowStartedAt = Date.now();
+      activeTarget?.cleanup();
+      activeTarget = null;
+    }
+
     if (
       activeTarget?.tab.isConnected === true
       && activeTarget.contentHost.isConnected
     ) {
+      clearRetry();
       return;
     }
 
     const now = Date.now();
-    if (now - attemptWindowStartedAt > 2000) {
+    if (now - attemptWindowStartedAt > JOURNAL_TAB_SCAN_WINDOW_MS) {
       insertAttempts = 0;
       attemptWindowStartedAt = now;
     }
-    if (insertAttempts >= 6) {
+    if (insertAttempts >= JOURNAL_TAB_SCAN_LIMIT) {
+      scheduleRetry();
       return;
     }
 
@@ -57,8 +138,12 @@ export function observeJournalTabTargets(
     activeTarget?.cleanup();
     activeTarget = findOrCreateJournalTab(doc);
     if (activeTarget !== null) {
+      clearRetry();
       onTarget(activeTarget);
+      return;
     }
+
+    scheduleRetry();
   };
 
   const scheduleScan = () => {
@@ -73,11 +158,9 @@ export function observeJournalTabTargets(
     });
   };
 
-  scheduleScan();
-
   const observer = new MutationObserver(() => {
     const sheet = doc.querySelector(sheetSelector);
-    if (sheet !== null && observerRoot !== sheet) {
+    if (sheet !== null && observerRoot !== sheet && sheet.isConnected) {
       observer.disconnect();
       observerRoot = sheet;
       observer.observe(sheet, {
@@ -87,13 +170,26 @@ export function observeJournalTabTargets(
     }
     scheduleScan();
   });
-  let observerRoot: Node = doc.body;
   observer.observe(doc.body, {
     childList: true,
     subtree: true,
   });
+  scheduleScan();
+
+  const routeTimer = view?.setInterval(() => {
+    if (
+      !observerRoot.isConnected
+      || doc.location.pathname !== observedPathname
+    ) {
+      scan();
+    }
+  }, JOURNAL_TAB_ROUTE_POLL_MS);
 
   return () => {
+    clearRetry();
+    if (routeTimer !== undefined) {
+      view?.clearInterval(routeTimer);
+    }
     observer.disconnect();
     activeTarget?.cleanup();
     activeTarget = null;
