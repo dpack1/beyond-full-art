@@ -3,9 +3,12 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {
   ensureFolderSession,
   FOLDER_SESSION_PAGE,
+  handFolderToSession,
   installFolderSessionMessages,
   markFolderSessionReady,
   FOLDER_SESSION_READY_KEY,
+  readActiveFolderDirectory,
+  rememberActiveFolderDirectory,
   touchFolderSession,
 } from '../../src/platform/chrome/folder-session';
 
@@ -103,6 +106,62 @@ describe('folder session', () => {
 
     expect(runtime.sendMessage).toHaveBeenCalledTimes(2);
     expect(runtime.sendMessage).toHaveBeenCalledWith({type: 'bfa.folder.session.touch'});
+  });
+
+  it('gives the already open folder to the hidden page', async () => {
+    const handle = {
+      getDirectoryHandle: async () => ({}),
+      name: 'Beyond-Full-Art',
+    } as unknown as FileSystemDirectoryHandle;
+    const runtime = {
+      sendMessage: vi.fn(function (this: unknown) {
+        if (this !== runtime) {
+          throw new TypeError('Illegal invocation');
+        }
+        return Promise.resolve({open: true});
+      }),
+    };
+    vi.stubGlobal('chrome', {runtime});
+
+    await expect(handFolderToSession(handle)).resolves.toBe(true);
+
+    expect(runtime.sendMessage).toHaveBeenCalledWith({
+      handle,
+      type: 'bfa.folder.session.hold',
+    });
+  });
+
+  it('remembers a folder handed from an extension page', () => {
+    const handle = {
+      getDirectoryHandle: async () => ({}),
+    } as unknown as FileSystemDirectoryHandle;
+    const listeners: Array<(
+      message: unknown,
+      sender: chrome.runtime.MessageSender,
+    ) => void> = [];
+    vi.stubGlobal('chrome', {
+      runtime: {
+        id: 'extension-id',
+        onMessage: {
+          addListener(listener: (
+            message: unknown,
+            sender: chrome.runtime.MessageSender,
+          ) => void) {
+            listeners.push(listener);
+          },
+        },
+      },
+    });
+    rememberActiveFolderDirectory(null);
+    installFolderSessionMessages();
+
+    listeners.at(-1)?.(
+        {handle, type: 'bfa.folder.session.hold'},
+        {id: 'extension-id', url: 'chrome-extension://extension-id/folder/setup.html'},
+    );
+
+    expect(readActiveFolderDirectory()).toBe(handle);
+    rememberActiveFolderDirectory(null);
   });
 
   it('records that the folder session is ready', async () => {

@@ -3,7 +3,9 @@ import {
   readDirectoryPermission,
 } from '../platform/chrome/backup-folder';
 import {
+  FOLDER_SESSION_HOLD_MESSAGE,
   FOLDER_SESSION_READY_MESSAGE,
+  FOLDER_SESSION_RELEASE_MESSAGE,
   FOLDER_SESSION_TOUCH_MESSAGE,
 } from '../platform/chrome/folder-session';
 import {getStoredBackupFolder} from '../platform/chrome/indexed-db';
@@ -16,25 +18,69 @@ let held: FileSystemDirectoryHandle | null = null;
 
 async function touch(): Promise<boolean> {
   const stored = await getStoredBackupFolder();
-  const handle = stored?.handle ?? null;
-  if (handle === null) {
+  if (stored?.handle == null) {
     held = null;
+    shareRelease();
     return false;
   }
-  const permission = await readDirectoryPermission(handle);
-  if (permission === 'denied') {
-    held = null;
-    return false;
+  return openAndHold(held ?? stored.handle, stored.handle);
+}
+
+async function openAndHold(
+    preferred: FileSystemDirectoryHandle | null,
+    stored: FileSystemDirectoryHandle,
+): Promise<boolean> {
+  const candidates = preferred !== null && preferred !== stored
+    ? [preferred, stored]
+    : [stored];
+  for (const handle of candidates) {
+    const permission = await readDirectoryPermission(handle);
+    if (permission === 'denied') {
+      continue;
+    }
+    try {
+      await handle.getDirectoryHandle(BACKUP_FOLDER_CHARACTERS_DIRECTORY);
+      held = handle;
+      shareHeldFolder();
+      return true;
+    } catch {
+      // The other copy may be the one the setup window already opened.
+    }
   }
-  try {
-    await handle.getDirectoryHandle(BACKUP_FOLDER_CHARACTERS_DIRECTORY);
-  } catch {
-    // Keep a handle that already opened the folder. A later check can fail
-    // while the toolbar popup is still the page that holds the grant.
-    return false;
+  return false;
+}
+
+function shareHeldFolder(): void {
+  if (held === null || chrome.runtime?.sendMessage === undefined) {
+    return;
   }
-  held = handle;
-  return true;
+  const pending = chrome.runtime.sendMessage({
+    handle: held,
+    type: FOLDER_SESSION_HOLD_MESSAGE,
+  });
+  if (pending instanceof Promise) {
+    void pending.catch(() => {
+      // The service worker stores the handle when it is listening.
+    });
+  }
+}
+
+function shareRelease(): void {
+  if (chrome.runtime?.sendMessage === undefined) {
+    return;
+  }
+  const pending = chrome.runtime.sendMessage({type: FOLDER_SESSION_RELEASE_MESSAGE});
+  if (pending instanceof Promise) {
+    void pending.catch(() => {
+      // Forgetting the folder still removed the saved handle.
+    });
+  }
+}
+
+function isDirectoryHandle(value: unknown): value is FileSystemDirectoryHandle {
+  return typeof value === 'object'
+    && value !== null
+    && typeof (value as FileSystemDirectoryHandle).getDirectoryHandle === 'function';
 }
 
 function publish(open: boolean): void {
@@ -84,11 +130,30 @@ async function keepFolderOpen(): Promise<void> {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (
-    typeof message !== 'object'
-    || message === null
-    || (message as {type?: unknown}).type !== FOLDER_SESSION_TOUCH_MESSAGE
-  ) {
+  if (typeof message !== 'object' || message === null) {
+    return;
+  }
+  const type = (message as {type?: unknown}).type;
+  if (type === FOLDER_SESSION_RELEASE_MESSAGE) {
+    held = null;
+    return;
+  }
+  if (type === FOLDER_SESSION_HOLD_MESSAGE) {
+    const handle = (message as {handle?: unknown}).handle;
+    void (async () => {
+      const stored = await getStoredBackupFolder();
+      const open = stored?.handle == null
+        ? false
+        : await openAndHold(
+            isDirectoryHandle(handle) ? handle : null,
+            stored.handle,
+        );
+      publish(open);
+      sendResponse({open});
+    })();
+    return true;
+  }
+  if (type !== FOLDER_SESSION_TOUCH_MESSAGE) {
     return;
   }
   void touch().then((open) => {

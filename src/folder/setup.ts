@@ -2,8 +2,8 @@ import setupStyles from './setup.css?raw';
 import {
   BACKUP_FOLDER_PICKER_ID,
   connectBackupFolder,
-  ensureDirectoryPermission,
   readDirectoryPermission,
+  requestDirectoryPermission,
   type BackupFolderPermission,
   type ConnectBackupFolderResult,
 } from '../platform/chrome/backup-folder';
@@ -37,11 +37,17 @@ import {
   type ConflictChoice,
   type ResolveFolderConflictsResult,
 } from '../platform/chrome/folder-library-conflicts';
+import {installFolderHolder} from '../platform/chrome/folder-holder';
+import {handFolderToSession, holdFolderSession} from '../platform/chrome/folder-session';
 import {getStoredBackupFolder} from '../platform/chrome/indexed-db';
 import {syncFolderSettings} from '../platform/chrome/folder-settings';
 import {isFolderLibrary} from '../platform/chrome/library-mode';
 
 const STYLE_ATTRIBUTE_NAME = 'data-bfa-folder-setup-styles';
+const JOURNALS_SHOW_IN_POPUP = 'Journals and art in that folder show in the extension popup.';
+const SETUP_STAYS_OPEN = 'Leave this window open so the popup can keep listing them.';
+
+let folderReady = false;
 
 export const FOLDER_PICKER_UNAVAILABLE_MESSAGE =
   'The folder picker did not open. Chrome, Edge, and Opera allow it with no extra setting. Brave blocks it until you open brave://flags/#file-system-access-api, set File System Access API to Enabled, and relaunch Brave. In another Chromium browser, open its flags page, search for File System Access API, set it to Enabled if it is listed, and relaunch. Then choose the folder again. Nothing was changed.';
@@ -77,6 +83,7 @@ export async function initializeFolderSetup(
     doc: Document,
     options: Partial<FolderSetupActions> = {},
 ): Promise<void> {
+  folderReady = false;
   ensureStyles(doc);
   const choose = doc.querySelector<HTMLButtonElement>('#folder-setup-choose');
   const copy = doc.querySelector<HTMLButtonElement>('#folder-setup-copy');
@@ -92,22 +99,33 @@ export async function initializeFolderSetup(
   }
   let generation = 0;
   close.addEventListener('click', () => {
+    if (folderReady) {
+      void revealJournalPopup();
+      return;
+    }
     window.close();
   });
   doc.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && !close.disabled) {
+      if (folderReady) {
+        void revealJournalPopup();
+        return;
+      }
       window.close();
     }
   });
   choose.addEventListener('click', () => {
     const ticket = ++generation;
+    close.disabled = true;
     void chooseFolder(
         () => ticket === generation,
         choose,
         copy,
         status,
         actions,
-    );
+    ).finally(() => {
+      close.disabled = false;
+    });
   });
   const opened = generation;
   await offerStoredFolder(() => opened === generation, copy, status, actions);
@@ -286,6 +304,10 @@ async function presentFolder(
     actions: FolderSetupActions,
 ): Promise<void> {
   clearConflictReview(status);
+  // This window is the document Chrome allowed. Keep that directory here and
+  // answer folder reads for the popup and the service worker.
+  installFolderHolder(directory);
+  await handFolderToSession(directory);
   let items: LibraryItem[];
   try {
     items = await actions.readBrowserItems();
@@ -319,9 +341,8 @@ async function presentFolder(
   if (committed.size > 0) {
     status.classList.remove('bfa-folder-setup__status--error');
     if (await actions.isSavingInFolder()) {
-      copy.hidden = true;
       status.textContent = savingInFolderMessage(folderName);
-      await syncFolderSettings();
+      await markFolderReady(choose, copy, status);
       return;
     }
     let comparison: LibraryComparison;
@@ -355,17 +376,16 @@ async function presentFolder(
     }
     const hasLocal = items.length > 0;
     const siblingNotice = siblingMessage(comparison);
-    status.textContent = hasLocal
-      ? `“${folderName}” already has saved characters. This browser still has its own copies.${siblingNotice}`
-      : `“${folderName}” already has saved characters. This browser has no copies to remove.${siblingNotice}`;
+    if (!hasLocal) {
+      status.textContent = `“${folderName}” already has saved characters. This browser has no copies to remove.${siblingNotice}`;
+      await adoptNow(current, choose, copy, status, directory, folderName, actions);
+      return;
+    }
+    status.textContent = `“${folderName}” already has saved characters. This browser still has its own copies.${siblingNotice}`;
     await runAdopt(current, choose, copy, status, directory, folderName, actions, {
-      buttonLabel: hasLocal ? 'Remove browser copies' : 'Save in folder',
-      declinedMessage: hasLocal
-        ? `“${folderName}” already has saved characters. This browser still keeps its own copies.${siblingNotice}`
-        : `“${folderName}” has saved characters. This browser will keep saving here until you use the folder.${siblingNotice}`,
-      prompt: hasLocal
-        ? `Remove this browser's copies now that “${folderName}” has them? New art and notes will save in that folder.${siblingNotice}`
-        : `Save new art and notes in “${folderName}” from now on? This browser will not keep a second copy.${siblingNotice}`,
+      buttonLabel: 'Remove browser copies',
+      declinedMessage: `“${folderName}” already has saved characters. This browser still keeps its own copies.${siblingNotice}`,
+      prompt: `Remove this browser's copies now that “${folderName}” has them? New art and notes will save in that folder.${siblingNotice}`,
     });
     return;
   }
@@ -375,15 +395,13 @@ async function presentFolder(
   status.textContent = libraryDecisionMessage(folderName, decision);
   if (decision.kind !== 'blank-with-local') {
     if (await actions.isSavingInFolder()) {
-      copy.hidden = true;
       status.textContent = savingInFolderMessage(folderName);
+      await markFolderReady(choose, copy, status);
       return;
     }
-    await runAdopt(current, choose, copy, status, directory, folderName, actions, {
-      buttonLabel: 'Save in folder',
-      declinedMessage: `“${folderName}” is ready. New art and notes stay in this browser until you save them in the folder.`,
-      prompt: `Save new art and notes in “${folderName}” from now on? This browser will not keep a second copy.`,
-    });
+    // This browser has nothing to remove. Choosing the folder is the choice
+    // to save here.
+    await adoptNow(current, choose, copy, status, directory, folderName, actions);
     return;
   }
 
@@ -705,8 +723,7 @@ async function runAdopt(
     status.classList.toggle('bfa-folder-setup__status--error', failed);
     status.textContent = describeAdoptResult(folderName, result);
     if (!failed) {
-      copy.hidden = true;
-      await syncFolderSettings();
+      await markFolderReady(choose, copy, status);
     }
   } catch {
     if (!current()) {
@@ -722,8 +739,149 @@ async function runAdopt(
   }
 }
 
+async function adoptNow(
+    current: () => boolean,
+    choose: HTMLButtonElement | null,
+    copy: HTMLButtonElement,
+    status: HTMLParagraphElement,
+    directory: FileSystemDirectoryHandle,
+    folderName: string,
+    actions: FolderSetupActions,
+): Promise<void> {
+  copy.hidden = true;
+  if (choose !== null) {
+    choose.disabled = true;
+  }
+  status.classList.remove('bfa-folder-setup__status--error');
+  try {
+    const result = await actions.adoptLibrary(directory);
+    if (!current()) {
+      return;
+    }
+    const failed = result.kind === 'mismatch' || result.kind === 'unavailable';
+    status.classList.toggle('bfa-folder-setup__status--error', failed);
+    status.textContent = describeAdoptResult(folderName, result);
+    if (!failed) {
+      await markFolderReady(choose, copy, status);
+    }
+  } catch {
+    if (!current()) {
+      return;
+    }
+    status.classList.add('bfa-folder-setup__status--error');
+    status.textContent = 'The folder is connected. This browser could not start saving there yet. Nothing was removed.';
+  } finally {
+    copy.disabled = false;
+    if (choose !== null) {
+      choose.disabled = false;
+    }
+  }
+}
+
+async function markFolderReady(
+    choose: HTMLButtonElement | null,
+    copy: HTMLButtonElement,
+    status: HTMLParagraphElement,
+): Promise<void> {
+  copy.hidden = true;
+  if (choose !== null) {
+    choose.hidden = true;
+  }
+  const doc = status.ownerDocument;
+  const title = doc.querySelector('#folder-setup-title');
+  if (title !== null) {
+    title.textContent = 'Folder ready';
+  }
+  for (const paragraph of doc.querySelectorAll<HTMLElement>('.bfa-folder-setup__copy')) {
+    paragraph.hidden = true;
+  }
+  const close = doc.querySelector<HTMLButtonElement>('#folder-setup-close');
+  if (close !== null) {
+    // Done looked like the last step, so the window was closed and the
+    // folder grant went with it. The title bar is still there. This button
+    // is hidden so the page does not ask to be dismissed.
+    close.hidden = true;
+  }
+  if (!status.textContent?.includes(JOURNALS_SHOW_IN_POPUP)) {
+    status.textContent = `${status.textContent ?? ''} ${JOURNALS_SHOW_IN_POPUP}`.trim();
+  }
+  if (!status.textContent.includes(SETUP_STAYS_OPEN)) {
+    status.textContent = `${status.textContent} ${SETUP_STAYS_OPEN}`;
+  }
+  folderReady = true;
+  await syncFolderSettings();
+  await holdFolderSession();
+  await revealJournalPopup();
+}
+
+async function revealJournalPopup(): Promise<void> {
+  // openPopup fails unless a normal browser window is focused. Parking this
+  // window first leaves that call with nothing to attach to, so the toolbar
+  // popup never appears and the list still waits on another click.
+  const windowId = await focusBrowserWindow();
+  await openToolbarPopup(windowId);
+  await parkSetupWindow();
+}
+
+async function focusBrowserWindow(): Promise<number | undefined> {
+  const windowsApi = globalThis.chrome?.windows;
+  if (windowsApi?.getAll === undefined || windowsApi.update === undefined) {
+    return undefined;
+  }
+  try {
+    const open = await windowsApi.getAll({windowTypes: ['normal']});
+    const browser = open.find((item) => item.focused === true) ?? open[0];
+    if (browser?.id === undefined) {
+      return undefined;
+    }
+    await windowsApi.update(browser.id, {focused: true});
+    return browser.id;
+  } catch {
+    return undefined;
+  }
+}
+
+async function openToolbarPopup(windowId: number | undefined): Promise<void> {
+  const action = globalThis.chrome?.action;
+  if (action?.openPopup === undefined) {
+    return;
+  }
+  try {
+    if (windowId === undefined) {
+      await action.openPopup();
+    } else {
+      await action.openPopup({windowId});
+    }
+  } catch {
+    // The toolbar icon still lists the folder while this window stays open.
+  }
+}
+
+async function parkSetupWindow(): Promise<void> {
+  const windowsApi = chromeWindowApi();
+  if (windowsApi === null) {
+    return;
+  }
+  try {
+    const current = await windowsApi.getCurrent();
+    if (current.id === undefined) {
+      return;
+    }
+    const place: SetupWindowPlace = {id: current.id};
+    if (current.width !== undefined) {
+      place.width = current.width;
+    }
+    if (current.height !== undefined) {
+      place.height = current.height;
+    }
+    await windowsApi.update(current.id, parkedWindowBounds(place));
+  } catch {
+    // Closing this document is what drops the folder. Leave it open.
+  }
+}
+
 function savingInFolderMessage(folderName: string): string {
-  return `“${folderName}” is where art and notes are saved. This browser is not keeping a second copy.`;
+  return `“${folderName}” is connected. ${JOURNALS_SHOW_IN_POPUP} This browser is not keeping a second copy.`;
 }
 
 function siblingMessage(comparison: LibraryComparison): string {
@@ -817,14 +975,15 @@ async function allowDirectory(handle: object): Promise<BackupFolderPermission> {
     return current;
   }
 
-  // The setup window is a popup, so it stays above Brave's allow question.
-  // Park it in the corner until that question is answered.
+  // Ask in this turn. Waiting for the window move first spends the click,
+  // Brave never shows the question, and the handle stays `prompt`. The move
+  // still runs so this popup does not cover the question.
   announcePermissionStepAside();
-  const place = await stepAsideForPermissionPrompt();
+  const parking = stepAsideForPermissionPrompt();
   try {
-    return await ensureDirectoryPermission(handle);
+    return await requestDirectoryPermission(handle);
   } finally {
-    await restoreSetupWindow(place);
+    await restoreSetupWindow(await parking);
   }
 }
 

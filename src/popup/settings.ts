@@ -36,7 +36,8 @@ void initializePopup(document);
 export async function initializePopup(doc: Document): Promise<void> {
   ensureStyles(doc);
   // Ask before the other settings load. A saved folder can only be allowed
-  // while this popup still has the toolbar click.
+  // while this popup still has the toolbar click. The inventory reads that
+  // folder, so the connection has to settle before the list loads.
   await allowSavedBackupFolder();
 
   const checkbox = doc.querySelector<HTMLInputElement>(
@@ -106,8 +107,8 @@ export async function initializePopup(doc: Document): Promise<void> {
   }
 
   await installCleanupPreference(doc);
+  await installBackupFolder(doc);
   await Promise.all([
-    installBackupFolder(doc),
     installStorageUsage(doc),
     installStoredContent(doc),
   ]);

@@ -443,17 +443,26 @@ expose that picker with no extra setting. Brave hides it until
 `brave://flags/#file-system-access-api` is set to Enabled and Brave is
 relaunched. Another Chromium browser that hides it may list File System
 Access API on its own flags page. A handle loaded from IndexedDB often has
-permission `prompt`. The popup calls `requestPermission` for that saved
-folder as soon as it opens, before the other settings load. Choose folder
-asks again when that first ask does not land, before opening the directory
-picker. Chrome drops that access
+permission `prompt`. The setup window calls `requestPermission` before it
+moves, so the click still counts, then moves to the bottom-right corner
+while that allow question is open and returns to where it was. Chrome grants the folder to the setup window only. A cloned handle does not
+let the toolbar popup or the service worker open `characters/`, and opening
+the toolbar popup is not a click, so `requestPermission` there stays `prompt`
+and shows no question. The setup window therefore stays open. When the folder
+is ready the in-page close button hides, the toolbar popup opens, and the
+setup window then moves to the corner. It performs the folder reads and writes
+for the service worker. That popup lists the journals without another click.
+Closing that setup window from its title bar drops the grant. The popup
+button then says **Show journals**, and that click allows the folder in the
+popup. The popup still calls `requestPermission` as soon as it opens, before
+the other settings load, and shows **Check folder** when `characters/` opens
+even if a later query is still `prompt`.
+Chrome drops that access
 when the last extension page closes, so a hidden `folder/session.html` page
 stays open and keeps trying to open `characters/` until that succeeds. It
 then holds the handle. Sheet refreshes keep reading the folder while that
 page is open, without Choose folder. Quitting the browser or reloading the
 extension can require opening the popup once more.
-The setup window is a popup, so it moves to the bottom-right corner while
-that allow question is open, then returns to where it was.
 A `prompt` handle can still be read when `characters/` opens. A denied
 handle, or a handle that cannot open `characters/`, stays blocked. The
 folder's files stay in the folder. An empty folder receives
@@ -474,8 +483,9 @@ alone. The marker becomes schema version 2 when that copy has no failures, or
 when the player starts saving in a prepared folder that has no browser copies
 to remove.
 
-When the player then confirms cleanup, or confirms an empty browser should
-save in the folder, `bfa.library.mode` becomes `folder`. That flag is written
+When the player then confirms cleanup, or an empty browser starts saving in
+the folder, `bfa.library.mode` becomes `folder`. The setup window says the
+folder is ready. That flag is written
 before the browser art, crop, note, and photo records are removed. Popup
 toggles, the companion portrait selection, and the directory handle stay.
 From then on the service worker reads and writes full art, crops, notes, and
